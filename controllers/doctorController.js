@@ -1,7 +1,13 @@
-// controllers/doctorController.js
 import Doctor from "../models/doctorModel.js";
-import fs from "fs";
-import path from "path";
+import { v2 as cloudinary } from "cloudinary";
+import streamifier from "streamifier";
+
+// إعداد Cloudinary
+cloudinary.config({
+  cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
+  api_key: process.env.CLOUDINARY_API_KEY,
+  api_secret: process.env.CLOUDINARY_API_SECRET
+});
 
 // جلب كل الدكاترة
 export const getAllDoctors = async (req, res) => {
@@ -18,16 +24,27 @@ export const getAllDoctors = async (req, res) => {
 export const addDoctor = async (req, res) => {
   try {
     const { _id, name, email, phone } = req.body;
-    const image = req.file ? req.file.filename : null;
 
-    if (!_id || !name || !email || !phone) {
+    if (!_id || !name || !email || !phone)
       return res.status(400).json({ message: "All fields are required" });
-    }
 
     const exists = await Doctor.findOne({ email });
     if (exists) return res.status(400).json({ message: "Doctor email already exists" });
 
-    const doctor = await Doctor.create({ _id, name, email, phone, image });
+    let imageUrl = null;
+    if (req.file) {
+      const streamUpload = () => new Promise((resolve, reject) => {
+        const stream = cloudinary.uploader.upload_stream(
+          { folder: "uploads" },
+          (error, result) => (result ? resolve(result) : reject(error))
+        );
+        streamifier.createReadStream(req.file.buffer).pipe(stream);
+      });
+      const result = await streamUpload();
+      imageUrl = result.secure_url;
+    }
+
+    const doctor = await Doctor.create({ _id, name, email, phone, image: imageUrl });
     res.status(201).json({ message: "Doctor added", doctor });
   } catch (err) {
     console.error(err);
@@ -35,25 +52,28 @@ export const addDoctor = async (req, res) => {
   }
 };
 
-// تحديث بيانات دكتور + صورة
+// تحديث دكتور مع صورة
 export const updateDoctor = async (req, res) => {
   try {
     const { id } = req.params;
     const updates = req.body;
 
-    if (req.file) updates.image = req.file.filename;
-
-    const doc = await Doctor.findOne({ _id: id });
-    if (!doc) return res.status(404).json({ message: "Doctor not found" });
-
-    // حذف الصورة القديمة لو متغيرة
-    if (updates.image && doc.image) {
-      const oldPath = path.join("uploads", doc.image);
-      if (fs.existsSync(oldPath)) fs.unlinkSync(oldPath);
+    if (req.file) {
+      const streamUpload = () => new Promise((resolve, reject) => {
+        const stream = cloudinary.uploader.upload_stream(
+          { folder: "uploads" },
+          (error, result) => (result ? resolve(result) : reject(error))
+        );
+        streamifier.createReadStream(req.file.buffer).pipe(stream);
+      });
+      const result = await streamUpload();
+      updates.image = result.secure_url;
     }
 
-    const updatedDoc = await Doctor.findOneAndUpdate({ _id: id }, updates, { new: true });
-    res.json({ message: "Doctor updated", doctor: updatedDoc });
+    const doc = await Doctor.findByIdAndUpdate(id, updates, { new: true });
+    if (!doc) return res.status(404).json({ message: "Doctor not found" });
+
+    res.json({ message: "Doctor updated", doctor: doc });
   } catch (err) {
     console.error(err);
     res.status(500).json({ message: "Server error" });
@@ -61,21 +81,11 @@ export const updateDoctor = async (req, res) => {
 };
 
 // حذف دكتور
-
 export const deleteDoctor = async (req, res) => {
   try {
     const { id } = req.params;
-    const doc = await Doctor.findById(id);
+    const doc = await Doctor.findByIdAndDelete(id);
     if (!doc) return res.status(404).json({ message: "Doctor not found" });
-
-    // حذف الصورة لو موجودة
-    if (doc.image) {
-      const imagePath = path.join("uploads", doc.image);
-      if (fs.existsSync(imagePath)) fs.unlinkSync(imagePath);
-    }
-
-    // استخدام findByIdAndDelete بدل remove
-    await Doctor.findByIdAndDelete(id);
 
     res.json({ message: "Doctor removed" });
   } catch (err) {
