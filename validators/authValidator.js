@@ -34,12 +34,12 @@ export const forgotSchema = Joi.object({
 
 export const verifyOtpSchema = Joi.object({
   email: Joi.string().email().required(),
-  otp: Joi.string().length(6).required()
+  otp: Joi.string().length(4).required()
 });
 
 export const resetPasswordSchema = Joi.object({
   email: Joi.string().email().required(),
-  otp: Joi.string().length(6).required(),
+  otp: Joi.string().length(4).required(),
   newPassword: Joi.string().min(8).required(),
   confirmPassword: Joi.ref("newPassword")
 }).with("newPassword", "confirmPassword");
