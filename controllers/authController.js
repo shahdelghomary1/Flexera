@@ -112,9 +112,9 @@ export const forgotPassword = async (req, res) => {
     const user = await User.findOne({ email });
     if (!user) return res.status(404).json({ message: "User not found" });
 
-    const otp = Math.floor(100000 + Math.random() * 900000).toString();
+    const otp = Math.floor(1000 + Math.random() * 9000).toString(); // 4 أرقام
     user.resetOTP = hashOTP(otp);
-    user.resetOTPExpires = Date.now() + 10 * 40 * 1000;
+    user.resetOTPExpires = Date.now() + 10 * 60 * 1000; // 10 دقائق
     await user.save();
 
     await sendOTPEmail(email, otp);
@@ -124,6 +124,7 @@ export const forgotPassword = async (req, res) => {
     return res.status(500).json({ message: "Server error" });
   }
 };
+
 
 export const verifyOTP = async (req, res) => {
   const { email, otp } = req.body;
