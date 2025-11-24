@@ -2,9 +2,13 @@
 import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
 import crypto from "crypto";
+import streamifier from "streamifier";
+import Schedule from "../models/scheduleModel.js";
 import User from "../models/userModel.js";
-import { sendOTPEmail } from "../utils/mailer.js"; // افترضت إن عندك utils/mailer.js
-
+import { sendOTPEmail } from "../utils/mailer.js"; 
+import { v2 as cloudinary } from "cloudinary";
+import mongoose from "mongoose";
+import Doctor from "../models/doctorModel.js";
 const hashOTP = (otp) => crypto.createHash("sha256").update(otp).digest("hex");
 
 const signTokenWithRole = (user) => {
@@ -21,7 +25,6 @@ export const loginUser = async (req, res) => {
     const user = await User.findOne({ email });
     if (!user) return res.status(400).json({ message: "User not found" });
 
-    // optional: ensure role matches what user selected in UI (login form chooses Staff/User)
     if (roleFromFront && user.role !== roleFromFront) {
       return res.status(403).json({ message: "Wrong role for this account" });
     }
@@ -60,7 +63,6 @@ export const googleAuth = async (req, res) => {
   }
 };
 
-// forgotPassword, verifyOTP, resetPassword — كما في كودك السابق، ضفت هنا للتماشي:
 export const forgotPassword = async (req, res) => {
   const { email } = req.body;
   try {
@@ -112,11 +114,10 @@ export const registerUser = async (req, res) => {
     const exists = await User.findOne({ email });
     if (exists) return res.status(400).json({ message: "User already exists" });
 
-    // الطريقة الصحيحة: نستخدم new User + save() عشان pre-save hook يشغّل
     const user = new User({
       name,
       email,
-      password, // pre-save hook هيشفّر الباسورد
+      password, 
       role: role || "user",
     });
     await user.save();
@@ -141,7 +142,7 @@ export const resetPassword = async (req, res) => {
     const user = await User.findById(decoded.id);
     if (!user) return res.status(404).json({ message: "User not found" });
 
-    user.password = newPassword; // pre-save hook هاش الباسورد تلقائيًا
+    user.password = newPassword; 
     user.resetOTP = undefined;
     user.resetOTPExpires = undefined;
     await user.save();
@@ -150,5 +151,105 @@ export const resetPassword = async (req, res) => {
   } catch (err) {
     console.error(err);
     return res.status(500).json({ message: "Server error" });
+  }
+};
+
+
+
+
+cloudinary.config({
+  cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
+  api_key: process.env.CLOUDINARY_API_KEY,
+  api_secret: process.env.CLOUDINARY_API_SECRET,
+});
+
+
+export const updateAccount = async (req, res) => {
+  console.log("req.user:", req.user);
+console.log("req.user?._id:", req.user?._id);
+console.log("Is valid ObjectId:", mongoose.Types.ObjectId.isValid(req.user?._id));
+
+  try {
+    
+    if (!mongoose.Types.ObjectId.isValid(req.user._id)) {
+      return res.status(400).json({ message: "Invalid user ID" });
+    }
+
+    const user = await User.findById(req.user._id);
+    if (!user) return res.status(404).json({ message: "User not found" });
+
+    const { name, phone, password, dob, gender, height, weight } = req.body;
+
+    if (name) user.name = name;
+    if (phone) user.phone = phone;
+    if (dob) user.dob = dob;
+    if (gender) user.gender = gender;
+    if (height) user.height = height;
+    if (weight) user.weight = weight;
+
+    if (password) {
+      const salt = await bcrypt.genSalt(10);
+      user.password = await bcrypt.hash(password, salt);
+    }
+
+
+    if (req.files) {
+      const uploadToCloudinary = (file, folder) =>
+        new Promise((resolve, reject) => {
+          const stream = cloudinary.uploader.upload_stream({ folder }, (err, result) => {
+            if (err) return reject(err);
+            resolve(result.secure_url);
+          });
+          streamifier.createReadStream(file[0].buffer).pipe(stream);
+        });
+
+      if (req.files.image) {
+        user.image = await uploadToCloudinary(req.files.image, "users/images");
+      }
+      if (req.files.medicalFile) {
+        user.medicalFile = await uploadToCloudinary(req.files.medicalFile, "users/medical");
+      }
+    }
+
+    await user.save();
+
+    const { password: pw, ...userData } = user._doc;
+    res.status(200).json({ message: "Account updated successfully", user: userData });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: err.message });
+  }
+};
+
+export const getDoctorsForUser = async (req, res) => {
+  try {
+    
+    const doctors = await Doctor.find()
+      .select("name  image ") 
+      .sort({ name: 1 }); 
+
+    res.status(200).json({ doctors });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: "Server error" });
+  }
+};
+
+// GET /api/user/doctor-schedule?doctorId=xxx
+export const getDoctorScheduleForUser = async (req, res) => {
+  try {
+    const doctorId = req.query.doctorId;
+    if (!doctorId) return res.status(400).json({ message: "doctorId is required" });
+
+    const schedules = await Schedule.find({ doctor: doctorId })
+      .select("date timeSlots")  
+      .sort({ date: 1 });       
+    res.status(200).json({
+      message: "Doctor schedule fetched for user",
+      schedules
+    });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: "Server error", error: err.message });
   }
 };

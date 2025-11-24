@@ -3,7 +3,6 @@ import { v2 as cloudinary } from "cloudinary";
 import streamifier from "streamifier";
 import { upload } from "../middleware/multer.js";
 
-// إعداد Cloudinary من Environment Variables
 cloudinary.config({
   cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
   api_key: process.env.CLOUDINARY_API_KEY,
@@ -16,8 +15,6 @@ export default async function handler(req, res) {
   upload.single("image")(req, {}, async (err) => {
     if (err) return res.status(400).json({ error: err.message });
     if (!req.file) return res.status(400).json({ error: "No file uploaded" });
-
-    // رفع الصورة من الذاكرة لـ Cloudinary
     const streamUpload = () =>
       new Promise((resolve, reject) => {
         const stream = cloudinary.uploader.upload_stream(
@@ -39,7 +36,6 @@ export default async function handler(req, res) {
   });
 }
 
-// منع body parsing التلقائي على Vercel
 export const config = {
   api: {
     bodyParser: false,

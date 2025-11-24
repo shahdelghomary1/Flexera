@@ -1,18 +1,29 @@
 import express from "express";
 import { protect, authorize } from "../middleware/authMiddleware.js";
 import { upload } from "../middleware/multer.js";
-import {
-  getAllDoctors,
-  addDoctor,
-  updateDoctor,
-  deleteDoctor,
-} from "../controllers/doctorController.js";
+import { updateDoctorAccount, getAllDoctors, addDoctor, updateDoctor, deleteDoctor, doctorSignup, doctorForgotPassword, doctorVerifyOTP,
+  doctorResetPassword,doctorLogin} from "../controllers/doctorController.js";
 
 const router = express.Router();
+
 
 router.get("/", protect, authorize("staff"), getAllDoctors);
 router.post("/", protect, authorize("staff"), upload.single("image"), addDoctor);
 router.put("/:id", protect, authorize("staff"), upload.single("image"), updateDoctor);
 router.delete("/:id", protect, authorize("staff"), deleteDoctor);
+
+router.post("/signup", doctorSignup);
+router.post("/login", doctorLogin);
+
+router.post("/forgot-password", doctorForgotPassword);
+router.post("/verify-otp", doctorVerifyOTP);
+router.post("/reset-password", doctorResetPassword);
+router.put( "/account", protect("doctor"), upload.single("image"),updateDoctorAccount
+);
+
+
+
+
+
 
 export default router;
