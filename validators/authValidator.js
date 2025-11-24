@@ -25,9 +25,7 @@ export const loginSchema = Joi.object({
   
 });
 export const googleSchema = Joi.object({
-  email: Joi.string().email().required(),
-  name: Joi.string().required(),
-  googleId: Joi.string().required(),
+  credential: Joi.string().required(),
 });
 
 export const forgotSchema = Joi.object({

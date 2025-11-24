@@ -1,5 +1,5 @@
 import express from "express";
-import { registerUser, loginUser, googleAuth ,forgotPassword, verifyOTP, resetPassword ,updateAccount,getDoctorsForUser ,getDoctorScheduleForUser }  from "../controllers/authController.js";
+import { registerUser, loginUser, googleOAuth ,forgotPassword, verifyOTP, resetPassword ,updateAccount,getDoctorsForUser ,getDoctorScheduleForUser }  from "../controllers/authController.js";
 import { validate } from "../middleware/validate.js";
 import { registerSchema, loginSchema, googleSchema , forgotSchema, verifyOtpSchema, resetPasswordSchema } from "../validators/authValidator.js";
 import { protect } from "../middleware/authMiddleware.js"; 
@@ -8,7 +8,7 @@ import { bookAppointment, getUserAppointments } from "../controllers/scheduleCon
 const router = express.Router();
 router.post("/register", validate(registerSchema), registerUser);
 router.post("/login", validate(loginSchema), loginUser);
-router.post("/google", validate(googleSchema), googleAuth);
+router.post("/google", validate(googleSchema), googleOAuth);
 router.post("/forgot-password", validate(forgotSchema), forgotPassword);
 router.post("/verify-otp", validate(verifyOtpSchema), verifyOTP);
 router.post("/reset-password", validate(resetPasswordSchema), resetPassword);

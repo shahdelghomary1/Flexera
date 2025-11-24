@@ -8,8 +8,16 @@ import User from "../models/userModel.js";
 import { sendOTPEmail } from "../utils/mailer.js"; 
 import { v2 as cloudinary } from "cloudinary";
 import mongoose from "mongoose";
+import { OAuth2Client } from "google-auth-library";
 import Doctor from "../models/doctorModel.js";
 const hashOTP = (otp) => crypto.createHash("sha256").update(otp).digest("hex");
+
+cloudinary.config({
+  cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
+  api_key: process.env.CLOUDINARY_API_KEY,
+  api_secret: process.env.CLOUDINARY_API_SECRET,
+});
+
 
 const signTokenWithRole = (user) => {
   return jwt.sign({ id: user._id, role: user.role }, process.env.JWT_SECRET, {
@@ -41,27 +49,62 @@ export const loginUser = async (req, res) => {
   }
 };
 
-export const googleAuth = async (req, res) => {
-  const { email, name, googleId } = req.body;
+const client = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
+
+// ================= GOOGLE AUTH =====================
+
+export const googleOAuth = async (req, res) => {
   try {
+    const { credential } = req.body;
+
+    if (!credential) {
+      return res.status(400).json({ message: "No credential provided" });
+    }
+
+    const ticket = await client.verifyIdToken({
+      idToken: credential,
+      audience: process.env.GOOGLE_CLIENT_ID,
+    });
+
+    const payload = ticket.getPayload();
+    const { email, name, picture, sub } = payload;
+
     let user = await User.findOne({ email });
+
+    let isNewUser = false;
+
     if (!user) {
       user = await User.create({
         name,
         email,
-        password: googleId,
+        image: picture,
+        password: sub,
         role: "user",
       });
+      isNewUser = true;
     }
 
     const token = signTokenWithRole(user);
-    const { password: pw, ...userData } = user._doc;
-    res.json({ token, user: userData });
+    const { password, ...userData } = user._doc;
+
+    res.status(200).json({
+      message: isNewUser
+        ? "Google signup successful"
+        : "Google login successful",
+      status: isNewUser ? "signup" : "login",
+      token,
+      user: userData,
+    });
+
   } catch (err) {
-    console.error(err);
-    res.status(500).json({ message: err.message });
+    console.error("Google OAuth error:", err);
+    res.status(500).json({
+      message: "Google OAuth failed",
+      error: err.message,
+    });
   }
 };
+
 
 export const forgotPassword = async (req, res) => {
   const { email } = req.body;
@@ -71,7 +114,7 @@ export const forgotPassword = async (req, res) => {
 
     const otp = Math.floor(100000 + Math.random() * 900000).toString();
     user.resetOTP = hashOTP(otp);
-    user.resetOTPExpires = Date.now() + 10 * 60 * 1000;
+    user.resetOTPExpires = Date.now() + 10 * 40 * 1000;
     await user.save();
 
     await sendOTPEmail(email, otp);
@@ -155,13 +198,6 @@ export const resetPassword = async (req, res) => {
 };
 
 
-
-
-cloudinary.config({
-  cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
-  api_key: process.env.CLOUDINARY_API_KEY,
-  api_secret: process.env.CLOUDINARY_API_SECRET,
-});
 
 
 export const updateAccount = async (req, res) => {
