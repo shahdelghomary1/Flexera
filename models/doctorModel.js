@@ -8,7 +8,8 @@ const doctorSchema = new mongoose.Schema({
   phone: { type: String, required: true },
   image: { type: String },
   password: { type: String }, 
-dateOfBirth: { type: Date }, 
+   price: { type: Number, required: true },
+  dateOfBirth: { type: Date }, 
   gender: { type: String, enum: ["Female", "Male"] }, 
 
   resetOTP: { type: String },

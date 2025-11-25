@@ -28,10 +28,10 @@ export const getAllDoctors = async (req, res) => {
 };
 export const addDoctor = async (req, res) => {
   try {
-    const { _id, name, email, phone } = req.body;
+    const { _id, name, email, phone, price } = req.body;
 
-    if (!_id || !name || !email || !phone)
-      return res.status(400).json({ message: "All fields are required" });
+    if (!_id || !name || !email || !phone || price == null)
+      return res.status(400).json({ message: "All fields including price are required" });
 
     const exists = await Doctor.findOne({ email });
     if (exists) return res.status(400).json({ message: "Doctor email already exists" });
@@ -49,7 +49,7 @@ export const addDoctor = async (req, res) => {
       imageUrl = result.secure_url;
     }
 
-    const doctor = await Doctor.create({ _id, name, email, phone, image: imageUrl });
+    const doctor = await Doctor.create({ _id, name, email, phone, image: imageUrl, price });
     res.status(201).json({ message: "Doctor added", doctor });
   } catch (err) {
     console.error(err);
@@ -84,7 +84,6 @@ export const updateDoctor = async (req, res) => {
   }
 };
 
-
 export const deleteDoctor = async (req, res) => {
   try {
     const { id } = req.params;
@@ -97,6 +96,7 @@ export const deleteDoctor = async (req, res) => {
     res.status(500).json({ message: "Server error" });
   }
 };
+
 
 
 const signToken = (doctor) => {
