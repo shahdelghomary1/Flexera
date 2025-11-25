@@ -392,19 +392,19 @@ export const updateDoctorAccount = async (req, res) => {
     const doctor = await Doctor.findById(doctorId);
     if (!doctor) return res.status(404).json({ message: "Doctor not found" });
 
-    
+    // تحديث الحقول الأساسية
     ["name", "email", "phone", "dateOfBirth", "gender"].forEach(field => {
       if (req.body[field]) doctor[field] = req.body[field];
     });
-    if (req.body.password) {
-      doctor.password = req.body.password; 
-    }
-   
+
+    // تحديث الباسورد إذا موجود
+    if (req.body.password) doctor.password = req.body.password; // pre-save هيتعامل مع الـ hashing
+
+    // رفع الصورة لو موجودة
     if (req.file) {
       const streamUpload = (fileBuffer) =>
         new Promise((resolve, reject) => {
           const stream = cloudinary.uploader.upload_stream(
-            { folder: "doctors/images" },
             (error, result) => (result ? resolve(result) : reject(error))
           );
           streamifier.createReadStream(fileBuffer).pipe(stream);
@@ -413,17 +413,20 @@ export const updateDoctorAccount = async (req, res) => {
       const uploadedImage = await streamUpload(req.file.buffer);
       doctor.image = uploadedImage.secure_url;
     }
-    await doctor.save(); 
+
+    await doctor.save();
+
     res.json({ message: "Account updated successfully", doctor });
+
   } catch (err) {
     console.error("UPDATE DOCTOR ERROR:", err);
-  
     if (err.code === 11000 && err.keyPattern?.email) {
       return res.status(400).json({ message: "Email already exists" });
     }
     res.status(500).json({ message: "Server error", error: err.message });
   }
 };
+
 export const getDoctorsForUser = async (req, res) => {
   try {
     
