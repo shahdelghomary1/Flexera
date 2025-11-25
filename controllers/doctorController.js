@@ -227,12 +227,12 @@ export const doctorForgotPassword = async (req, res) => {
 
     const otp = Math.floor(1000 + Math.random() * 9000).toString();
     doctor.resetOTP = hashOTP(otp);
-    doctor.resetOTPExpires = Date.now() + 10 * 60 * 1000; // 10 دقائق
+    doctor.resetOTPExpires = Date.now() + 10 * 60 * 1000; 
     await doctor.save();
 
     await sendOTPEmail(email, otp);
 
-    // ✅ نرجع otpToken بدلاً من doctorId
+    
     const otpToken = jwt.sign({ id: doctor._id }, process.env.JWT_SECRET, { expiresIn: "10m" });
 
     res.status(200).json({ message: "OTP sent to email", otpToken });
@@ -273,9 +273,19 @@ export const doctorVerifyOTP = async (req, res) => {
 };
 
 export const doctorResetPassword = async (req, res) => {
-  const { resetToken, newPassword, confirmPassword } = req.body;
-  if (!resetToken) return res.status(400).json({ message: "Reset token required" });
-  if (newPassword !== confirmPassword) return res.status(400).json({ message: "Passwords do not match" });
+  const authHeader = req.headers.authorization;
+  if (!authHeader || !authHeader.startsWith("Bearer ")) {
+    return res.status(401).json({ message: "Authorization token required" });
+  }
+
+  const resetToken = authHeader.split(" ")[1]; // ناخد التوكن بعد كلمة Bearer
+  const { newPassword, confirmPassword } = req.body;
+
+  if (!newPassword || !confirmPassword)
+    return res.status(400).json({ message: "Passwords are required" });
+
+  if (newPassword !== confirmPassword)
+    return res.status(400).json({ message: "Passwords do not match" });
 
   try {
     const decoded = jwt.verify(resetToken, process.env.JWT_SECRET);
