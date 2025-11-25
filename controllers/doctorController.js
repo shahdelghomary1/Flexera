@@ -18,7 +18,7 @@ cloudinary.config({
 
 
 
-// ================== جلب كل الحجوزات لدكتور ==================
+
 export const getAppointmentsForDoctor = async (req, res) => {
   
   try {
@@ -64,7 +64,7 @@ export const getAppointmentsForDoctor = async (req, res) => {
   }
 };
 
-// ================== إضافة تمارين لحجز ==================
+
 export const addExercisesToAppointment = async (req, res) => {
   try {
     const { scheduleId } = req.params; 
@@ -392,7 +392,7 @@ export const updateDoctorAccount = async (req, res) => {
 
     const doctorId = req.user._id;
 
-    // تجهيز الحقول للتحديث فقط لو موجودة
+    
     const updateFields = {};
     if (req.body.name) updateFields.name = req.body.name;
     if (req.body.email) updateFields.email = req.body.email;
@@ -400,7 +400,7 @@ export const updateDoctorAccount = async (req, res) => {
     if (req.body.dateOfBirth) updateFields.dateOfBirth = req.body.dateOfBirth;
     if (req.body.gender) updateFields.gender = req.body.gender;
 
-    // رفع الصورة لو موجودة
+ 
     if (req.file) {
       const streamUpload = (fileBuffer) => {
         return new Promise((resolve, reject) => {
@@ -419,7 +419,7 @@ export const updateDoctorAccount = async (req, res) => {
       updateFields.image = uploadedImage.secure_url;
     }
 
-    // تحديث الداتا في قاعدة البيانات
+  
     const updatedDoctor = await Doctor.findByIdAndUpdate(
       doctorId,
       updateFields,
