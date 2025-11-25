@@ -4,7 +4,6 @@ import { upload } from "../middleware/multer.js";
 import { updateDoctorAccount, getAllDoctors, addDoctor, updateDoctor, deleteDoctor, doctorSignup, doctorForgotPassword, doctorVerifyOTP,
   doctorResetPassword,doctorLogin} from "../controllers/doctorController.js";
 import { addDoctorSchema, updateDoctorSchema, doctorSignupSchema, doctorResetPasswordSchema } from "../validators/doctorValidation.js";
-import { getAppointmentsForDoctor, addExercisesToAppointment } from "../controllers/scheduleController.js";
 
 import { validate } from "../middleware/validate.js";
 const router = express.Router();

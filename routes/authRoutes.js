@@ -4,7 +4,7 @@ import { validate } from "../middleware/validate.js";
 import { registerSchema, loginSchema, googleSchema , forgotSchema, verifyOtpSchema, resetPasswordSchema } from "../validators/authValidator.js";
 import { protect } from "../middleware/authMiddleware.js"; 
 import { upload } from "../middleware/multer.js"
-
+import { bookAppointment, getUserAppointments } from "../controllers/scheduleController.js";
 const router = express.Router();
 router.post("/register", validate(registerSchema), registerUser);
 router.post("/login", validate(loginSchema), loginUser);
