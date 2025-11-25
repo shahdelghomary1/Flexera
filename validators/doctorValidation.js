@@ -1,28 +1,42 @@
 import Joi from "joi";
 
-export const doctorSchema = Joi.object({
-  _id: Joi.string().trim().required().messages({
-    "string.empty": "Doctor ID is required",
-    "any.required": "Doctor ID is required"
-  }),
 
-  name: Joi.string().min(3).required().messages({
-    "string.empty": "Name is required",
-    "string.min": "Name must be at least 3 characters"
+export const addDoctorSchema = Joi.object({
+  _id: Joi.string()
+    .length(6) 
+    .required()
+    .messages({
+      "string.base": "ID must be a string",
+      "string.length": "ID must be exactly 6 characters",
+      "any.required": "ID is required"
+    }),
+  name: Joi.string().required().messages({
+    "any.required": "Name is required"
   }),
-
   email: Joi.string().email().required().messages({
-    "string.empty": "Email is required",
-    "string.email": "Invalid email format"
+    "string.email": "Email must be valid",
+    "any.required": "Email is required"
   }),
-
-  phone: Joi.string().pattern(/^01[0-2,5][0-9]{8}$/).required().messages({
-    "string.empty": "Phone number is required",
-    "string.pattern.base": "Phone must be an Egyptian number of 11 digits"
-  }),
-
-  price: Joi.number().min(0).required().messages({
-    "number.base": "Price must be a number",
+  phone: Joi.string()
+    .pattern(/^\d{11}$/)
+    .required()
+    .messages({
+      "string.pattern.base": "Phone number must be 11 digits",
+      "any.required": "Phone number is required"
+    }),
+  price: Joi.number().required().messages({
     "any.required": "Price is required"
   })
+});
+
+
+export const updateDoctorSchema = Joi.object({
+  name: Joi.string(),
+  email: Joi.string().email().messages({
+    "string.email": "Email must be valid"
+  }),
+  phone: Joi.string().pattern(/^\d{11}$/).messages({
+    "string.pattern.base": "Phone number must be 11 digits"
+  }),
+  price: Joi.number(),
 });

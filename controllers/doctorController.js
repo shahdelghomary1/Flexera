@@ -30,20 +30,20 @@ export const addDoctor = async (req, res) => {
   try {
     const { _id, name, email, phone, price } = req.body;
 
-    // التأكد من requirements
+  
     if (!_id || !name || !email || !phone || price == null) {
       return res.status(400).json({ message: "All fields including price are required" });
     }
 
-    // التأكد إن الـ ID مش مستخدم
+ 
     const idExists = await Doctor.findById(_id);
     if (idExists) return res.status(400).json({ message: "Doctor ID already exists" });
 
-    // التأكد إن الإيميل مش مستخدم
+   
     const emailExists = await Doctor.findOne({ email });
     if (emailExists) return res.status(400).json({ message: "Doctor email already exists" });
 
-    // رفع الصورة لو موجودة
+
     let imageUrl = null;
 
     if (req.file) {
@@ -60,7 +60,7 @@ export const addDoctor = async (req, res) => {
       imageUrl = result.secure_url;
     }
 
-    // إنشاء الدكتور
+   
     const doctor = await Doctor.create({
       _id,
       name,
@@ -149,18 +149,18 @@ export const doctorSignup = async (req, res) => {
       return res.status(400).json({ message: "Passwords do not match" });
     }
 
-    // تأكد من الـ ID موجود مسبقًا
+    
     let doctor = await Doctor.findById(_id);
     if (!doctor) return res.status(404).json({ message: "Doctor ID not found" });
 
-    // تحقق من أن الإيميل متطابق مع الـ ID
+   
     if (doctor.email && doctor.email !== email) {
       return res.status(400).json({ message: "Email does not match this ID" });
     }
 
     doctor.name = name;
     doctor.email = email;
-    doctor.password = password; // pre-save hook سيعمل hash تلقائي
+    doctor.password = password; 
     await doctor.save();
 
     const token = signToken(doctor);
@@ -227,11 +227,15 @@ export const doctorForgotPassword = async (req, res) => {
 
     const otp = Math.floor(100000 + Math.random() * 900000).toString();
     doctor.resetOTP = hashOTP(otp);
-    doctor.resetOTPExpires = Date.now() + 10 * 60 * 1000;
+    doctor.resetOTPExpires = Date.now() + 10 * 60 * 1000; // 10 دقائق
     await doctor.save();
 
     await sendOTPEmail(email, otp);
-    res.status(200).json({ message: "OTP sent to email" });
+
+    // ✅ نرجع otpToken بدلاً من doctorId
+    const otpToken = jwt.sign({ id: doctor._id }, process.env.JWT_SECRET, { expiresIn: "10m" });
+
+    res.status(200).json({ message: "OTP sent to email", otpToken });
   } catch (err) {
     console.error(err);
     res.status(500).json({ message: "Server error" });
@@ -240,9 +244,14 @@ export const doctorForgotPassword = async (req, res) => {
 
 
 export const doctorVerifyOTP = async (req, res) => {
-  const { _id, otp } = req.body;
+  const { otp } = req.body;
+  const otpToken = req.headers.authorization?.split(" ")[1]; // من الهيدر
+
+  if (!otpToken) return res.status(400).json({ message: "OTP token required" });
+
   try {
-    const doctor = await Doctor.findById(_id);
+    const decoded = jwt.verify(otpToken, process.env.JWT_SECRET);
+    const doctor = await Doctor.findById(decoded.id);
     if (!doctor) return res.status(404).json({ message: "Doctor not found" });
 
     if (!doctor.resetOTP || !doctor.resetOTPExpires) return res.status(400).json({ message: "No OTP requested" });
@@ -255,8 +264,8 @@ export const doctorVerifyOTP = async (req, res) => {
 
     if (hashOTP(otp) !== doctor.resetOTP) return res.status(400).json({ message: "Invalid OTP" });
 
-    const token = jwt.sign({ id: doctor._id }, process.env.JWT_SECRET, { expiresIn: "10m" });
-    res.status(200).json({ message: "OTP verified", resetToken: token });
+    const resetToken = jwt.sign({ id: doctor._id }, process.env.JWT_SECRET, { expiresIn: "10m" });
+    res.status(200).json({ message: "OTP verified", resetToken });
   } catch (err) {
     console.error(err);
     res.status(500).json({ message: "Server error" });
