@@ -101,7 +101,7 @@ export const updateDoctor = async (req, res) => {
       updates.image = result.secure_url;
     }
 
-    const doc = await Doctor.findByIdAndUpdate(id, updates, { new: true });
+    const doc = await Doctor.findByIdAndUpdate(_id, updates, { new: true });
     if (!doc) return res.status(404).json({ message: "Doctor not found" });
 
     res.json({ message: "Doctor updated", doctor: doc });
@@ -116,7 +116,7 @@ export const updateDoctor = async (req, res) => {
 export const deleteDoctor = async (req, res) => {
   try {
     const { _id } = req.params;
-    const doc = await Doctor.findByIdAndDelete(id);
+    const doc = await Doctor.findByIdAndDelete(_id);
     if (!doc) return res.status(404).json({ message: "Doctor not found" });
 
     res.json({ message: "Doctor removed" });
