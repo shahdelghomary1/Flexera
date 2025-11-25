@@ -5,9 +5,13 @@ export const registerSchema = Joi.object({
     "string.empty": "Name is required",
     "string.min": "Name must be at least 3 characters",
   }),
-  email: Joi.string().email().required().messages({
-    "string.email": "Valid email is required",
+  .email({ tlds: { allow: false } }) 
+  .pattern(/@gmail\.com$/) 
+  .required()
+  .messages({
     "string.empty": "Email is required",
+    "string.email": "Valid email is required",
+    "string.pattern.base": "Email must be a Gmail address"
   }),
   password: Joi.string()
     .min(8)
