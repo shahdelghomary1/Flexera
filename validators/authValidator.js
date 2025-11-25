@@ -86,9 +86,6 @@ export const resetPassword = async (req, res) => {
 };
 
 export const resetPasswordSchema = Joi.object({
-  resetToken: Joi.string().required().messages({
-    "string.empty": "Reset token is required"
-  }),
   newPassword: Joi.string()
     .min(8)
     .pattern(new RegExp("^(?=.*[a-z])(?=.*[A-Z])(?=.*\\d)(?=.*[@$!%*?&]).*$"))
@@ -102,8 +99,7 @@ export const resetPasswordSchema = Joi.object({
     .valid(Joi.ref("newPassword"))
     .required()
     .messages({
-      "any.only": "Confirm password must match new password",
+      "any.only": "Confirm password must match password",
       "any.required": "Confirm password is required",
     }),
 });
-
