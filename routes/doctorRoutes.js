@@ -12,7 +12,7 @@ const router = express.Router();
 router.get("/", protect, authorize("staff"), getAllDoctors);
 router.post("/", protect(["staff"]), validate(addDoctorSchema), authorize("staff"), upload.single("image"), addDoctor);
 router.put("/:id", protect, authorize("staff"), validate(updateDoctorSchema), upload.single("image"), updateDoctor);
-router.put("/:id", protect, authorize("staff"), upload.single("image"), updateDoctor);
+
 router.delete("/:id", protect, authorize("staff"), deleteDoctor);
 
 router.post("/signup", doctorSignup);

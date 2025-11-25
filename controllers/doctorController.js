@@ -225,7 +225,7 @@ export const doctorForgotPassword = async (req, res) => {
     if (!doctor) return res.status(404).json({ message: "Doctor not found" });
     if (doctor.email !== email) return res.status(400).json({ message: "Email does not match ID" });
 
-    const otp = Math.floor(100000 + Math.random() * 900000).toString();
+    const otp = Math.floor(1000 + Math.random() * 9000).toString();
     doctor.resetOTP = hashOTP(otp);
     doctor.resetOTPExpires = Date.now() + 10 * 60 * 1000; // 10 دقائق
     await doctor.save();
@@ -245,7 +245,7 @@ export const doctorForgotPassword = async (req, res) => {
 
 export const doctorVerifyOTP = async (req, res) => {
   const { otp } = req.body;
-  const otpToken = req.headers.authorization?.split(" ")[1]; // من الهيدر
+  const otpToken = req.headers.authorization?.split(" ")[1]; 
 
   if (!otpToken) return res.status(400).json({ message: "OTP token required" });
 
