@@ -8,7 +8,7 @@ const router = express.Router();
 
 
 router.get("/", protect, authorize("staff"), getAllDoctors);
-router.post("/", protect, authorize("staff"), upload.single("image"), addDoctor);
+router.post("/", protect(["staff"]), authorize("staff"), upload.single("image"), addDoctor);
 router.put("/:id", protect, authorize("staff"), upload.single("image"), updateDoctor);
 router.delete("/:id", protect, authorize("staff"), deleteDoctor);
 
