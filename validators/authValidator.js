@@ -52,8 +52,10 @@ export const forgotSchema = Joi.object({
 });
 
 export const verifyOtpSchema = Joi.object({
-  email: Joi.string().email().required(),
-  otp: Joi.string().length(4).required()
+  otp: Joi.string().length(4).required().messages({
+    "string.empty": "OTP is required",
+    "string.length": "OTP must be 4 digits",
+  }),
 });
 export const resetPassword = async (req, res) => {
   const { resetToken, newPassword, confirmPassword } = req.body;
