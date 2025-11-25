@@ -7,6 +7,7 @@ import { v2 as cloudinary } from "cloudinary";
 import streamifier from "streamifier";
 import jwt from "jsonwebtoken";
 import crypto from "crypto";
+import Schedule from "../models/scheduleModel.js";
 import { sendOTPEmail } from "../utils/mailer.js";
 const hashOTP = (otp) => crypto.createHash("sha256").update(otp).digest("hex");
 cloudinary.config({
@@ -14,6 +15,48 @@ cloudinary.config({
   api_key: process.env.CLOUDINARY_API_KEY,
   api_secret: process.env.CLOUDINARY_API_SECRET
 });
+
+
+// ================== جلب كل الحجوزات لدكتور ==================
+export const getAppointmentsForDoctor = async (req, res) => {
+  try {
+    const doctorId = req.user._id; 
+
+    const appointments = await Schedule.find({ doctor: doctorId })
+      .populate("user", "name image medicalFile") /
+      .sort({ date: 1 });
+
+    res.status(200).json({ message: "Appointments fetched", appointments });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: "Server error", error: err.message });
+  }
+};
+
+// ================== إضافة تمارين لحجز ==================
+export const addExercisesToAppointment = async (req, res) => {
+  try {
+    const { scheduleId } = req.params; 
+    const { exercises } = req.body; 
+
+    if (!exercises || !Array.isArray(exercises)) {
+      return res.status(400).json({ message: "Exercises must be an array" });
+    }
+
+    const schedule = await Schedule.findById(scheduleId);
+    if (!schedule) return res.status(404).json({ message: "Appointment not found" });
+
+    
+    schedule.exercises.push(...exercises);
+    await schedule.save();
+
+    res.status(200).json({ message: "Exercises added successfully", schedule });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: "Server error", error: err.message });
+  }
+};
+
 
 export const getAllDoctors = async (req, res) => {
   try {

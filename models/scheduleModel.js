@@ -19,7 +19,8 @@ const doctorScheduleSchema = new mongoose.Schema({
     type: String, 
     required: true
   },
-  timeSlots: [timeSlotSchema]
+  timeSlots: [timeSlotSchema],
+  exercises: [{ type: String }]
 }, { timestamps: true });
 
 export default mongoose.model("Schedule", doctorScheduleSchema);
