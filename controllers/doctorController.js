@@ -81,7 +81,7 @@ export const addDoctor = async (req, res) => {
 
 export const updateDoctor = async (req, res) => {
   try {
-    const { id } = req.params;  // ✔️ صح
+    const { id } = req.params;  
 
     const updates = { ...req.body };
 
