@@ -372,13 +372,34 @@ export const getDoctorScheduleForUser = async (req, res) => {
     const doctorId = req.query.doctorId;
     if (!doctorId) return res.status(400).json({ message: "doctorId is required" });
 
+    const doctor = await Doctor.findById(doctorId).select("name image price _id");
+    if (!doctor) return res.status(404).json({ message: "Doctor not found" });
+
     const schedules = await Schedule.find({ doctor: doctorId })
-      .select("date timeSlots")  
-      .sort({ date: 1 });       
+      .select("date timeSlots")
+      .sort({ date: 1 });
+
+    const formattedSchedules = schedules.map(schedule => ({
+      _id: schedule._id,
+      date: schedule.date,
+      timeSlots: schedule.timeSlots.map(slot => ({
+        from: slot.from,
+        to: slot.to,
+        _id: slot._id
+      })),
+      doctor: {
+        _id: doctor._id, 
+        name: doctor.name,
+        image: doctor.image,
+        price: doctor.price
+      }
+    }));
+
     res.status(200).json({
       message: "Doctor schedule fetched for user",
-      schedules
+      schedules: formattedSchedules
     });
+
   } catch (err) {
     console.error(err);
     res.status(500).json({ message: "Server error", error: err.message });
