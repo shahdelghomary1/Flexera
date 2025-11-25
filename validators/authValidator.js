@@ -18,6 +18,13 @@ export const registerSchema = Joi.object({
       "string.min": "Password must be at least 8 characters",
       "string.pattern.base": "Password must contain at least one uppercase, one lowercase, one number, and one special character",
     }),
+    confirmPassword: Joi.any()
+    .valid(Joi.ref("password"))
+    .required()
+    .messages({
+      "any.only": "Confirm password must match password",
+      "any.required": "Confirm password is required",
+    }),
   role: Joi.string().valid("user","staff").optional()
 });
 
