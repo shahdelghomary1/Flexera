@@ -8,9 +8,7 @@ import streamifier from "streamifier";
 import jwt from "jsonwebtoken";
 import crypto from "crypto";
 import { sendOTPEmail } from "../utils/mailer.js";
-
 const hashOTP = (otp) => crypto.createHash("sha256").update(otp).digest("hex");
-
 cloudinary.config({
   cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
   api_key: process.env.CLOUDINARY_API_KEY,
@@ -83,10 +81,10 @@ export const addDoctor = async (req, res) => {
 
 export const updateDoctor = async (req, res) => {
   try {
-    const { _id} = req.params;
+    const { id } = req.params;  // ✔️ صح
+
     const updates = { ...req.body };
 
-   
     if (req.file) {
       const streamUpload = () =>
         new Promise((resolve, reject) => {
@@ -101,7 +99,8 @@ export const updateDoctor = async (req, res) => {
       updates.image = result.secure_url;
     }
 
-    const doc = await Doctor.findByIdAndUpdate(_id, updates, { new: true });
+    const doc = await Doctor.findByIdAndUpdate(id, updates, { new: true });
+
     if (!doc) return res.status(404).json({ message: "Doctor not found" });
 
     res.json({ message: "Doctor updated", doctor: doc });
@@ -113,18 +112,23 @@ export const updateDoctor = async (req, res) => {
 };
 
 
+
 export const deleteDoctor = async (req, res) => {
   try {
-    const { _id } = req.params;
-    const doc = await Doctor.findByIdAndDelete(_id);
+    const { id } = req.params;  
+
+    const doc = await Doctor.findByIdAndDelete(id);
+
     if (!doc) return res.status(404).json({ message: "Doctor not found" });
 
     res.json({ message: "Doctor removed" });
+
   } catch (err) {
-    console.error(err);
+    console.error("DELETE DOCTOR ERROR:", err);
     res.status(500).json({ message: "Server error" });
   }
 };
+
 
 
 
