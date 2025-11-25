@@ -6,8 +6,8 @@ export const registerSchema = Joi.object({
     "string.min": "Name must be at least 3 characters",
   }),
    email: Joi.string()
-    .email({ tlds: { allow: false } }) // تعطيل التحقق من TLD القياسي
-    .pattern(/@gmail\.com$/)           // يسمح فقط بإيميلات Gmail
+    .email({ tlds: { allow: false } }) 
+    .pattern(/@gmail\.com$/)          
     .required()
     .messages({
       "string.empty": "Email is required",
@@ -55,17 +55,30 @@ export const verifyOtpSchema = Joi.object({
   email: Joi.string().email().required(),
   otp: Joi.string().length(4).required()
 });
+export const resetPassword = async (req, res) => {
+  const { resetToken, newPassword, confirmPassword } = req.body;
 
-export const resetPasswordSchema = Joi.object({
-  email: Joi.string().email().required(),
-  otp: Joi.string().length(4).required(),
-  newPassword: Joi.string()
-    .min(8)
-    .pattern(new RegExp("^(?=.*[a-z])(?=.*[A-Z]).*$"))
-    .required()
-    .messages({
-      "string.min": "Password must be at least 8 characters",
-      "string.pattern.base": "Password must contain at least one uppercase and one lowercase letter",
-    }),
-  confirmPassword: Joi.ref("newPassword")
-}).with("newPassword", "confirmPassword");
+  if (newPassword !== confirmPassword)
+    return res.status(400).json({ message: "Passwords do not match" });
+
+  try {
+    // تحقق من الـ token
+    const decoded = jwt.verify(resetToken, process.env.JWT_SECRET);
+    const user = await User.findById(decoded.id);
+    if (!user) return res.status(404).json({ message: "User not found" });
+
+    // تحديث الباسورد ومسح الـ OTP
+    user.password = newPassword;
+    user.resetOTP = undefined;
+    user.resetOTPExpires = undefined;
+    await user.save();
+
+    return res.status(200).json({ message: "Password reset successful" });
+  } catch (err) {
+    console.error(err);
+    if (err.name === "TokenExpiredError") {
+      return res.status(400).json({ message: "Reset token expired" });
+    }
+    return res.status(500).json({ message: "Server error" });
+  }
+};

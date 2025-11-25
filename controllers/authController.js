@@ -208,6 +208,42 @@ export const verifyOTP = async (req, res) => {
     return res.status(500).json({ message: "Server error" });
   }
 };
+/*************  ✨ Windsurf Command ⭐  *************/
+/**
+ * Resets the password of a user given a valid reset token and matching new and confirm password.
+ * @param {string} resetToken - The reset token sent to the user's email.
+ * @param {string} newPassword - The new password to set for the user.
+ * @param {string} confirmPassword - The confirm password to match with the new password.
+ * @returns {Promise<Object>} - A JSON response with a success message if the password is reset successfully, or an error message if not.
+ */
+/*******  3c0b9b44-9813-4ef7-997a-9ff0fd370e27  *******/
+export const resetPassword = async (req, res) => {
+  const { resetToken, newPassword, confirmPassword } = req.body;
+
+  if (newPassword !== confirmPassword)
+    return res.status(400).json({ message: "Passwords do not match" });
+
+  try {
+    // تحقق من الـ token
+    const decoded = jwt.verify(resetToken, process.env.JWT_SECRET);
+    const user = await User.findById(decoded.id);
+    if (!user) return res.status(404).json({ message: "User not found" });
+
+    // تحديث الباسورد ومسح الـ OTP
+    user.password = newPassword;
+    user.resetOTP = undefined;
+    user.resetOTPExpires = undefined;
+    await user.save();
+
+    return res.status(200).json({ message: "Password reset successful" });
+  } catch (err) {
+    console.error(err);
+    if (err.name === "TokenExpiredError") {
+      return res.status(400).json({ message: "Reset token expired" });
+    }
+    return res.status(500).json({ message: "Server error" });
+  }
+};
 
 export const registerUser = async (req, res) => {
   const { name, email, password, confirmPassword, role } = req.body;
@@ -247,27 +283,7 @@ export const registerUser = async (req, res) => {
 };
 
 
-export const resetPassword = async (req, res) => {
-  const { resetToken, newPassword, confirmPassword } = req.body;
-  if (!resetToken) return res.status(400).json({ message: "Reset token required" });
-  if (newPassword !== confirmPassword) return res.status(400).json({ message: "Passwords do not match" });
 
-  try {
-    const decoded = jwt.verify(resetToken, process.env.JWT_SECRET);
-    const user = await User.findById(decoded.id);
-    if (!user) return res.status(404).json({ message: "User not found" });
-
-    user.password = newPassword; 
-    user.resetOTP = undefined;
-    user.resetOTPExpires = undefined;
-    await user.save();
-
-    return res.status(200).json({ message: "Password reset successful" });
-  } catch (err) {
-    console.error(err);
-    return res.status(500).json({ message: "Server error" });
-  }
-};
 
 
 
