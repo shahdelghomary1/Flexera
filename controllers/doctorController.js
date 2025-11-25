@@ -81,8 +81,6 @@ export const addDoctor = async (req, res) => {
 
 
 
-/*************  ✨ Windsurf Command ⭐  *************/
-/*******  7b746ae3-5f0f-404c-98ec-edaba83769fd  *******/
 export const updateDoctor = async (req, res) => {
   try {
     const { id } = req.params;
