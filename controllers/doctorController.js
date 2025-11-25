@@ -83,10 +83,10 @@ export const addDoctor = async (req, res) => {
 
 export const updateDoctor = async (req, res) => {
   try {
-    const { id } = req.params;
+    const { _id} = req.params;
     const updates = { ...req.body };
 
-    // لو في صورة جديدة
+   
     if (req.file) {
       const streamUpload = () =>
         new Promise((resolve, reject) => {
@@ -115,7 +115,7 @@ export const updateDoctor = async (req, res) => {
 
 export const deleteDoctor = async (req, res) => {
   try {
-    const { id } = req.params;
+    const { _id } = req.params;
     const doc = await Doctor.findByIdAndDelete(id);
     if (!doc) return res.status(404).json({ message: "Doctor not found" });
 
