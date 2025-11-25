@@ -386,82 +386,73 @@ export const doctorResetPassword = async (req, res) => {
 export const updateDoctorAccount = async (req, res) => {
   try {
     console.log("=== Updating doctor account ===");
-    console.log("User from token:", req.user);
+    const doctorId = req.user?._id;
+    if (!doctorId) return res.status(401).json({ message: "Unauthorized" });
 
-    if (!req.user || !req.user._id) {
-      return res.status(401).json({ message: "Unauthorized: user not found in token" });
-    }
+    const doctor = await Doctor.findById(doctorId);
+    if (!doctor) return res.status(404).json({ message: "Doctor not found" });
 
-    const doctorId = req.user._id;
-
-    // جمع الحقول اللي هتتحدث
-    const updateFields = {};
+    
     ["name", "email", "phone", "dateOfBirth", "gender"].forEach(field => {
-      if (req.body[field]) updateFields[field] = req.body[field];
+      if (req.body[field]) doctor[field] = req.body[field];
     });
 
-    // رفع الصورة لو موجودة
+   
+    if (req.body.password) {
+      doctor.password = req.body.password; 
+    }
+
+   
     if (req.file) {
-      try {
-        const streamUpload = (fileBuffer) => {
-          return new Promise((resolve, reject) => {
-            const stream = cloudinary.uploader.upload_stream(
-              { folder: "doctors/images" },
-              (error, result) => {
-                if (result) resolve(result);
-                else reject(error);
-              }
-            );
-            streamifier.createReadStream(fileBuffer).pipe(stream);
-          });
-        };
+      const streamUpload = (fileBuffer) =>
+        new Promise((resolve, reject) => {
+          const stream = cloudinary.uploader.upload_stream(
+            { folder: "doctors/images" },
+            (error, result) => (result ? resolve(result) : reject(error))
+          );
+          streamifier.createReadStream(fileBuffer).pipe(stream);
+        });
 
-        const uploadedImage = await streamUpload(req.file.buffer);
-        updateFields.image = uploadedImage.secure_url;
-        console.log("Image uploaded successfully:", updateFields.image);
-      } catch (cloudErr) {
-        console.error("Cloudinary upload error:", cloudErr);
-        return res.status(500).json({ message: "Image upload failed", error: cloudErr.message });
-      }
+      const uploadedImage = await streamUpload(req.file.buffer);
+      doctor.image = uploadedImage.secure_url;
     }
 
-    console.log("Update fields prepared:", updateFields);
+    await doctor.save(); // هنا pre("save") هتشتغل
 
-    // تحديث الداتا في MongoDB
-    const updatedDoctor = await Doctor.findByIdAndUpdate(
-      doctorId,
-      updateFields,
-      { new: true }
-    );
-
-    if (!updatedDoctor) {
-      return res.status(404).json({ message: "Doctor not found" });
-    }
-
-    console.log("Doctor updated successfully:", updatedDoctor);
-
-    res.json({
-      message: "Account updated successfully",
-      doctor: updatedDoctor,
-    });
+    res.json({ message: "Account updated successfully", doctor });
 
   } catch (err) {
     console.error("UPDATE DOCTOR ERROR:", err);
+    // التعامل مع خطأ البريد المكرر
+    if (err.code === 11000 && err.keyPattern?.email) {
+      return res.status(400).json({ message: "Email already exists" });
+    }
     res.status(500).json({ message: "Server error", error: err.message });
   }
 };
 
+
+
+/*************  ✨ Windsurf Command 🌟  *************/
+/**
+ * Get all doctors for a user
+ * @return {object} - JSON response containing all doctors
+ * @throws {object} - Server error response
+ */
 export const getDoctorsForUser = async (req, res) => {
   try {
     
+    // Get all doctors
     const doctors = await Doctor.find().select("name image"); 
   
+    // Return the doctors
     res.status(200).json({ doctors });
   } catch (err) {
     console.error(err);
     res.status(500).json({ message: "Server error" });
   }
 };
+/*******  544c3b04-c612-439a-9d75-e21791cbfdb1  *******/
 
 const router = express.Router();
 
