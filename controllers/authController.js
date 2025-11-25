@@ -169,13 +169,17 @@ export const forgotPassword = async (req, res) => {
     const user = await User.findOne({ email });
     if (!user) return res.status(404).json({ message: "User not found" });
 
-    const otp = Math.floor(1000 + Math.random() * 9000).toString(); // 4 أرقام
+    const otp = Math.floor(1000 + Math.random() * 9000).toString(); 
     user.resetOTP = hashOTP(otp);
-    user.resetOTPExpires = Date.now() + 10 * 60 * 1000; // 10 دقائق
+    user.resetOTPExpires = Date.now() + 10 * 60 * 1000; 
     await user.save();
 
     await sendOTPEmail(email, otp);
-    return res.status(200).json({ message: "OTP sent to email" });
+
+   
+    const tempToken = jwt.sign({ id: user._id }, process.env.JWT_SECRET, { expiresIn: "10m" });
+
+    return res.status(200).json({ message: "OTP sent to email", tempToken });
   } catch (err) {
     console.error(err);
     return res.status(500).json({ message: "Server error" });
@@ -184,9 +188,14 @@ export const forgotPassword = async (req, res) => {
 
 
 export const verifyOTP = async (req, res) => {
-  const { email, otp } = req.body;
+  const { otp } = req.body;
+  const tempToken = req.headers.authorization?.split(" ")[1]; // إرسال token في الهيدر
+
+  if (!tempToken) return res.status(400).json({ message: "Temp token required" });
+
   try {
-    const user = await User.findOne({ email });
+    const decoded = jwt.verify(tempToken, process.env.JWT_SECRET);
+    const user = await User.findById(decoded.id);
     if (!user) return res.status(404).json({ message: "User not found" });
 
     if (!user.resetOTP || !user.resetOTPExpires) {
@@ -198,9 +207,10 @@ export const verifyOTP = async (req, res) => {
       await user.save();
       return res.status(400).json({ message: "OTP expired" });
     }
-    const hashed = hashOTP(otp);
-    if (hashed !== user.resetOTP) return res.status(400).json({ message: "Invalid OTP" });
 
+    if (hashOTP(otp) !== user.resetOTP) return res.status(400).json({ message: "Invalid OTP" });
+
+    // توليد resetToken النهائي لصفحة تغيير كلمة المرور
     const resetToken = jwt.sign({ id: user._id }, process.env.JWT_SECRET, { expiresIn: "10m" });
     return res.status(200).json({ message: "OTP verified", resetToken });
   } catch (err) {
@@ -208,15 +218,7 @@ export const verifyOTP = async (req, res) => {
     return res.status(500).json({ message: "Server error" });
   }
 };
-/*************  ✨ Windsurf Command ⭐  *************/
-/**
- * Resets the password of a user given a valid reset token and matching new and confirm password.
- * @param {string} resetToken - The reset token sent to the user's email.
- * @param {string} newPassword - The new password to set for the user.
- * @param {string} confirmPassword - The confirm password to match with the new password.
- * @returns {Promise<Object>} - A JSON response with a success message if the password is reset successfully, or an error message if not.
- */
-/*******  3c0b9b44-9813-4ef7-997a-9ff0fd370e27  *******/
+
 export const resetPassword = async (req, res) => {
   const { resetToken, newPassword, confirmPassword } = req.body;
 
