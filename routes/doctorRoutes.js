@@ -14,13 +14,11 @@ router.post("/", protect(["staff"]), validate(addDoctorSchema), authorize("staff
 router.put("/:id", protect, authorize("staff"), validate(updateDoctorSchema), upload.single("image"), updateDoctor);
 
 router.delete("/:id", protect, authorize("staff"), deleteDoctor);
-
-router.post("/signup", doctorSignup);
+router.post("/signup",validate(doctorSignupSchema), doctorSignup);
 router.post("/login", doctorLogin);
-
 router.post("/forgot-password", doctorForgotPassword);
 router.post("/verify-otp", doctorVerifyOTP);
-router.post("/reset-password", doctorResetPassword);
+router.post("/reset-password", validate(doctorResetPasswordSchema), doctorResetPassword);
 router.put( "/account", protect("doctor"), upload.single("image"),updateDoctorAccount
 );
 

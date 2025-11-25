@@ -278,7 +278,7 @@ export const doctorResetPassword = async (req, res) => {
     return res.status(401).json({ message: "Authorization token required" });
   }
 
-  const resetToken = authHeader.split(" ")[1]; // ناخد التوكن بعد كلمة Bearer
+  const resetToken = authHeader.split(" ")[1]; 
   const { newPassword, confirmPassword } = req.body;
 
   if (!newPassword || !confirmPassword)
