@@ -210,11 +210,24 @@ export const verifyOTP = async (req, res) => {
 };
 
 export const registerUser = async (req, res) => {
-  const { name, email, password, role } = req.body;
+  const { name, email, password, confirmPassword, role } = req.body;
+
   try {
+    // 1️⃣ تأكد من وجود جميع الحقول المطلوبة
+    if (!name || !email || !password || !confirmPassword) {
+      return res.status(400).json({ message: "All fields are required" });
+    }
+
+    // 2️⃣ تحقق من تطابق كلمة المرور
+    if (password !== confirmPassword) {
+      return res.status(400).json({ message: "Passwords do not match" });
+    }
+
+    // 3️⃣ تحقق من وجود المستخدم مسبقًا
     const exists = await User.findOne({ email });
     if (exists) return res.status(400).json({ message: "User already exists" });
 
+    // 4️⃣ إنشاء المستخدم
     const user = new User({
       name,
       email,
@@ -223,6 +236,7 @@ export const registerUser = async (req, res) => {
     });
     await user.save();
 
+    // 5️⃣ توليد الـ token وإرجاع البيانات بدون كلمة المرور
     const { password: pw, ...userData } = user._doc;
     const token = signTokenWithRole(user);
 
@@ -232,6 +246,7 @@ export const registerUser = async (req, res) => {
     res.status(500).json({ message: err.message });
   }
 };
+
 
 export const resetPassword = async (req, res) => {
   const { resetToken, newPassword, confirmPassword } = req.body;
