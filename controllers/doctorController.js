@@ -37,25 +37,38 @@ export const addDoctor = async (req, res) => {
     if (exists) return res.status(400).json({ message: "Doctor email already exists" });
 
     let imageUrl = null;
+
     if (req.file) {
-      const streamUpload = () => new Promise((resolve, reject) => {
-        const stream = cloudinary.uploader.upload_stream(
-          { folder: "uploads" },
-          (error, result) => (result ? resolve(result) : reject(error))
-        );
-        streamifier.createReadStream(req.file.buffer).pipe(stream);
-      });
+      const streamUpload = () =>
+        new Promise((resolve, reject) => {
+          const stream = cloudinary.uploader.upload_stream(
+            { folder: "uploads" },
+            (error, result) => (result ? resolve(result) : reject(error))
+          );
+          streamifier.createReadStream(req.file.buffer).pipe(stream);
+        });
+
       const result = await streamUpload();
       imageUrl = result.secure_url;
     }
 
-    const doctor = await Doctor.create({ _id, name, email, phone, image: imageUrl, price });
+    const doctor = await Doctor.create({
+      _id,
+      name,
+      email,
+      phone,
+      image: imageUrl,
+      price
+    });
+
     res.status(201).json({ message: "Doctor added", doctor });
+
   } catch (err) {
     console.error(err);
     res.status(500).json({ message: "Server error" });
   }
 };
+
 
 export const updateDoctor = async (req, res) => {
   try {
@@ -63,39 +76,49 @@ export const updateDoctor = async (req, res) => {
     const updates = req.body;
 
     if (req.file) {
-      const streamUpload = () => new Promise((resolve, reject) => {
-        const stream = cloudinary.uploader.upload_stream(
-          { folder: "uploads" },
-          (error, result) => (result ? resolve(result) : reject(error))
-        );
-        streamifier.createReadStream(req.file.buffer).pipe(stream);
-      });
+      const streamUpload = () =>
+        new Promise((resolve, reject) => {
+          const stream = cloudinary.uploader.upload_stream(
+            { folder: "uploads" },
+            (error, result) => (result ? resolve(result) : reject(error))
+          );
+          streamifier.createReadStream(req.file.buffer).pipe(stream);
+        });
+
       const result = await streamUpload();
       updates.image = result.secure_url;
     }
 
     const doc = await Doctor.findByIdAndUpdate(id, updates, { new: true });
-    if (!doc) return res.status(404).json({ message: "Doctor not found" });
+
+    if (!doc)
+      return res.status(404).json({ message: "Doctor not found" });
 
     res.json({ message: "Doctor updated", doctor: doc });
+
   } catch (err) {
     console.error(err);
     res.status(500).json({ message: "Server error" });
   }
 };
+
 
 export const deleteDoctor = async (req, res) => {
   try {
     const { id } = req.params;
     const doc = await Doctor.findByIdAndDelete(id);
-    if (!doc) return res.status(404).json({ message: "Doctor not found" });
+
+    if (!doc)
+      return res.status(404).json({ message: "Doctor not found" });
 
     res.json({ message: "Doctor removed" });
+
   } catch (err) {
     console.error(err);
     res.status(500).json({ message: "Server error" });
   }
 };
+
 
 
 
