@@ -19,16 +19,46 @@ cloudinary.config({
 
 // ================== جلب كل الحجوزات لدكتور ==================
 export const getAppointmentsForDoctor = async (req, res) => {
+  
   try {
-    const doctorId = req.user._id; 
+    const doctorId = req.query.doctorId;
+    if (!doctorId) {
+      return res.status(400).json({ message: "doctorId is required" });
+    }
 
     const appointments = await Schedule.find({ doctor: doctorId })
-      .populate("user", "name image medicalFile") /
+      .populate("user", "name image medicalFile")
       .sort({ date: 1 });
 
-    res.status(200).json({ message: "Appointments fetched", appointments });
+    if (!appointments || appointments.length === 0) {
+      return res.status(200).json({ message: "No users booked yet. Please check later." });
+    }
+
+    const formattedAppointments = appointments.map((appt) => {
+      return {
+        _id: appt._id,
+        date: appt.date,
+        timeSlots: appt.timeSlots.map((slot) => ({
+          from: slot.from,
+          to: slot.to,
+          _id: slot._id
+        })),
+        user: appt.user ? {
+          _id: appt.user._id,
+          name: appt.user.name,
+          image: appt.user.image,
+          medicalFile: appt.user.medicalFile
+        } : null
+      };
+    });
+
+    res.status(200).json({
+      message: "Appointments fetched successfully",
+      appointments: formattedAppointments
+    });
+
   } catch (err) {
-    console.error(err);
+    console.error("GET APPOINTMENTS ERROR:", err);
     res.status(500).json({ message: "Server error", error: err.message });
   }
 };
