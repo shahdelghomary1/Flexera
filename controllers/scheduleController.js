@@ -112,7 +112,7 @@ export const getDoctorAppointments = async (req, res) => {
   try {
     const doctorId = req.user._id;
     const schedules = await Schedule.find({ doctor: doctorId })
-      .populate("user", "name image") // هنا بنجيب بيانات المريض
+      .populate("user", "name image")
       .sort({ date: 1 });
 
     res.json({
@@ -136,3 +136,23 @@ export const cancelAppointment = async (req, res) => {
     res.status(500).json({ message: "Server error" });
   }
 };
+
+export const addExercisesToAppointment = async (req, res) => {
+  try {
+    const { appointmentId } = req.params;
+    const { exercises } = req.body; 
+
+    const appointment = await Schedule.findById(appointmentId);
+    if (!appointment) return res.status(404).json({ message: "Appointment not found" });
+
+ 
+    appointment.exercises = exercises; 
+    await appointment.save();
+
+    res.status(200).json({ message: "Exercises added", appointment });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: "Server error", error: err.message });
+  }
+};
+
