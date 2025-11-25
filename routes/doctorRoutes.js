@@ -3,7 +3,7 @@ import { protect, authorize } from "../middleware/authMiddleware.js";
 import { upload } from "../middleware/multer.js";
 import { updateDoctorAccount, getAllDoctors, addDoctor, updateDoctor, deleteDoctor, doctorSignup, doctorForgotPassword, doctorVerifyOTP,
   doctorResetPassword,doctorLogin} from "../controllers/doctorController.js";
-import { doctorSchema } from "../validations/doctorValidation.js";
+import { doctorSchema } from "../validat/doctorValidation.js";
 import { validate } from "../middleware/validate.js";
 const router = express.Router();
 
