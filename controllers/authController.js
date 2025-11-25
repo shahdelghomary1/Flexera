@@ -219,13 +219,6 @@ export const verifyOTP = async (req, res) => {
   }
 };
 
-/*************  ✨ Windsurf Command ⭐  *************/
-/**
- * Resets the user's password after verifying the reset token.
- * @param {Object} req.body - request body containing resetToken, newPassword, and confirmPassword.
- * @returns {Promise<Object>} - response with message and status code.
- */
-/*******  0a0bb27f-961e-4e98-b7af-92bfdc2077a9  *******/
 export const resetPassword = async (req, res) => {
   console.log("RESET BODY:", req.body);
   console.log("RESET HEADERS:", req.headers);

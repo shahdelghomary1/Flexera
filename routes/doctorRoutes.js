@@ -3,12 +3,14 @@ import { protect, authorize } from "../middleware/authMiddleware.js";
 import { upload } from "../middleware/multer.js";
 import { updateDoctorAccount, getAllDoctors, addDoctor, updateDoctor, deleteDoctor, doctorSignup, doctorForgotPassword, doctorVerifyOTP,
   doctorResetPassword,doctorLogin} from "../controllers/doctorController.js";
-
+import { doctorSchema } from "../validations/doctorValidation.js";
+import { validate } from "../middleware/validate.js";
 const router = express.Router();
 
 
 router.get("/", protect, authorize("staff"), getAllDoctors);
-router.post("/", protect(["staff"]), authorize("staff"), upload.single("image"), addDoctor);
+
+router.post("/", protect(["staff"]),validate(doctorSchema), authorize("staff"), upload.single("image"), addDoctor);
 router.put("/:id", protect, authorize("staff"), upload.single("image"), updateDoctor);
 router.delete("/:id", protect, authorize("staff"), deleteDoctor);
 
