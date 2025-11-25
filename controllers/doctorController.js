@@ -19,6 +19,11 @@ cloudinary.config({
 
 
 export const updateDoctorAccount = async (req, res) => {
+console.log(" ENTERED updateDoctorAccount API");
+console.log("req.user from protect:", req.user);
+console.log("req.body:", req.body);
+console.log("req.file:", req.file);
+
   try {
     console.log("=== Updating Doctor Account ===");
 
@@ -46,30 +51,37 @@ export const updateDoctorAccount = async (req, res) => {
     }
 
     
-   if (req.file) {
-  const uploadStream = () =>
-    new Promise((resolve, reject) => {
+try {
+  if (req.file) {
+    console.log("🔥 Starting Cloudinary upload");
+
+    const result = await new Promise((resolve, reject) => {
       const stream = cloudinary.uploader.upload_stream(
-        (error, result) => {
-          if (error) {
-            console.error("Cloudinary Upload Error:", error);
-            return reject(error);
+        (err, result) => {
+          if (err) {
+            console.log("❌ Cloudinary Error:", err);
+            return reject(err);
           }
+          console.log("✅ Cloudinary Uploaded:", result.secure_url);
           resolve(result);
         }
       );
 
       streamifier.createReadStream(req.file.buffer)
-        .on("error", (err) => {
-          console.error("Streamifier Error:", err);
-          reject(err);
+        .on("error", (e) => {
+          console.log("❌ Streamifier error:", e);
+          reject(e);
         })
         .pipe(stream);
     });
 
-  const uploadedImage = await uploadStream();
-  doctor.image = uploadedImage.secure_url;
+    doctor.image = result.secure_url;
+  }
+} catch (uploadErr) {
+  console.log("🔥 FINAL Upload Catch:", uploadErr);
+  return res.status(500).json({ message: "Upload failed", error: uploadErr });
 }
+
 
 
     await doctor.save();
