@@ -156,3 +156,19 @@ export const addExercisesToAppointment = async (req, res) => {
   }
 };
 
+export const getAppointmentsForDoctor = async (req, res) => {
+  try {
+    const doctorId = req.params.doctorId;
+    const appointments = await Schedule.find({ doctor: doctorId })
+      .populate("user", "name image medicalFile")
+      .sort({ date: 1 });
+
+    if (!appointments.length)
+      return res.status(404).json({ message: "No appointments found" });
+
+    res.status(200).json(appointments);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: "Server error", error: err.message });
+  }
+};
