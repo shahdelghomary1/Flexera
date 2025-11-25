@@ -5,14 +5,15 @@ export const registerSchema = Joi.object({
     "string.empty": "Name is required",
     "string.min": "Name must be at least 3 characters",
   }),
-  .email({ tlds: { allow: false } }) 
-  .pattern(/@gmail\.com$/) 
-  .required()
-  .messages({
-    "string.empty": "Email is required",
-    "string.email": "Valid email is required",
-    "string.pattern.base": "Email must be a Gmail address"
-  }),
+   email: Joi.string()
+    .email({ tlds: { allow: false } }) // تعطيل التحقق من TLD القياسي
+    .pattern(/@gmail\.com$/)           // يسمح فقط بإيميلات Gmail
+    .required()
+    .messages({
+      "string.empty": "Email is required",
+      "string.email": "Valid email is required",
+      "string.pattern.base": "Email must be a Gmail address"
+    }),
   password: Joi.string()
     .min(8)
     .pattern(new RegExp("^(?=.*[a-z])(?=.*[A-Z])(?=.*\\d)(?=.*[@$!%*?&]).*$"))
