@@ -34,8 +34,12 @@ if (!decoded.id) {
 
       console.log("Current user found:", currentUser);
 
-      req.user = currentUser;
-      req.user.role = decoded.role; 
+       req.user = {
+        ...currentUser.toObject(),
+        _id: currentUser._id.toString(),
+        id: currentUser._id.toString(),
+        role: decoded.role
+      };
 
       if (!roles.includes(decoded.role)) {
         return res.status(403).json({ message: "Access denied" });
