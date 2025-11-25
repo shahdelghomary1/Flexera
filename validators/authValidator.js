@@ -62,12 +62,12 @@ export const resetPassword = async (req, res) => {
     return res.status(400).json({ message: "Passwords do not match" });
 
   try {
-    // تحقق من الـ token
+   
     const decoded = jwt.verify(resetToken, process.env.JWT_SECRET);
     const user = await User.findById(decoded.id);
     if (!user) return res.status(404).json({ message: "User not found" });
 
-    // تحديث الباسورد ومسح الـ OTP
+  
     user.password = newPassword;
     user.resetOTP = undefined;
     user.resetOTPExpires = undefined;
@@ -82,3 +82,26 @@ export const resetPassword = async (req, res) => {
     return res.status(500).json({ message: "Server error" });
   }
 };
+
+export const resetPasswordSchema = Joi.object({
+  resetToken: Joi.string().required().messages({
+    "string.empty": "Reset token is required"
+  }),
+  newPassword: Joi.string()
+    .min(8)
+    .pattern(new RegExp("^(?=.*[a-z])(?=.*[A-Z])(?=.*\\d)(?=.*[@$!%*?&]).*$"))
+    .required()
+    .messages({
+      "string.empty": "New password is required",
+      "string.min": "Password must be at least 8 characters",
+      "string.pattern.base": "Password must contain at least one uppercase, one lowercase, one number, and one special character",
+    }),
+  confirmPassword: Joi.any()
+    .valid(Joi.ref("newPassword"))
+    .required()
+    .messages({
+      "any.only": "Confirm password must match new password",
+      "any.required": "Confirm password is required",
+    }),
+});
+
