@@ -14,7 +14,7 @@ router.post("/", protect(["staff"]), validate(addDoctorSchema), authorize("staff
 router.put("/:id", protect, authorize("staff"), validate(updateDoctorSchema), upload.single("image"), updateDoctor);
 
 router.delete("/:id", protect, authorize("staff"), deleteDoctor);
-router.post("/signup",validate(doctorSignupSchema), doctorSignup);
+router.post("/signup",validate(doctorSignupSchema ), doctorSignup);
 router.post("/login", doctorLogin);
 router.post("/forgot-password", doctorForgotPassword);
 router.post("/verify-otp", doctorVerifyOTP);
