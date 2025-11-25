@@ -296,14 +296,8 @@ export const registerUser = async (req, res) => {
   }
 };
 
-
-
-
-
-
-
 export const updateAccount = async (req, res) => {
-  console.log("req.user:", req.user);
+console.log("req.user:", req.user);
 console.log("req.user?._id:", req.user?._id);
 console.log("Is valid ObjectId:", mongoose.Types.ObjectId.isValid(req.user?._id));
 
@@ -373,7 +367,6 @@ export const getDoctorsForUser = async (req, res) => {
   }
 };
 
-// GET /api/user/doctor-schedule?doctorId=xxx
 export const getDoctorScheduleForUser = async (req, res) => {
   try {
     const doctorId = req.query.doctorId;

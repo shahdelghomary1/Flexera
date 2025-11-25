@@ -306,37 +306,42 @@ export const doctorResetPassword = async (req, res) => {
 
 
 export const updateDoctorAccount = async (req, res) => {
-
   try {
-     console.log(" Updating doctor account");
+    console.log("Updating doctor account...");
     console.log("User from token:", req.user);
     console.log("Body:", req.body);
     console.log("File:", req.file);
+
     const doctorId = req.user._id;
 
-    const updateFields = {
-      name: req.body.name,
-      email: req.body.email,
-      phone: req.body.phone,
-      dateOfBirth: req.body.dateOfBirth,
-      gender: req.body.gender,
-    };
+    // تجهيز الحقول للتحديث فقط لو موجودة
+    const updateFields = {};
+    if (req.body.name) updateFields.name = req.body.name;
+    if (req.body.email) updateFields.email = req.body.email;
+    if (req.body.phone) updateFields.phone = req.body.phone;
+    if (req.body.dateOfBirth) updateFields.dateOfBirth = req.body.dateOfBirth;
+    if (req.body.gender) updateFields.gender = req.body.gender;
 
+    // رفع الصورة لو موجودة
     if (req.file) {
-      const streamUpload = (req) => {
+      const streamUpload = (fileBuffer) => {
         return new Promise((resolve, reject) => {
-          let stream = cloudinary.uploader.upload_stream((error, result) => {
-            if (result) resolve(result);
-            else reject(error);
-          });
-          streamifier.createReadStream(req.file.buffer).pipe(stream);
+          const stream = cloudinary.uploader.upload_stream(
+            { folder: "doctors/images" },
+            (error, result) => {
+              if (result) resolve(result);
+              else reject(error);
+            }
+          );
+          streamifier.createReadStream(fileBuffer).pipe(stream);
         });
       };
 
-      const uploadedImage = await streamUpload(req);
+      const uploadedImage = await streamUpload(req.file.buffer);
       updateFields.image = uploadedImage.secure_url;
     }
 
+    // تحديث الداتا في قاعدة البيانات
     const updatedDoctor = await Doctor.findByIdAndUpdate(
       doctorId,
       updateFields,
@@ -345,14 +350,14 @@ export const updateDoctorAccount = async (req, res) => {
 
     res.json({
       message: "Account updated successfully",
-      doctor: updatedDoctor
+      doctor: updatedDoctor,
     });
-
   } catch (err) {
-    console.error(err);
+    console.error("UPDATE DOCTOR ERROR:", err);
     res.status(500).json({ message: "Server error", error: err.message });
   }
 };
+
 export const getDoctorsForUser = async (req, res) => {
   try {
     

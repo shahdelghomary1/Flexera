@@ -6,12 +6,15 @@ const doctorSchema = new mongoose.Schema({
   name: { type: String, required: true },
   email: { type: String, required: true, unique: true },
   phone: { type: String, required: true },
-  image: { type: String },
+  
   password: { type: String }, 
    price: { type: Number, required: true },
-  dateOfBirth: { type: Date }, 
-  gender: { type: String, enum: ["Female", "Male"] }, 
-
+ 
+ 
+dateOfBirth: { type: Date, default: null },
+gender: { type: String, enum: ["Female", "Male"], default: null },
+image: { type: String, default: "" }
+,
   resetOTP: { type: String },
   resetOTPExpires: { type: Date }
 }, { timestamps: true });
