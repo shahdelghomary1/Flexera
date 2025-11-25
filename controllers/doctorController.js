@@ -46,21 +46,31 @@ export const updateDoctorAccount = async (req, res) => {
     }
 
     
-    if (req.file) {
-      const uploadStream = () =>
-        new Promise((resolve, reject) => {
-          const stream = cloudinary.uploader.upload_stream(
-            (error, result) => {
-              if (error) reject(error);
-              else resolve(result);
-            }
-          );
-          streamifier.createReadStream(req.file.buffer).pipe(stream);
-        });
+   if (req.file) {
+  const uploadStream = () =>
+    new Promise((resolve, reject) => {
+      const stream = cloudinary.uploader.upload_stream(
+        (error, result) => {
+          if (error) {
+            console.error("Cloudinary Upload Error:", error);
+            return reject(error);
+          }
+          resolve(result);
+        }
+      );
 
-      const uploadedImage = await uploadStream();
-      doctor.image = uploadedImage.secure_url;
-    }
+      streamifier.createReadStream(req.file.buffer)
+        .on("error", (err) => {
+          console.error("Streamifier Error:", err);
+          reject(err);
+        })
+        .pipe(stream);
+    });
+
+  const uploadedImage = await uploadStream();
+  doctor.image = uploadedImage.secure_url;
+}
+
 
     await doctor.save();
 
