@@ -18,9 +18,10 @@ cloudinary.config({
 
 
 
+// تحديث حساب الدكتور
 export const updateDoctorAccount = async (req, res) => {
   console.log("ENTERED updateDoctorAccount API");
-  console.log("req.user from protect:", req.user);
+  console.log("req.user:", req.user);
   console.log("req.body:", req.body);
   console.log("req.file:", req.file);
 
@@ -31,19 +32,21 @@ export const updateDoctorAccount = async (req, res) => {
     const doctor = await Doctor.findById(doctorId);
     if (!doctor) return res.status(404).json({ message: "Doctor not found" });
 
-    // Update allowed fields
+    // الحقول المسموح بيها للتحديث
     const allowedFields = ["name", "email", "phone", "dateOfBirth", "gender", "price"];
-    allowedFields.forEach((field) => {
+    allowedFields.forEach(field => {
       if (req.body[field] !== undefined) doctor[field] = req.body[field];
     });
 
-    // Update password if provided
-    if (req.body.password) doctor.password = req.body.password;
+    // تحديث الباسورد لو اتغير
+    if (req.body.password) {
+      const salt = await bcrypt.genSalt(10);
+      doctor.password = await bcrypt.hash(req.body.password, salt);
+    }
 
-    // Upload image if exists
+    // رفع صورة لو موجودة
     if (req.file) {
       console.log("🔥 Starting Cloudinary upload");
-
       const result = await new Promise((resolve, reject) => {
         const stream = cloudinary.uploader.upload_stream(
           (err, result) => {
@@ -53,16 +56,16 @@ export const updateDoctorAccount = async (req, res) => {
         );
         streamifier.createReadStream(req.file.buffer).pipe(stream);
       });
-
       doctor.image = result.secure_url;
       console.log("✅ Cloudinary upload complete:", doctor.image);
     }
 
     await doctor.save();
 
+    const { password, ...doctorData } = doctor._doc; // استبعاد الباسورد من الرد
     res.status(200).json({
       message: "Account updated successfully",
-      doctor,
+      doctor: doctorData
     });
 
   } catch (err) {
@@ -73,6 +76,9 @@ export const updateDoctorAccount = async (req, res) => {
     res.status(500).json({ message: "Server error", error: err.message });
   }
 };
+
+
+
 
 // =====================
 // Get Appointments for Doctor
