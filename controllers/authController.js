@@ -20,7 +20,7 @@ cloudinary.config({
 
 export const updateAccount = async (req, res) => {
   try {
-    const userId = req.user._id; // من التوكن بعد protect
+    const userId = req.user._id; 
 
     let updateData = {
       name: req.body.name,
@@ -29,13 +29,13 @@ export const updateAccount = async (req, res) => {
       gender: req.body.gender,
     };
 
-    // لو في صورة جديدة
+   
     if (req.file) {
       const imageUrl = await uploadToCloudinary(req.file.buffer);
       updateData.image = imageUrl;
     }
 
-    // تحديث البيانات
+   
     const updatedUser = await User.findByIdAndUpdate(
       userId,
       updateData,

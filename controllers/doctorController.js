@@ -134,19 +134,21 @@ export const getAppointmentsForDoctor = async (req, res) => {
 };
 
 
+
 export const addExercisesToAppointment = async (req, res) => {
   try {
-    const { scheduleId } = req.params; 
-    const { exercises } = req.body; 
+    const { scheduleId } = req.params;
+    const { exercises } = req.body;
 
     if (!exercises || !Array.isArray(exercises)) {
       return res.status(400).json({ message: "Exercises must be an array" });
     }
 
-    const schedule = await Schedule.findById(scheduleId);
-    if (!schedule) return res.status(404).json({ message: "Appointment not found" });
+    const schedule = await Schedule.findOne({ _id: scheduleId, doctor: req.user._id });
+    if (!schedule) {
+      return res.status(404).json({ message: "Appointment not found for this doctor" });
+    }
 
-    
     schedule.exercises.push(...exercises);
     await schedule.save();
 
