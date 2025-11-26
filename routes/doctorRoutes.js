@@ -2,7 +2,7 @@ import express from "express";
 import { protect, authorize } from "../middleware/authMiddleware.js";
 import { upload } from "../middleware/multer.js";
 import { updateDoctorAccount, getAllDoctors, addDoctor, doctorSignup, doctorForgotPassword, doctorVerifyOTP,
-  doctorResetPassword,doctorLogin } from "../controllers/doctorController.js";
+  doctorResetPassword,doctorLogin,logoutDoctor} from "../controllers/doctorController.js";
 import { addDoctorSchema, updateDoctorSchema, doctorSignupSchema, doctorResetPasswordSchema } from "../validators/doctorValidation.js";
 import { getAppointmentsForDoctor, addExercisesToAppointment } from "../controllers/scheduleController.js";
 
@@ -26,6 +26,7 @@ router.put("/account", protect(["doctor"]), upload.single("image"), updateDoctor
 
 
 
+router.post("/logout/doctor", logoutDoctor);
 
 
 export default router;

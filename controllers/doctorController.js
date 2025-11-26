@@ -249,7 +249,10 @@ export const updateDoctor = async (req, res) => {
     res.status(500).json({ message: "Server error" });
   }
 };
-
+export const logoutDoctor = (req, res) => {
+  res.cookie("token", "", { httpOnly: true, expires: new Date(0), sameSite: "strict" });
+  res.json({ message: "Doctor logged out successfully" });
+};
 
 
 
@@ -271,9 +274,13 @@ export const doctorSignup = async (req, res) => {
       return res.status(400).json({ message: "Passwords do not match" });
     }
 
-    
-    let doctor = await Doctor.findById(_id);
+    const doctor = await Doctor.findById(_id);
     if (!doctor) return res.status(404).json({ message: "Doctor ID not found" });
+
+    
+    if (doctor.email) {
+      return res.status(400).json({ message: "Doctor already signed up" });
+    }
 
    
     if (doctor.email && doctor.email !== email) {
