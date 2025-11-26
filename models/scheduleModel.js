@@ -19,8 +19,21 @@ const doctorScheduleSchema = new mongoose.Schema({
     type: String, 
     required: true
   },
-  timeSlots: [timeSlotSchema],
-  exercises: [{ type: String }]
+  timeSlots: [
+  {
+    from: {
+      type: String,
+      required: true,
+      match: /^([01]\d|2[0-3]):([0-5]\d)$/ // HH:MM 24-hour format
+    },
+    to: {
+      type: String,
+      required: true,
+      match: /^([01]\d|2[0-3]):([0-5]\d)$/ // HH:MM 24-hour format
+    }
+  }
+]
+
 }, { timestamps: true });
 
 export default mongoose.model("Schedule", doctorScheduleSchema);
