@@ -110,4 +110,7 @@ export const getAllUsers = async (req, res) => {
   }
 };
 
-
+export const logoutStaff = (req, res) => {
+  res.cookie("token", "", { httpOnly: true, expires: new Date(0), sameSite: "strict" });
+  res.json({ message: "Staff logged out successfully" });
+};
