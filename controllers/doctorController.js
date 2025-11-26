@@ -144,10 +144,9 @@ export const addExercisesToAppointment = async (req, res) => {
       return res.status(400).json({ message: "Exercises must be an array" });
     }
 
-    const schedule = await Schedule.findOne({ _id: scheduleId, doctor: req.user._id });
-    if (!schedule) {
-      return res.status(404).json({ message: "Appointment not found for this doctor" });
-    }
+    // فقط البحث عن الـ schedule بالـ ID بدون التحقق من doctor
+    const schedule = await Schedule.findById(scheduleId);
+    if (!schedule) return res.status(404).json({ message: "Appointment not found" });
 
     schedule.exercises.push(...exercises);
     await schedule.save();
@@ -158,6 +157,7 @@ export const addExercisesToAppointment = async (req, res) => {
     res.status(500).json({ message: "Server error", error: err.message });
   }
 };
+
 
 export const getAllDoctors = async (req, res) => {
   try {
