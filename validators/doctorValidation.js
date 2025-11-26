@@ -92,7 +92,7 @@ export const updateDoctorSchema = Joi.object({
     }),
   
   gender: Joi.string()
-    .valid("male", "female")
+    .valid("Female", "Male")
     .optional()
     .messages({
       "any.only": "Gender must be either male or female"
