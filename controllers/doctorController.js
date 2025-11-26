@@ -18,71 +18,78 @@ cloudinary.config({
 
 
 
-// تحديث حساب الدكتور
+
 export const updateDoctorAccount = async (req, res) => {
-  console.log("ENTERED updateDoctorAccount API");
-  console.log("req.user:", req.user);
-  console.log("req.body:", req.body);
-  console.log("req.file:", req.file);
-
   try {
-    const doctorId = req.user?.id || req.user?._id;
-    if (!doctorId) return res.status(401).json({ message: "Unauthorized" });
+    const doctorId = req.user.id; // doctor logged in (from protect middleware)
 
-    const doctor = await Doctor.findById(doctorId);
+    let doctor = await Doctor.findById(doctorId);
     if (!doctor) return res.status(404).json({ message: "Doctor not found" });
 
-    // الحقول المسموح بيها للتحديث
-    const allowedFields = ["name", "email", "phone", "dateOfBirth", "gender", "price"];
-    allowedFields.forEach(field => {
-      if (req.body[field] !== undefined) doctor[field] = req.body[field];
-    });
+    const { name, email, phone, price, oldPassword, newPassword } = req.body;
 
-    // تحديث الباسورد لو اتغير
-    if (req.body.password) {
-      const salt = await bcrypt.genSalt(10);
-      doctor.password = await bcrypt.hash(req.body.password, salt);
+    // ----------------------------
+    // 1️⃣ Update basic fields
+    // ----------------------------
+    if (name) doctor.name = name;
+    if (email) {
+      // Check duplicate email
+      const emailExists = await Doctor.findOne({ email });
+      if (emailExists && emailExists._id.toString() !== doctorId) {
+        return res.status(400).json({ message: "Email already used" });
+      }
+      doctor.email = email;
+    }
+    if (phone) doctor.phone = phone;
+    if (price !== undefined) doctor.price = price;
+
+    // ----------------------------
+    // 2️⃣ Update password (optional)
+    // ----------------------------
+    if (newPassword) {
+      if (!oldPassword) {
+        return res.status(400).json({ message: "Old password is required" });
+      }
+
+      const isMatch = await bcrypt.compare(oldPassword, doctor.password);
+      if (!isMatch) {
+        return res.status(400).json({ message: "Old password is incorrect" });
+      }
+
+      doctor.password = newPassword; // middleware will hash it
     }
 
-    // رفع صورة لو موجودة
+    // ----------------------------
+    // 3️⃣ Update profile image
+    // ----------------------------
     if (req.file) {
-      console.log("🔥 Starting Cloudinary upload");
-      const result = await new Promise((resolve, reject) => {
-        const stream = cloudinary.uploader.upload_stream(
-          (err, result) => {
-            if (err) return reject(err);
-            resolve(result);
-          }
-        );
-        streamifier.createReadStream(req.file.buffer).pipe(stream);
-      });
-      doctor.image = result.secure_url;
-      console.log("✅ Cloudinary upload complete:", doctor.image);
+      const streamUpload = () =>
+        new Promise((resolve, reject) => {
+          const stream = cloudinary.uploader.upload_stream(
+            { folder: "uploads/doctors" },
+            (error, result) => (result ? resolve(result) : reject(error))
+          );
+          streamifier.createReadStream(req.file.buffer).pipe(stream);
+        });
+
+      const uploadResult = await streamUpload();
+      doctor.image = uploadResult.secure_url;
     }
 
     await doctor.save();
 
-    const { password, ...doctorData } = doctor._doc; // استبعاد الباسورد من الرد
     res.status(200).json({
-      message: "Account updated successfully",
-      doctor: doctorData
+      message: "Doctor account updated successfully",
+      doctor,
     });
 
   } catch (err) {
-    console.error("UPDATE DOCTOR ERROR:", err);
-    if (err.code === 11000 && err.keyPattern?.email) {
-      return res.status(400).json({ message: "Email already exists" });
-    }
+    console.error("UPDATE DOCTOR ACCOUNT ERROR:", err);
     res.status(500).json({ message: "Server error", error: err.message });
   }
 };
 
 
-
-
-// =====================
-// Get Appointments for Doctor
-// =====================
 export const getAppointmentsForDoctor = async (req, res) => {
   try {
     const doctorId = req.query.doctorId;
