@@ -3,12 +3,12 @@ import Joi from "joi";
 
 export const addDoctorSchema = Joi.object({
   _id: Joi.string()
-  .length()
-  .required()
-  .strict()
+    .length(5)       
+    .required()
+    .strict()
     .messages({
       "string.base": "ID must be a string",
-      "string.length": "ID must be exactly 6 characters",
+      "string.length": "ID must be exactly 5 characters",
       "any.required": "ID is required"
     }),
   name: Joi.string().required().messages({
