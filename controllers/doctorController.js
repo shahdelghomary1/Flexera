@@ -135,21 +135,28 @@ export const getAppointmentsForDoctor = async (req, res) => {
 
 
 
-export const addExercisesToAppointment = async (req, res) => {
+export const addExercisesToUser = async (req, res) => {
   try {
-    const { scheduleId } = req.params; 
-    const { exercises } = req.body; 
+    const { userId } = req.params; 
+    const { exercises } = req.body;
 
     if (!exercises || !Array.isArray(exercises)) {
       return res.status(400).json({ message: "Exercises must be an array" });
     }
-
-    const schedule = await Schedule.findById(scheduleId);
-    if (!schedule) return res.status(404).json({ message: "Schedule not found" });
-    if (!schedule.user) return res.status(400).json({ message: "Cannot add exercises: no user assigned" });
+    let schedule = await Schedule.findOne({ doctor: req.user._id, user: userId });
+    if (!schedule) {
+      schedule = new Schedule({
+        doctor: req.user._id,
+        user: userId,
+        date: new Date().toISOString().split("T")[0], 
+        timeSlots: [],
+        exercises: []
+      });
+    }
 
     if (!schedule.exercises) schedule.exercises = [];
     schedule.exercises.push(...exercises);
+
     await schedule.save();
 
     res.status(200).json({ message: "Exercises added successfully", schedule });
@@ -158,6 +165,8 @@ export const addExercisesToAppointment = async (req, res) => {
     res.status(500).json({ message: "Server error", error: err.message });
   }
 };
+
+
 
 
 
