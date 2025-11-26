@@ -435,3 +435,16 @@ export const getUserExercises = async (req, res) => {
     res.status(500).json({ message: "Server error", error: err.message });
   }
 };
+export const logoutUser = async (req, res) => {
+  try {
+    res.status(200).json({
+      success: true,
+      message: "Logged out successfully"
+    });
+  } catch (err) {
+    res.status(500).json({
+      success: false,
+      message: "Server error"
+    });
+  }
+};
