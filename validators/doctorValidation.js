@@ -1,45 +1,23 @@
 import Joi from "joi";
 
 
-export const updateDoctorSchema = Joi.object({
-  name: Joi.string().optional(),
-  
-  email: Joi.string()
-    .email()
+export const addDoctorSchema = Joi.object({
+  _id: Joi.string()
+    .length(5)
+    .required()
     .messages({
-      "string.email": "Email must be valid"
-    })
-    .optional(),
-  
-  phone: Joi.string()
-    .pattern(/^\d{11}$/)
-    .messages({
-      "string.pattern.base": "Phone number must be 11 digits"
-    })
-    .optional(),
-  
-  price: Joi.number().optional(),
-
-  dateOfBirth: Joi.date()
-    .optional()
-    .messages({
-      "date.base": "Date of birth must be a valid date"
-    }),
-  
-  gender: Joi.string()
-    .valid("male", "female")
-    .optional()
-    .messages({
-      "any.only": "Gender must be either male or female"
+      "string.length": "ID must be exactly 5 characters",
+      "any.required": "ID is required"
     }),
 
-  image: Joi.string()
-    .uri()
-    .optional()
-    .messages({
-      "string.uri": "Image must be a valid URL"
-    }),
-});
+  name: Joi.string()
+  .pattern(/^[A-Za-z0-9\s\/\.]+$/)
+  .required()
+  .messages({
+    "string.pattern.base": "Name can only contain letters, numbers, spaces, / and .",
+    "any.required": "Name is required"
+    
+  }),
 
 
   email: Joi.string()
@@ -76,41 +54,57 @@ export const updateDoctorSchema = Joi.object({
 
 export const updateDoctorSchema = Joi.object({
   name: Joi.string()
-    .pattern(/^[A-Za-z0-9\s\/\.]+$/) 
-    .min(3)
-    .max(50)
+    .pattern(/^[A-Za-z0-9\s\/\.]+$/)
+    .optional()
     .messages({
-      "string.pattern.base": "Name can only contain letters, numbers, spaces, / and .",
-      "string.min": "Name must be at least 3 characters",
-      "string.max": "Name must be at most 50 characters"
-    })
-    .optional(),
-
+      "string.pattern.base": "Name can only contain letters, numbers, spaces, / and ."
+    }),
+  
   email: Joi.string()
-    .email({ tlds: { allow: ['com', 'net', 'org', 'edu'] } }) 
+    .email()
+    .pattern(/@gmail\.com$/)
+    .optional()
     .messages({
-      "string.email": "Email must be valid"
-    })
-    .optional(),
-
+      "string.email": "Email must be valid",
+      "string.pattern.base": "Email must be a Gmail address (must end with @gmail.com)"
+    }),
+  
   phone: Joi.string()
-    .pattern(/^\d{11}$/)
+    .pattern(/^01[0-2,5]\d{8}$/)
+    .optional()
     .messages({
-      "string.pattern.base": "Phone number must be 11 digits"
-    })
-    .optional(),
-
+      "string.pattern.base": "Phone number must be a valid Egyptian number (11 digits)"
+    }),
+  
   price: Joi.number()
-    .min(0)
-    .max(10000)
+    .min(50)
+    .max(2000)
+    .optional()
     .messages({
-      "number.base": "Price must be a number",
-      "number.min": "Price cannot be negative",
-      "number.max": "Price seems too high"
-    })
-    .optional(),
-});
+      "number.min": "Price must be at least 50",
+      "number.max": "Price must not exceed 2000"
+    }),
 
+  dateOfBirth: Joi.date()
+    .optional()
+    .messages({
+      "date.base": "Date of birth must be a valid date"
+    }),
+  
+  gender: Joi.string()
+    .valid("male", "female")
+    .optional()
+    .messages({
+      "any.only": "Gender must be either male or female"
+    }),
+
+  image: Joi.string()
+    .uri()
+    .optional()
+    .messages({
+      "string.uri": "Image must be a valid URL"
+    }),
+});
 
 
 export const doctorSignupSchema = Joi.object({
