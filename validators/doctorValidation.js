@@ -52,15 +52,42 @@ export const addDoctorSchema = Joi.object({
 
 
 export const updateDoctorSchema = Joi.object({
-  name: Joi.string().optional(),
-  email: Joi.string().email().messages({
-    "string.email": "Email must be valid"
-  }).optional(),
-  phone: Joi.string().pattern(/^\d{11}$/).messages({
-    "string.pattern.base": "Phone number must be 11 digits"
-  }).optional(),
-  price: Joi.number().optional(),
+  name: Joi.string()
+    .pattern(/^[A-Za-z0-9\s\/\.]+$/) 
+    .min(3)
+    .max(50)
+    .messages({
+      "string.pattern.base": "Name can only contain letters, numbers, spaces, / and .",
+      "string.min": "Name must be at least 3 characters",
+      "string.max": "Name must be at most 50 characters"
+    })
+    .optional(),
+
+  email: Joi.string()
+    .email({ tlds: { allow: ['com', 'net', 'org', 'edu'] } }) 
+    .messages({
+      "string.email": "Email must be valid"
+    })
+    .optional(),
+
+  phone: Joi.string()
+    .pattern(/^\d{11}$/)
+    .messages({
+      "string.pattern.base": "Phone number must be 11 digits"
+    })
+    .optional(),
+
+  price: Joi.number()
+    .min(0)
+    .max(10000)
+    .messages({
+      "number.base": "Price must be a number",
+      "number.min": "Price cannot be negative",
+      "number.max": "Price seems too high"
+    })
+    .optional(),
 });
+
 
 
 export const doctorSignupSchema = Joi.object({
@@ -106,10 +133,14 @@ export const doctorSignupSchema = Joi.object({
 export const doctorResetPasswordSchema = Joi.object({
   newPassword: Joi.string()
     .min(6)
+    .max(30)
+    .pattern(/^(?=.*[A-Za-z])(?=.*\d)[A-Za-z\d@$!%*?&]+$/)
     .required()
     .messages({
       "string.min": "Password must be at least 6 characters",
-      "any.required": "New password is required",
+      "string.max": "Password must be at most 30 characters",
+      "string.pattern.base": "Password must contain at least one letter and one number",
+      "any.required": "New password is required"
     }),
 
   confirmPassword: Joi.any()
@@ -117,6 +148,7 @@ export const doctorResetPasswordSchema = Joi.object({
     .required()
     .messages({
       "any.only": "Passwords do not match",
-      "any.required": "Confirm password is required",
+      "any.required": "Confirm password is required"
     }),
 });
+
