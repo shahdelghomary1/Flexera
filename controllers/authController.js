@@ -17,6 +17,67 @@ cloudinary.config({
   api_key: process.env.CLOUDINARY_API_KEY,
   api_secret: process.env.CLOUDINARY_API_SECRET,
 });
+// =====================
+// Update Doctor Account
+// =====================
+export const updateDoctorAccount = async (req, res) => {
+  try {
+    console.log("UPDATE ACCOUNT HIT");
+
+    const doctorId = req.user.id;
+    const doctor = await Doctor.findById(doctorId);
+
+    if (!doctor) {
+      return res.status(404).json({ message: "Doctor not found" });
+    }
+
+    // Update normal fields
+    const allowedFields = [
+      "name",
+      "email",
+      "phone",
+      "dateOfBirth",
+      "gender",
+      "price"
+    ];
+
+    allowedFields.forEach(field => {
+      if (req.body[field] !== undefined) {
+        doctor[field] = req.body[field];
+      }
+    });
+
+    // Update image if uploaded
+    if (req.files && req.files.image) {
+      const file = req.files.image[0];
+
+      const uploadResult = await new Promise((resolve, reject) => {
+        const stream = cloudinary.uploader.upload_stream(
+          (err, result) => {
+            if (err) reject(err);
+            else resolve(result);
+          }
+        );
+        streamifier.createReadStream(file.buffer).pipe(stream);
+      });
+
+      doctor.image = uploadResult.secure_url;
+    }
+
+    await doctor.save();
+
+    const { password, ...doctorData } = doctor._doc;
+
+    res.status(200).json({
+      message: "Account updated successfully",
+      doctor: doctorData
+    });
+
+  } catch (err) {
+    console.error("UPDATE ERROR:", err);
+    res.status(500).json({ message: "Server error", error: err.message });
+  }
+};
 
 
 const signTokenWithRole = (user) => {
@@ -296,62 +357,6 @@ export const registerUser = async (req, res) => {
   }
 };
 
-export const updateAccount = async (req, res) => {
-console.log("req.user:", req.user);
-console.log("req.user?._id:", req.user?._id);
-console.log("Is valid ObjectId:", mongoose.Types.ObjectId.isValid(req.user?._id));
-
-  try {
-    
-    if (!mongoose.Types.ObjectId.isValid(req.user._id)) {
-      return res.status(400).json({ message: "Invalid user ID" });
-    }
-
-    const user = await User.findById(req.user._id);
-    if (!user) return res.status(404).json({ message: "User not found" });
-
-    const { name, phone, password, dob, gender, height, weight } = req.body;
-
-    if (name) user.name = name;
-    if (phone) user.phone = phone;
-    if (dob) user.dob = dob;
-    if (gender) user.gender = gender;
-    if (height) user.height = height;
-    if (weight) user.weight = weight;
-
-    if (password) {
-      const salt = await bcrypt.genSalt(10);
-      user.password = await bcrypt.hash(password, salt);
-    }
-
-
-    if (req.files) {
-      const uploadToCloudinary = (file, folder) =>
-        new Promise((resolve, reject) => {
-          const stream = cloudinary.uploader.upload_stream({ folder }, (err, result) => {
-            if (err) return reject(err);
-            resolve(result.secure_url);
-          });
-          streamifier.createReadStream(file[0].buffer).pipe(stream);
-        });
-
-      if (req.files.image) {
-        user.image = await uploadToCloudinary(req.files.image, "users/images");
-      }
-      if (req.files.medicalFile) {
-        user.medicalFile = await uploadToCloudinary(req.files.medicalFile, "users/medical");
-      }
-    }
-
-    await user.save();
-
-    const { password: pw, ...userData } = user._doc;
-    res.status(200).json({ message: "Account updated successfully", user: userData });
-  } catch (err) {
-    console.error(err);
-    res.status(500).json({ message: err.message });
-  }
-};
 
 export const getDoctorsForUser = async (req, res) => {
   try {
