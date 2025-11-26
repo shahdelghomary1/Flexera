@@ -12,17 +12,7 @@ router.post("/google", validate(googleSchema), googleOAuth);
 router.post("/forgot-password", validate(forgotSchema), forgotPassword);
 router.post("/verify-otp", validate(verifyOtpSchema), verifyOTP);
 router.post("/reset-password", validate(resetPasswordSchema), resetPassword);
-router.put(
-  "/authaccount",
-  protect, 
-  upload.fields([
-    { name: "image", maxCount: 1 },
-    { name: "medicalFile", maxCount: 1 }
-  ]),
-  updateAccount
-);
-
-
+router.put("/authaccount", protect(), upload.fields([{ name: "image", maxCount: 1 },{ name: "medicalFile", maxCount: 1 }]),updateAccount);
 router.get("/authaccount", protect(),protect(["user"]),getAccount);
 router.get("/authdoctors", protect(), getDoctorsForUser);
 router.post("/book-appointment", protect(["user"]), bookAppointment);
