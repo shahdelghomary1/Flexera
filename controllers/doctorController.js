@@ -290,9 +290,10 @@ export const doctorSignup = async (req, res) => {
     if (!doctor) return res.status(404).json({ message: "Doctor ID not found" });
 
     
-    if (doctor.email) {
-      return res.status(400).json({ message: "Doctor already signed up" });
-    }
+   if (doctor.password) {
+  return res.status(400).json({ message: "Doctor already signed up" });
+}
+
 
    
     if (doctor.email && doctor.email !== email) {
