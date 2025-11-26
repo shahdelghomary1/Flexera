@@ -4,6 +4,7 @@ import jwt from "jsonwebtoken";
 import crypto from "crypto";
 import streamifier from "streamifier";
 import Schedule from "../models/scheduleModel.js";
+
 import User from "../models/userModel.js";
 import { sendOTPEmail } from "../utils/mailer.js"; 
 import { v2 as cloudinary } from "cloudinary";
@@ -389,6 +390,23 @@ export const getDoctorScheduleForUser = async (req, res) => {
       schedules: formattedSchedules
     });
 
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: "Server error", error: err.message });
+  }
+};
+export const getUserExercises = async (req, res) => {
+  try {
+    const userId = req.user._id;
+
+    const schedules = await Schedule.find({ user: userId })
+      .select("exercises date doctor") // هيرجع بس التمارين + التاريخ والدكتور
+      .populate("doctor", "name image");
+
+    res.status(200).json({
+      message: "User exercises fetched",
+      exercises: schedules,
+    });
   } catch (err) {
     console.error(err);
     res.status(500).json({ message: "Server error", error: err.message });
