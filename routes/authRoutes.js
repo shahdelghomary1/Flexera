@@ -1,5 +1,5 @@
 import express from "express";
-import { registerUser, loginUser, googleOAuth ,forgotPassword, verifyOTP, resetPassword ,updateAccount,getDoctorsForUser ,getDoctorScheduleForUser ,getUserExercisesو, getAccount}  from "../controllers/authController.js";
+import { registerUser, loginUser, googleOAuth ,forgotPassword, verifyOTP, resetPassword ,updateAccount,getDoctorsForUser ,getDoctorScheduleForUser ,getUserExercises , getAccount}  from "../controllers/authController.js";
 import { validate } from "../middleware/validate.js";
 import { registerSchema, loginSchema, googleSchema , forgotSchema, verifyOtpSchema, resetPasswordSchema } from "../validators/authValidator.js";
 import { protect } from "../middleware/authMiddleware.js"; 
