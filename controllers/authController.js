@@ -51,7 +51,7 @@ export const updateAccount = async (req, res) => {
     if (req.files?.image) {
       const imageUrl = await uploadToCloudinary(req.files.image[0].buffer);
       updateData.image = imageUrl;
-    }
+    }fgetDoctorScheduleForUser
 
     
     if (req.files?.medicalFile) {

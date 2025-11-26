@@ -25,53 +25,45 @@ const signToken = (doctor) => {
 
 export const updateDoctorAccount = async (req, res) => {
   try {
-    const doctorId = req.user.id; 
-
+    const doctorId = req.user.id;
     let doctor = await Doctor.findById(doctorId);
     if (!doctor) return res.status(404).json({ message: "Doctor not found" });
 
-    const { name, email, phone, price, oldPassword, newPassword } = req.body;
-
-   
-    if (name) doctor.name = name;
-    if (email) {
-    
-      const emailExists = await Doctor.findOne({ email });
-      if (emailExists && emailExists._id.toString() !== doctorId) {
-        return res.status(400).json({ message: "Email already used" });
+    // تحديث أي حقل موجود في req.body
+    const updatableFields = ['name','email','phone','price','dateOfBirth','gender'];
+    updatableFields.forEach(field => {
+      if (req.body[field] !== undefined) {
+        doctor[field] = field === 'dateOfBirth' ? new Date(req.body[field]) : req.body[field];
       }
-      doctor.email = email;
-    }
-    if (phone) doctor.phone = phone;
-    if (price !== undefined) doctor.price = price;
+    });
 
-    
+    // تحديث كلمة المرور لو موجودة
+    const { oldPassword, newPassword } = req.body;
     if (newPassword) {
-      if (!oldPassword) {
-        return res.status(400).json({ message: "Old password is required" });
-      }
-
+      if (!oldPassword) return res.status(400).json({ message: "Old password is required" });
       const isMatch = await bcrypt.compare(oldPassword, doctor.password);
-      if (!isMatch) {
-        return res.status(400).json({ message: "Old password is incorrect" });
-      }
-
-      doctor.password = newPassword; 
+      if (!isMatch) return res.status(400).json({ message: "Old password is incorrect" });
+      doctor.password = newPassword;
     }
 
+    // رفع الصور والملفات لو موجودة
+    if (req.files) {
+      for (const key in req.files) {
+        if (req.files[key][0]) {
+          const uploadToCloudinary = (buffer, folder) => {
+            return new Promise((resolve, reject) => {
+              const stream = cloudinary.uploader.upload_stream(
+                { folder },
+                (error, result) => (result ? resolve(result.secure_url) : reject(error))
+              );
+              streamifier.createReadStream(buffer).pipe(stream);
+            });
+          };
 
-    if (req.file) {
-      const streamUpload = () =>
-        new Promise((resolve, reject) => {
-          const stream = cloudinary.uploader.upload_stream(
-            { folder: "uploads/doctors" },
-            (error, result) => (result ? resolve(result) : reject(error))
-          );
-          streamifier.createReadStream(req.file.buffer).pipe(stream);
-        });
-
-      const uploadResult = await streamUpload();
-      doctor.image = uploadResult.secure_url;
+          const uploadedUrl = await uploadToCloudinary(req.files[key][0].buffer, "uploads/doctors");
+          doctor[key] = uploadedUrl; // الحقل في الـ model هيبقى زي 'image' أو 'medicalFile'
+        }
+      }
     }
 
     await doctor.save();
@@ -86,6 +78,7 @@ export const updateDoctorAccount = async (req, res) => {
     res.status(500).json({ message: "Server error", error: err.message });
   }
 };
+
 
 
 export const getAppointmentsForDoctor = async (req, res) => {
