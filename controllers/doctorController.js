@@ -21,19 +21,17 @@ cloudinary.config({
 
 export const updateDoctorAccount = async (req, res) => {
   try {
-    const doctorId = req.user.id; // doctor logged in (from protect middleware)
+    const doctorId = req.user.id; 
 
     let doctor = await Doctor.findById(doctorId);
     if (!doctor) return res.status(404).json({ message: "Doctor not found" });
 
     const { name, email, phone, price, oldPassword, newPassword } = req.body;
 
-    // ----------------------------
-    // 1️⃣ Update basic fields
-    // ----------------------------
+   
     if (name) doctor.name = name;
     if (email) {
-      // Check duplicate email
+    
       const emailExists = await Doctor.findOne({ email });
       if (emailExists && emailExists._id.toString() !== doctorId) {
         return res.status(400).json({ message: "Email already used" });
@@ -43,9 +41,7 @@ export const updateDoctorAccount = async (req, res) => {
     if (phone) doctor.phone = phone;
     if (price !== undefined) doctor.price = price;
 
-    // ----------------------------
-    // 2️⃣ Update password (optional)
-    // ----------------------------
+    
     if (newPassword) {
       if (!oldPassword) {
         return res.status(400).json({ message: "Old password is required" });
@@ -56,12 +52,10 @@ export const updateDoctorAccount = async (req, res) => {
         return res.status(400).json({ message: "Old password is incorrect" });
       }
 
-      doctor.password = newPassword; // middleware will hash it
+      doctor.password = newPassword; 
     }
 
-    // ----------------------------
-    // 3️⃣ Update profile image
-    // ----------------------------
+
     if (req.file) {
       const streamUpload = () =>
         new Promise((resolve, reject) => {
