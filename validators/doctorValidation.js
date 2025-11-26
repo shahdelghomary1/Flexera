@@ -3,7 +3,7 @@ import Joi from "joi";
 
 export const addDoctorSchema = Joi.object({
   _id: Joi.string()
-  .length(6)
+  .length()
   .required()
   .strict()
     .messages({
@@ -16,7 +16,6 @@ export const addDoctorSchema = Joi.object({
   }),
   email: Joi.string().email().required().messages({
     "string.email": "Email must be valid",
-    
     "any.required": "Email is required"
   }),
   phone: Joi.string()
