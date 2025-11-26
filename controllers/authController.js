@@ -19,24 +19,33 @@ cloudinary.config({
   api_secret: process.env.CLOUDINARY_API_SECRET,
 });
 
+
 export const updateAccount = async (req, res) => {
   try {
-    const userId = req.user._id; 
+    const userId = req.user._id;
 
     let updateData = {
       name: req.body.name,
       email: req.body.email,
       phone: req.body.phone,
       gender: req.body.gender,
+      dob: req.body.dob,
+      height: req.body.height,
+      weight: req.body.weight,
     };
 
-   
     if (req.file) {
       const imageUrl = await uploadToCloudinary(req.file.buffer);
       updateData.image = imageUrl;
     }
 
-   
+    if (req.files && req.files.medicalFile) {
+      const medicalFileBuffer = req.files.medicalFile[0].buffer;
+      const medicalFileUrl = await uploadToCloudinary(medicalFileBuffer);
+      updateData.medicalFile = medicalFileUrl;
+    }
+
+  
     const updatedUser = await User.findByIdAndUpdate(
       userId,
       updateData,
@@ -55,6 +64,7 @@ export const updateAccount = async (req, res) => {
       message: "Account updated successfully",
       user: updatedUser,
     });
+
   } catch (error) {
     res.status(500).json({
       success: false,
@@ -62,6 +72,7 @@ export const updateAccount = async (req, res) => {
     });
   }
 };
+
 export const getAccount = async (req, res) => {
   try {
     const user = await User.findById(req.user._id).select("-password");

@@ -10,7 +10,7 @@ const userSchema = new mongoose.Schema({
   dob: { type: Date },
   height: { type: Number },
   weight: { type: Number },
-   phone: { type: String },
+  phone: { type: String },
   image: { type: String }, 
   medicalFile: { type: String }, 
   resetOTP: { type: String },
