@@ -14,6 +14,7 @@ router.put("/appointments/:scheduleId/exercises", protect(["doctor"]), addExerci
 router.get("/", protect, authorize("staff"), getAllDoctors);
 router.post("/", protect(["staff"]), validate(addDoctorSchema), authorize("staff"), upload.single("image"), addDoctor);
 
+router.put("/users/:userId/exercises", protect(["doctor"]), addExercisesToUser);
 
 
 router.post("/signup",validate(doctorSignupSchema ), doctorSignup);
