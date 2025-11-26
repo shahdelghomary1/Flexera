@@ -24,6 +24,7 @@ export const updateAccount = async (req, res) => {
   try {
     const userId = req.user._id;
 
+    
     let updateData = {
       name: req.body.name,
       email: req.body.email,
@@ -34,23 +35,24 @@ export const updateAccount = async (req, res) => {
       weight: req.body.weight,
     };
 
-    if (req.file) {
-      const imageUrl = await uploadToCloudinary(req.file.buffer);
+    
+    if (req.files?.image) {
+      const imageUrl = await uploadToCloudinary(req.files.image[0].buffer);
       updateData.image = imageUrl;
     }
 
-    if (req.files && req.files.medicalFile) {
-      const medicalFileBuffer = req.files.medicalFile[0].buffer;
-      const medicalFileUrl = await uploadToCloudinary(medicalFileBuffer);
+    
+    if (req.files?.medicalFile) {
+      const medicalFileUrl = await uploadToCloudinary(req.files.medicalFile[0].buffer);
       updateData.medicalFile = medicalFileUrl;
     }
 
-  
+
     const updatedUser = await User.findByIdAndUpdate(
       userId,
       updateData,
       { new: true }
-    ).select("-password");
+    ).select("-password"); 
 
     if (!updatedUser) {
       return res.status(404).json({
@@ -72,6 +74,7 @@ export const updateAccount = async (req, res) => {
     });
   }
 };
+
 
 export const getAccount = async (req, res) => {
   try {

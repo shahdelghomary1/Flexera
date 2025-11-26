@@ -22,6 +22,7 @@ router.put(
   updateAccount
 );
 
+
 router.get("/authaccount", protect(),protect(["user"]),getAccount);
 router.get("/authdoctors", protect(), getDoctorsForUser);
 router.post("/book-appointment", protect(["user"]), bookAppointment);
