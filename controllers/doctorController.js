@@ -19,70 +19,44 @@ cloudinary.config({
 
 
 export const updateDoctorAccount = async (req, res) => {
-console.log(" ENTERED updateDoctorAccount API");
-console.log("req.user from protect:", req.user);
-console.log("req.body:", req.body);
-console.log("req.file:", req.file);
+  console.log("ENTERED updateDoctorAccount API");
+  console.log("req.user from protect:", req.user);
+  console.log("req.body:", req.body);
+  console.log("req.file:", req.file);
 
   try {
-    console.log("=== Updating Doctor Account ===");
-
     const doctorId = req.user?.id || req.user?._id;
-    if (!doctorId) {
-      return res.status(401).json({ message: "Unauthorized" });
-    }
+    if (!doctorId) return res.status(401).json({ message: "Unauthorized" });
 
     const doctor = await Doctor.findById(doctorId);
-    if (!doctor) {
-      return res.status(404).json({ message: "Doctor not found" });
-    }
+    if (!doctor) return res.status(404).json({ message: "Doctor not found" });
 
-  
+    // Update allowed fields
     const allowedFields = ["name", "email", "phone", "dateOfBirth", "gender", "price"];
     allowedFields.forEach((field) => {
-      if (req.body[field] !== undefined) {
-        doctor[field] = req.body[field];
-      }
+      if (req.body[field] !== undefined) doctor[field] = req.body[field];
     });
 
-    
-    if (req.body.password) {
-      doctor.password = req.body.password; 
-    }
+    // Update password if provided
+    if (req.body.password) doctor.password = req.body.password;
 
-    
-try {
-  if (req.file) {
-    console.log("🔥 Starting Cloudinary upload");
+    // Upload image if exists
+    if (req.file) {
+      console.log("🔥 Starting Cloudinary upload");
 
-    const result = await new Promise((resolve, reject) => {
-      const stream = cloudinary.uploader.upload_stream(
-        (err, result) => {
-          if (err) {
-            console.log("❌ Cloudinary Error:", err);
-            return reject(err);
+      const result = await new Promise((resolve, reject) => {
+        const stream = cloudinary.uploader.upload_stream(
+          (err, result) => {
+            if (err) return reject(err);
+            resolve(result);
           }
-          console.log("✅ Cloudinary Uploaded:", result.secure_url);
-          resolve(result);
-        }
-      );
+        );
+        streamifier.createReadStream(req.file.buffer).pipe(stream);
+      });
 
-      streamifier.createReadStream(req.file.buffer)
-        .on("error", (e) => {
-          console.log("❌ Streamifier error:", e);
-          reject(e);
-        })
-        .pipe(stream);
-    });
-
-    doctor.image = result.secure_url;
-  }
-} catch (uploadErr) {
-  console.log("🔥 FINAL Upload Catch:", uploadErr);
-  return res.status(500).json({ message: "Upload failed", error: uploadErr });
-}
-
-
+      doctor.image = result.secure_url;
+      console.log("✅ Cloudinary upload complete:", doctor.image);
+    }
 
     await doctor.save();
 
@@ -93,48 +67,49 @@ try {
 
   } catch (err) {
     console.error("UPDATE DOCTOR ERROR:", err);
-
     if (err.code === 11000 && err.keyPattern?.email) {
       return res.status(400).json({ message: "Email already exists" });
     }
-
     res.status(500).json({ message: "Server error", error: err.message });
   }
 };
 
+// =====================
+// Get Appointments for Doctor
+// =====================
 export const getAppointmentsForDoctor = async (req, res) => {
-  
   try {
     const doctorId = req.query.doctorId;
-    if (!doctorId) {
-      return res.status(400).json({ message: "doctorId is required" });
-    }
+    if (!doctorId) return res.status(400).json({ message: "doctorId is required" });
 
-    const appointments = await Schedule.find({ doctor: doctorId })
+    let appointments = await Schedule.find({ doctor: doctorId })
       .populate("user", "name image medicalFile")
       .sort({ date: 1 });
 
-    if (!appointments || appointments.length === 0) {
+    // Ensure appointments array is valid
+    appointments = (appointments || []).filter(appt => appt != null);
+
+    const formattedAppointments = appointments.map((appt) => ({
+      _id: appt._id,
+      date: appt.date || null,
+      timeSlots: Array.isArray(appt.timeSlots)
+        ? appt.timeSlots.map(slot => ({
+            from: slot.from,
+            to: slot.to,
+            _id: slot._id
+          }))
+        : [],
+      user: appt.user ? {
+        _id: appt.user._id,
+        name: appt.user.name,
+        image: appt.user.image,
+        medicalFile: appt.user.medicalFile
+      } : null
+    }));
+
+    if (formattedAppointments.length === 0) {
       return res.status(200).json({ message: "No users booked yet. Please check later." });
     }
-
-    const formattedAppointments = appointments.map((appt) => {
-      return {
-        _id: appt._id,
-        date: appt.date,
-        timeSlots: appt.timeSlots.map((slot) => ({
-          from: slot.from,
-          to: slot.to,
-          _id: slot._id
-        })),
-        user: appt.user ? {
-          _id: appt.user._id,
-          name: appt.user.name,
-          image: appt.user.image,
-          medicalFile: appt.user.medicalFile
-        } : null
-      };
-    });
 
     res.status(200).json({
       message: "Appointments fetched successfully",
