@@ -17,67 +17,51 @@ cloudinary.config({
   api_key: process.env.CLOUDINARY_API_KEY,
   api_secret: process.env.CLOUDINARY_API_SECRET,
 });
-// =====================
-// Update Doctor Account
-// =====================
-export const updateDoctorAccount = async (req, res) => {
+
+export const updateAccount = async (req, res) => {
   try {
-    console.log("UPDATE ACCOUNT HIT");
+    const userId = req.user._id; // من التوكن بعد protect
 
-    const doctorId = req.user.id;
-    const doctor = await Doctor.findById(doctorId);
+    let updateData = {
+      name: req.body.name,
+      email: req.body.email,
+      phone: req.body.phone,
+      gender: req.body.gender,
+    };
 
-    if (!doctor) {
-      return res.status(404).json({ message: "Doctor not found" });
+    // لو في صورة جديدة
+    if (req.file) {
+      const imageUrl = await uploadToCloudinary(req.file.buffer);
+      updateData.image = imageUrl;
     }
 
-    // Update normal fields
-    const allowedFields = [
-      "name",
-      "email",
-      "phone",
-      "dateOfBirth",
-      "gender",
-      "price"
-    ];
+    // تحديث البيانات
+    const updatedUser = await User.findByIdAndUpdate(
+      userId,
+      updateData,
+      { new: true }
+    ).select("-password");
 
-    allowedFields.forEach(field => {
-      if (req.body[field] !== undefined) {
-        doctor[field] = req.body[field];
-      }
-    });
-
-    // Update image if uploaded
-    if (req.files && req.files.image) {
-      const file = req.files.image[0];
-
-      const uploadResult = await new Promise((resolve, reject) => {
-        const stream = cloudinary.uploader.upload_stream(
-          (err, result) => {
-            if (err) reject(err);
-            else resolve(result);
-          }
-        );
-        streamifier.createReadStream(file.buffer).pipe(stream);
+    if (!updatedUser) {
+      return res.status(404).json({
+        success: false,
+        message: "User not found",
       });
-
-      doctor.image = uploadResult.secure_url;
     }
-
-    await doctor.save();
-
-    const { password, ...doctorData } = doctor._doc;
 
     res.status(200).json({
+      success: true,
       message: "Account updated successfully",
-      doctor: doctorData
+      user: updatedUser,
     });
-
-  } catch (err) {
-    console.error("UPDATE ERROR:", err);
-    res.status(500).json({ message: "Server error", error: err.message });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: error.message,
+    });
   }
 };
+
 
 
 const signTokenWithRole = (user) => {
