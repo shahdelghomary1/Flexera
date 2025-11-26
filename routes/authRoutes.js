@@ -1,5 +1,5 @@
 import express from "express";
-import { registerUser, loginUser, googleOAuth ,forgotPassword, verifyOTP, resetPassword ,updateAccount,getDoctorsForUser ,getDoctorScheduleForUser ,getUserExercises}  from "../controllers/authController.js";
+import { registerUser, loginUser, googleOAuth ,forgotPassword, verifyOTP, resetPassword ,updateAccount,getDoctorsForUser ,getDoctorScheduleForUser ,getUserExercisesو, getAccount}  from "../controllers/authController.js";
 import { validate } from "../middleware/validate.js";
 import { registerSchema, loginSchema, googleSchema , forgotSchema, verifyOtpSchema, resetPasswordSchema } from "../validators/authValidator.js";
 import { protect } from "../middleware/authMiddleware.js"; 
@@ -13,7 +13,7 @@ router.post("/forgot-password", validate(forgotSchema), forgotPassword);
 router.post("/verify-otp", validate(verifyOtpSchema), verifyOTP);
 router.post("/reset-password", validate(resetPasswordSchema), resetPassword);
 router.put("/authaccount", protect(), upload.fields([{ name: "image", maxCount: 1 },{ name: "medicalFile", maxCount: 1 }]),updateAccount);
-router.get("/authaccount", protect(),protect(["user"]),updateAccount);
+router.get("/authaccount", protect(),protect(["user"]),getAccount);
 router.get("/authdoctors", protect(), getDoctorsForUser);
 router.post("/book-appointment", protect(["user"]), bookAppointment);
 router.get("/my-appointments", protect(["user"]), getUserAppointments);
