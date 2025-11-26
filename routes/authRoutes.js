@@ -13,7 +13,7 @@ router.post("/forgot-password", validate(forgotSchema), forgotPassword);
 router.post("/verify-otp", validate(verifyOtpSchema), verifyOTP);
 router.post("/reset-password", validate(resetPasswordSchema), resetPassword);
 router.put("/authaccount", protect(), upload.fields([{ name: "image", maxCount: 1 },{ name: "medicalFile", maxCount: 1 }]),updateAccount);
-router.get("/authaccount", protect(),rotect(["user"]),updateAccount);
+router.get("/authaccount", protect(),protect(["user"]),updateAccount);
 router.get("/authdoctors", protect(), getDoctorsForUser);
 router.post("/book-appointment", protect(["user"]), bookAppointment);
 router.get("/my-appointments", protect(["user"]), getUserAppointments);
