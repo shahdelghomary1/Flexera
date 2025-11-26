@@ -3,10 +3,33 @@ import Doctor from "../models/doctorModel.js";
 import User from "../models/userModel.js";
 export const addSchedule = async (req, res) => {
   try {
-   
     const doctorId = req.body.doctorId; 
+
     if (req.user.role !== "doctor") {
       return res.status(403).json({ message: "Access denied" });
+    }
+
+    const timeToMinutes = (time) => {
+      const [h, m] = time.split(":").map(Number);
+      return h * 60 + m;
+    };
+
+    for (const slot of req.body.timeSlots) {
+      const timeRegex = /^([01]\d|2[0-3]):([0-5]\d)$/;
+      if (!timeRegex.test(slot.from) || !timeRegex.test(slot.to)) {
+        return res.status(400).json({ 
+          message: `Invalid time format in slot ${JSON.stringify(slot)}` 
+        });
+      }
+
+      const fromMinutes = timeToMinutes(slot.from);
+      const toMinutes = timeToMinutes(slot.to);
+
+      if (toMinutes <= fromMinutes) {
+        return res.status(400).json({ 
+          message: `Invalid slot: 'to' must be after 'from' in slot ${JSON.stringify(slot)}` 
+        });
+      }
     }
 
     const schedule = await Schedule.create({
@@ -25,6 +48,7 @@ export const addSchedule = async (req, res) => {
     res.status(500).json({ message: "Server error", error: err.message });
   }
 };
+
 
 export const getDoctorSchedule = async (req, res) => {
   try {
