@@ -3,32 +3,55 @@ import Joi from "joi";
 
 export const addDoctorSchema = Joi.object({
   _id: Joi.string()
-    .length(5)       
+    .length(5)
     .required()
-    .strict()
     .messages({
-      "string.base": "ID must be a string",
       "string.length": "ID must be exactly 5 characters",
       "any.required": "ID is required"
     }),
-  name: Joi.string().required().messages({
-    "any.required": "Name is required"
-  }),
-  email: Joi.string().email().required().messages({
-    "string.email": "Email must be valid",
-    "any.required": "Email is required"
-  }),
-  phone: Joi.string()
-    .pattern(/^\d{11}$/)
+
+  name: Joi.string()
+    .min(3)
+    .max(50)
+    .pattern(/^[A-Za-zأ-ي ]+$/)
     .required()
     .messages({
-      "string.pattern.base": "Phone number must be 11 digits",
+      "string.min": "Name must be at least 3 characters",
+      "string.max": "Name must be less than 50 characters",
+      "string.pattern.base": "Name must contain only letters",
+      "any.required": "Name is required"
+    }),
+
+  email: Joi.string()
+  .email()
+  .pattern(/@gmail\.com$/)
+  .required()
+  .messages({
+    "string.email": "Email must be valid",
+    "string.pattern.base": "Email must be a Gmail address (must end with @gmail.com)",
+    "any.required": "Email is required"
+  }),
+
+
+  phone: Joi.string()
+    .pattern(/^01[0-2,5]\d{8}$/) 
+    .required()
+    .messages({
+      "string.pattern.base": "Phone number must be a valid Egyptian number (11 digits)",
       "any.required": "Phone number is required"
     }),
-  price: Joi.number().required().messages({
-    "any.required": "Price is required"
-  })
+
+  price: Joi.number()
+    .min(50)
+    .max(2000)
+    .required()
+    .messages({
+      "number.min": "Price must be at least 50",
+      "number.max": "Price must not exceed 2000",
+      "any.required": "Price is required"
+    })
 });
+
 
 
 export const updateDoctorSchema = Joi.object({
