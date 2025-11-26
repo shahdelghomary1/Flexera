@@ -70,6 +70,29 @@ export const updateSchedule = async (req, res) => {
   try {
     const scheduleId = req.params.id;
 
+    const timeToMinutes = (time) => {
+      const [h, m] = time.split(":").map(Number);
+      return h * 60 + m;
+    };
+
+    for (const slot of req.body.timeSlots) {
+      const timeRegex = /^([01]\d|2[0-3]):([0-5]\d)$/;
+      if (!timeRegex.test(slot.from) || !timeRegex.test(slot.to)) {
+        return res.status(400).json({ 
+          message: `Invalid time format in slot ${JSON.stringify(slot)}` 
+        });
+      }
+
+      const fromMinutes = timeToMinutes(slot.from);
+      const toMinutes = timeToMinutes(slot.to);
+
+      if (toMinutes <= fromMinutes) {
+        return res.status(400).json({ 
+          message: `Invalid slot: 'to' must be after 'from' in slot ${JSON.stringify(slot)}` 
+        });
+      }
+    }
+
     const updated = await Schedule.findByIdAndUpdate(
       scheduleId,
       {
@@ -91,6 +114,7 @@ export const updateSchedule = async (req, res) => {
     res.status(500).json({ message: "Server error", error: err.message });
   }
 };
+
 
 export const bookAppointment = async (req, res) => {
   try {
