@@ -400,7 +400,7 @@ export const getUserExercises = async (req, res) => {
     const userId = req.user._id;
 
     const schedules = await Schedule.find({ user: userId })
-      .select("exercises date doctor") // هيرجع بس التمارين + التاريخ والدكتور
+      .select("exercises date doctor") 
       .populate("doctor", "name image");
 
     res.status(200).json({

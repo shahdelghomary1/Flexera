@@ -13,10 +13,7 @@ router.get("/appointments", protect(["doctor"]), getAppointmentsForDoctor);
 router.put("/appointments/:scheduleId/exercises", protect(["doctor"]), addExercisesToAppointment);
 router.get("/", protect, authorize("staff"), getAllDoctors);
 router.post("/", protect(["staff"]), validate(addDoctorSchema), authorize("staff"), upload.single("image"), addDoctor);
-
 router.put("/users/:userId/exercises", protect(["doctor"]), addExercisesToUser);
-
-
 router.post("/signup",validate(doctorSignupSchema ), doctorSignup);
 router.post("/login", doctorLogin);
 router.post("/forgot-password", doctorForgotPassword);

@@ -97,26 +97,23 @@ export const getAppointmentsForDoctor = async (req, res) => {
       .populate("user", "name image medicalFile")
       .sort({ date: 1 });
 
-    // Ensure appointments array is valid
-    appointments = (appointments || []).filter(appt => appt != null);
+    
+   const formattedAppointments = appointments.map(appt => ({
+  _id: appt._id,
+  date: appt.date || "",
+  timeSlots: appt.timeSlots?.map(slot => ({
+    from: slot.from,
+    to: slot.to,
+    _id: slot._id
+  })) || [],
+  user: appt.user ? {
+    _id: appt.user._id,
+    name: appt.user.name || "",
+    image: appt.user.image || "",
+    medicalFile: appt.user.medicalFile || ""
+  } : {}
+}));
 
-    const formattedAppointments = appointments.map((appt) => ({
-      _id: appt._id,
-      date: appt.date || null,
-      timeSlots: Array.isArray(appt.timeSlots)
-        ? appt.timeSlots.map(slot => ({
-            from: slot.from,
-            to: slot.to,
-            _id: slot._id
-          }))
-        : [],
-      user: appt.user ? {
-        _id: appt.user._id,
-        name: appt.user.name,
-        image: appt.user.image,
-        medicalFile: appt.user.medicalFile
-      } : null
-    }));
 
     if (formattedAppointments.length === 0) {
       return res.status(200).json({ message: "No users booked yet. Please check later." });
