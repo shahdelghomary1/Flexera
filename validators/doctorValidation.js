@@ -11,16 +11,13 @@ export const addDoctorSchema = Joi.object({
     }),
 
   name: Joi.string()
-    .min(3)
-    .max(50)
-    .pattern(/^[A-Za-zأ-ي ]+$/)
-    .required()
-    .messages({
-      "string.min": "Name must be at least 3 characters",
-      "string.max": "Name must be less than 50 characters",
-      "string.pattern.base": "Name must contain only letters",
-      "any.required": "Name is required"
-    }),
+  .pattern(/^[A-Za-z0-9\s\/\.]+$/)
+  .required()
+  .messages({
+    "string.pattern.base": "Name can only contain letters, numbers, spaces, / and .",
+    "any.required": "Name is required"
+  }),
+
 
   email: Joi.string()
   .email()
