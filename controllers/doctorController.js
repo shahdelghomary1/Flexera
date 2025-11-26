@@ -144,19 +144,28 @@ export const addExercisesToUser = async (req, res) => {
       return res.status(400).json({ message: "Exercises must be an array" });
     }
 
-    const user = await User.findById(userId);
-    if (!user) return res.status(404).json({ message: "User not found" });
+    let schedule = await Schedule.findOne({ user: userId });
 
-    // هنا ممكن نخزن التمارين مباشرة في جدول تمرينات مرتبط باليوزر
-    user.exercises = user.exercises ? [...user.exercises, ...exercises] : exercises;
-    await user.save();
+    if (!schedule) {
+      schedule = await Schedule.create({
+        user: userId,
+        doctor: req.user._id,
+        date: new Date().toISOString().split('T')[0], 
+        timeSlots: [],
+        exercises: []
+      });
+    }
 
-    res.status(200).json({ message: "Exercises added successfully", user });
+    schedule.exercises.push(...exercises);
+    await schedule.save();
+
+    res.status(200).json({ message: "Exercises added successfully", schedule });
   } catch (err) {
     console.error(err);
     res.status(500).json({ message: "Server error", error: err.message });
   }
 };
+
 
 
 

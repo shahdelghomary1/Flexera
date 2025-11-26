@@ -10,7 +10,7 @@ import { validate } from "../middleware/validate.js";
 const router = express.Router();
 
 router.get("/appointments", protect(["doctor"]), getAppointmentsForDoctor);
-router.put("/appointments/:scheduleId/exercises", protect(["doctor"]), addExercisesToAppointment);
+router.put("/users/:userId/exercises", protect(["doctor"]), addExercisesToUser);
 router.get("/", protect, authorize("staff"), getAllDoctors);
 router.post("/", protect(["staff"]), validate(addDoctorSchema), authorize("staff"), upload.single("image"), addDoctor);
 
