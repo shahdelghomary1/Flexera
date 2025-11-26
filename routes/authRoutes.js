@@ -1,5 +1,5 @@
 import express from "express";
-import { registerUser, loginUser, googleOAuth ,forgotPassword, verifyOTP, resetPassword ,updateAccount,getDoctorsForUser ,getDoctorScheduleForUser ,getUserExercises , getAccount}  from "../controllers/authController.js";
+import { registerUser, loginUser, googleOAuth ,forgotPassword, verifyOTP, resetPassword ,updateAccount,getDoctorsForUser ,getDoctorScheduleForUser ,getUserExercises , getAccount ,logoutUser}  from "../controllers/authController.js";
 import { validate } from "../middleware/validate.js";
 import { registerSchema, loginSchema, googleSchema , forgotSchema, verifyOtpSchema, resetPasswordSchema } from "../validators/authValidator.js";
 import { protect } from "../middleware/authMiddleware.js"; 
@@ -19,6 +19,9 @@ router.post("/book-appointment", protect(["user"]), bookAppointment);
 router.get("/my-appointments", protect(["user"]), getUserAppointments);
 router.get("/doctor-schedule", protect(), getDoctorScheduleForUser);
 router.get("/my-exercises", protect(["user"]), getUserExercises);
+router.post("/logout", protect(["user"]), logoutUser);
+
+
 // router.post("/google/flutter", googleOAuthFlutter)
 export default router;
 
