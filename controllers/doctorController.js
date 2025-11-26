@@ -15,9 +15,13 @@ cloudinary.config({
   api_key: process.env.CLOUDINARY_API_KEY,
   api_secret: process.env.CLOUDINARY_API_SECRET
 });
-
-
-
+const signToken = (doctor) => {
+  return jwt.sign(
+    { id: doctor._id, role: "doctor" },
+    process.env.JWT_SECRET,
+    { expiresIn: "7d" }
+  );
+};
 
 export const updateDoctorAccount = async (req, res) => {
   try {
@@ -153,7 +157,6 @@ export const addExercisesToAppointment = async (req, res) => {
   }
 };
 
-
 export const getAllDoctors = async (req, res) => {
   try {
     const doctors = await Doctor.find().sort({ createdAt: -1 });
@@ -215,9 +218,6 @@ export const addDoctor = async (req, res) => {
   }
 };
 
-
-
-
 export const updateDoctor = async (req, res) => {
   try {
     const { id } = req.params;  
@@ -252,32 +252,11 @@ export const updateDoctor = async (req, res) => {
 
 
 
-export const deleteDoctor = async (req, res) => {
-  try {
-    const { id } = req.params;  
-
-    const doc = await Doctor.findByIdAndDelete(id);
-
-    if (!doc) return res.status(404).json({ message: "Doctor not found" });
-
-    res.json({ message: "Doctor removed" });
-
-  } catch (err) {
-    console.error("DELETE DOCTOR ERROR:", err);
-    res.status(500).json({ message: "Server error" });
-  }
-};
 
 
 
 
-const signToken = (doctor) => {
-  return jwt.sign(
-    { id: doctor._id, role: "doctor" },
-    process.env.JWT_SECRET,
-    { expiresIn: "7d" }
-  );
-};
+
 
 
 export const doctorSignup = async (req, res) => {

@@ -1,13 +1,15 @@
 // controllers/adminController.js
 import Doctor from "../models/doctorModel.js";
 import User from "../models/userModel.js";
+import { v2 as cloudinary } from "cloudinary";
+import streamifier from "streamifier";
+cloudinary.config({
+  cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
+  api_key: process.env.CLOUDINARY_API_KEY,
+  api_secret: process.env.CLOUDINARY_API_SECRET,
+});
 
 
-/**
- * Get all doctors
- * @return {object} - JSON response containing all doctors
- * @throws {object} - Server error response
- */
 export const getAllDoctors = async (req, res) => {
   try {
     const doctors = await Doctor.find().sort({ createdAt: -1 });
@@ -35,9 +37,8 @@ export const addDoctor = async (req, res) => {
 export const deleteDoctor = async (req, res) => {
   try {
     const { id } = req.params;
-    const doc = await Doctor.findById(id);
+    const doc = await Doctor.findByIdAndDelete(id); 
     if (!doc) return res.status(404).json({ message: "Doctor not found" });
-    await doc.remove();
     res.json({ message: "Doctor removed" });
   } catch (err) {
     console.error(err);
@@ -45,38 +46,68 @@ export const deleteDoctor = async (req, res) => {
   }
 };
 
+
 export const updateDoctor = async (req, res) => {
   try {
     const { id } = req.params;
-    const updates = req.body;
-    const doc = await Doctor.findByIdAndUpdate(id, updates, { new: true });
-    if (!doc) return res.status(404).json({ message: "Doctor not found" });
-    res.json({ message: "Doctor updated", doctor: doc });
+    let updates = { ...req.body };
+    if (req.file) {
+      const streamUpload = () =>
+        new Promise((resolve, reject) => {
+          const stream = cloudinary.uploader.upload_stream(
+            { folder: "doctors" },
+            (error, result) => {
+              if (error) reject(error);
+              else resolve(result);
+            }
+          );
+          streamifier.createReadStream(req.file.buffer).pipe(stream);
+        });
+
+      const result = await streamUpload();
+      updates.image = result.secure_url;
+    }
+
+    const doctor = await Doctor.findByIdAndUpdate(id, updates, { new: true });
+
+    if (!doctor) {
+      return res.status(404).json({ message: "Doctor not found" });
+    }
+
+    res.json({ message: "Doctor updated", doctor });
+
   } catch (err) {
-    console.error(err);
+    console.error("UPDATE DOCTOR ERROR:", err);
     res.status(500).json({ message: "Server error" });
   }
 };
-
 export const getAllUsers = async (req, res) => {
   try {
-    const users = await User.find().select("name email phone dob"); 
+    // استرجاع كل المستخدمين ما عدا هذا الإيميل
+    const users = await User.find({ email: { $ne: "staffflexera@gmail.com" } })
+      .select("name email phone dob image")
+      .lean();
+
     const usersWithAge = users.map(user => {
       const age = user.dob
         ? new Date().getFullYear() - new Date(user.dob).getFullYear()
         : null;
+
       return {
         _id: user._id,
         name: user.name,
         email: user.email,
-        phone: user.phone || "N/A", 
-        age
+        phone: user.phone || "N/A",
+        age,
+        image: user.image || null,
       };
     });
+
     res.json({ users: usersWithAge });
   } catch (err) {
     console.error(err);
     res.status(500).json({ message: "Server error" });
   }
 };
+
 

@@ -31,14 +31,14 @@ export const addDoctorSchema = Joi.object({
 
 
 export const updateDoctorSchema = Joi.object({
-  name: Joi.string(),
+  name: Joi.string().optional(),
   email: Joi.string().email().messages({
     "string.email": "Email must be valid"
-  }),
+  }).optional(),
   phone: Joi.string().pattern(/^\d{11}$/).messages({
     "string.pattern.base": "Phone number must be 11 digits"
-  }),
-  price: Joi.number(),
+  }).optional(),
+  price: Joi.number().optional(),
 });
 
 

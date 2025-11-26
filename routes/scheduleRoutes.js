@@ -3,7 +3,7 @@ import { protect } from "../middleware/authMiddleware.js";
 import { addSchedule, getDoctorSchedule, updateSchedule,getDoctorAppointments, cancelAppointment } from "../controllers/scheduleController.js";
 
 const router = express.Router();
-
+ 
 router.post("/", protect("doctor"), addSchedule);
 router.get("/", protect("doctor"), getDoctorSchedule);
 router.put("/:id", protect("doctor"), updateSchedule);
