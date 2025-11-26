@@ -3,7 +3,7 @@ import { protect, authorize } from "../middleware/authMiddleware.js";
 import { upload } from "../middleware/multer.js";
 import { updateDoctorAccount, getAllDoctors, addDoctor, doctorSignup, doctorForgotPassword, doctorVerifyOTP,
   doctorResetPassword,doctorLogin,logoutDoctor , addExercisesToUser} from "../controllers/doctorController.js";
-import { addDoctorSchema, updateDoctorSchema, doctorSignupSchema, doctorResetPasswordSchema } from "../validators/doctorValidation.js";
+import { addDoctorSchema, updateDoctorSchema, doctorSignupSchema, doctorResetPasswordSchema , getDoctorAccount } from "../validators/doctorValidation.js";
 import { getAppointmentsForDoctor, addExercisesToAppointment } from "../controllers/scheduleController.js";
 
 import { validate } from "../middleware/validate.js";
@@ -20,7 +20,7 @@ router.post("/forgot-password", doctorForgotPassword);
 router.post("/verify-otp", doctorVerifyOTP);
 router.post("/reset-password", validate(doctorResetPasswordSchema), doctorResetPassword);
 router.put("/account", protect(["doctor"]), upload.single("image"), updateDoctorAccount);
-
+router.get("/account", protect(["doctor"]), getDoctorAccount);
 
 
 router.post("/logout/doctor", logoutDoctor);

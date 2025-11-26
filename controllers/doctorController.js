@@ -29,7 +29,7 @@ export const updateDoctorAccount = async (req, res) => {
     let doctor = await Doctor.findById(doctorId);
     if (!doctor) return res.status(404).json({ message: "Doctor not found" });
 
-    // تحديث أي حقل موجود في req.body
+    
     const updatableFields = ['name','email','phone','price','dateOfBirth','gender'];
     updatableFields.forEach(field => {
       if (req.body[field] !== undefined) {
@@ -37,7 +37,6 @@ export const updateDoctorAccount = async (req, res) => {
       }
     });
 
-    // تحديث كلمة المرور لو موجودة
     const { oldPassword, newPassword } = req.body;
     if (newPassword) {
       if (!oldPassword) return res.status(400).json({ message: "Old password is required" });
@@ -46,7 +45,7 @@ export const updateDoctorAccount = async (req, res) => {
       doctor.password = newPassword;
     }
 
-    // رفع الصور والملفات لو موجودة
+  
     if (req.files) {
       for (const key in req.files) {
         if (req.files[key][0]) {
@@ -61,7 +60,7 @@ export const updateDoctorAccount = async (req, res) => {
           };
 
           const uploadedUrl = await uploadToCloudinary(req.files[key][0].buffer, "uploads/doctors");
-          doctor[key] = uploadedUrl; // الحقل في الـ model هيبقى زي 'image' أو 'medicalFile'
+          doctor[key] = uploadedUrl; 
         }
       }
     }
@@ -79,6 +78,23 @@ export const updateDoctorAccount = async (req, res) => {
   }
 };
 
+export const getDoctorAccount = async (req, res) => {
+  try {
+    const doctorId = req.user.id;
+
+    const doctor = await Doctor.findById(doctorId).select("-password"); 
+    if (!doctor) return res.status(404).json({ message: "Doctor not found" });
+
+    res.status(200).json({
+      message: "Doctor account fetched successfully",
+      doctor,
+    });
+
+  } catch (err) {
+    console.error("GET DOCTOR ACCOUNT ERROR:", err);
+    res.status(500).json({ message: "Server error", error: err.message });
+  }
+};
 
 
 export const getAppointmentsForDoctor = async (req, res) => {
