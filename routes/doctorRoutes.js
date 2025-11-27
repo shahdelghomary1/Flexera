@@ -2,16 +2,16 @@ import express from "express";
 import { protect, authorize } from "../middleware/authMiddleware.js";
 import { upload } from "../middleware/multer.js";
 import { updateDoctorAccount, getAllDoctors, addDoctor, doctorSignup, doctorForgotPassword, doctorVerifyOTP,
-  doctorResetPassword,doctorLogin,logoutDoctor , addExercisesToUser ,getDoctorAccount,updateUserExercise,deleteUserExercise} from "../controllers/doctorController.js";
+  doctorResetPassword,doctorLogin,logoutDoctor , addExercisesToUser ,getDoctorAccount,updateUserExercise,deleteUserExercise , getUserMedicalFile} from "../controllers/doctorController.js";
 import { addDoctorSchema, updateDoctorSchema, doctorSignupSchema, doctorResetPasswordSchema } from "../validators/doctorValidation.js";
-import { getAppointmentsForDoctor, addExercisesToAppointment } from "../controllers/scheduleController.js";
+import { getAppointmentsForDoctor} from "../controllers/scheduleController.js";
 
 import { validate } from "../middleware/validate.js";
 const router = express.Router();
 // appointments for doctor not working aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
 router.get("/appointments", protect(["doctor"]), getAppointmentsForDoctor);
-router.put("/appointments/:scheduleId/exercises", protect(["doctor"]), addExercisesToAppointment);
- 
+
+
 
 // deshboard for staff to manage doctors
 router.get("/", protect(), authorize("staff"), getAllDoctors);
@@ -32,7 +32,7 @@ router.get("/account", protect(["doctor"]), getDoctorAccount);
 router.put("/users/:userId/exercises", protect(["doctor"]), addExercisesToUser);
 router.put("/users/:userId/exercises/:exerciseId",protect(["doctor"]),updateUserExercise);
 router.delete("/users/:userId/exercises/:exerciseId",protect(["doctor"]),deleteUserExercise);
-
+router.get("/user/:userId", protect(["doctor"]), getUserMedicalFile);
 
 
 router.post("/logout/doctor", logoutDoctor);

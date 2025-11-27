@@ -1,6 +1,8 @@
 import Schedule from "../models/scheduleModel.js";
 import Doctor from "../models/doctorModel.js";
 import User from "../models/userModel.js";
+
+/// Add a new schedule for a doctor and validate time slots and update the schedule
 export const addSchedule = async (req, res) => {
   try {
     
@@ -52,8 +54,6 @@ export const addSchedule = async (req, res) => {
   }
 };
 
-
-
 export const getDoctorSchedule = async (req, res) => {
   try {
     const doctorId = req.query.doctorId || req.user._id; 
@@ -69,7 +69,6 @@ export const getDoctorSchedule = async (req, res) => {
     res.status(500).json({ message: "Server error", error: err.message });
   }
 };
-
 export const updateSchedule = async (req, res) => {
   try {
     const scheduleId = req.params.id;
@@ -135,7 +134,7 @@ export const updateSchedule = async (req, res) => {
   }
 };
 
-
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 export const bookAppointment = async (req, res) => {
   try {
@@ -206,24 +205,7 @@ export const cancelAppointment = async (req, res) => {
   }
 };
 
-export const addExercisesToAppointment = async (req, res) => {
-  try {
-    const { appointmentId } = req.params;
-    const { exercises } = req.body; 
 
-    const appointment = await Schedule.findById(appointmentId);
-    if (!appointment) return res.status(404).json({ message: "Appointment not found" });
-
- 
-    appointment.exercises = exercises; 
-    await appointment.save();
-
-    res.status(200).json({ message: "Exercises added", appointment });
-  } catch (err) {
-    console.error(err);
-    res.status(500).json({ message: "Server error", error: err.message });
-  }
-};
 
 export const getAppointmentsForDoctor = async (req, res) => {
   try {

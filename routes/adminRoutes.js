@@ -8,6 +8,7 @@ const router = express.Router();
 router.put("/doctors/:id", upload.single("image"), updateDoctor);
 router.delete("/doctors/:id", deleteDoctor);
 router.get("/users", protect(), authorize("staff"), getAllUsers);
+
 router.get("/summary", protect(), authorize("staff"), (req, res) => {
   res.json({ message: "Route active but no action" });
 });
