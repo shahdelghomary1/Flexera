@@ -45,25 +45,21 @@ export const updateDoctorAccount = async (req, res) => {
       doctor.password = newPassword;
     }
 
-  
-    if (req.files) {
-      for (const key in req.files) {
-        if (req.files[key][0]) {
-          const uploadToCloudinary = (buffer, folder) => {
-            return new Promise((resolve, reject) => {
-              const stream = cloudinary.uploader.upload_stream(
-                { folder },
-                (error, result) => (result ? resolve(result.secure_url) : reject(error))
-              );
-              streamifier.createReadStream(buffer).pipe(stream);
-            });
-          };
+  if (req.file) {
+  const uploadToCloudinary = (buffer, folder) => {
+    return new Promise((resolve, reject) => {
+      const stream = cloudinary.uploader.upload_stream(
+        { folder },
+        (error, result) => (result ? resolve(result.secure_url) : reject(error))
+      );
+      streamifier.createReadStream(buffer).pipe(stream);
+    });
+  };
 
-          const uploadedUrl = await uploadToCloudinary(req.files[key][0].buffer, "uploads/doctors");
-          doctor[key] = uploadedUrl; 
-        }
-      }
-    }
+  const uploadedUrl = await uploadToCloudinary(req.file.buffer, "uploads/doctors");
+  doctor.image = uploadedUrl; 
+}
+
 
     await doctor.save();
 
