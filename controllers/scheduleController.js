@@ -5,7 +5,6 @@ import User from "../models/userModel.js";
 /// Add a new schedule for a doctor and validate time slots and update the schedule
 export const addSchedule = async (req, res) => {
   try {
-    
     const doctorId = req.user.id;
 
     if (req.user.role !== "doctor") {
@@ -17,7 +16,7 @@ export const addSchedule = async (req, res) => {
       return h * 60 + m;
     };
 
-   
+    // Validate time format and logical order
     for (const slot of req.body.timeSlots) {
       const timeRegex = /^([01]\d|2[0-3]):([0-5]\d)$/;
       if (!timeRegex.test(slot.from) || !timeRegex.test(slot.to)) {
@@ -36,7 +35,41 @@ export const addSchedule = async (req, res) => {
       }
     }
 
-   
+    // Check for duplicates inside the request itself
+    const seenSlots = new Set();
+    for (const slot of req.body.timeSlots) {
+      const key = `${slot.from}-${slot.to}`;
+      if (seenSlots.has(key)) {
+        return res.status(400).json({ message: `Duplicate time slot detected in request: ${key}` });
+      }
+      seenSlots.add(key);
+    }
+
+    // Check for duplicates in existing schedule
+    const existingSchedule = await Schedule.findOne({ doctor: doctorId, date: req.body.date });
+
+    if (existingSchedule) {
+      for (const newSlot of req.body.timeSlots) {
+        for (const existingSlot of existingSchedule.timeSlots) {
+          if (newSlot.from === existingSlot.from && newSlot.to === existingSlot.to) {
+            return res.status(400).json({ 
+              message: `This time slot already exists for the day: ${newSlot.from}-${newSlot.to}` 
+            });
+          }
+        }
+      }
+
+      // Merge new slots with existing ones
+      existingSchedule.timeSlots.push(...req.body.timeSlots);
+      await existingSchedule.save();
+
+      return res.json({
+        message: "Schedule updated successfully",
+        schedule: existingSchedule
+      });
+    }
+
+    // Create new schedule if none exists
     const schedule = await Schedule.create({
       doctor: doctorId,
       date: req.body.date,
@@ -53,6 +86,7 @@ export const addSchedule = async (req, res) => {
     res.status(500).json({ message: "Server error", error: err.message });
   }
 };
+
 
 export const getDoctorSchedule = async (req, res) => {
   try {
