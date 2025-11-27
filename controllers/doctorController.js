@@ -10,6 +10,7 @@ import crypto from "crypto";
 import Schedule from "../models/scheduleModel.js";
 import { sendOTPEmail } from "../utils/mailer.js";
 const hashOTP = (otp) => crypto.createHash("sha256").update(otp).digest("hex");
+const router = express.Router();
 cloudinary.config({
   cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
   api_key: process.env.CLOUDINARY_API_KEY,
@@ -22,83 +23,6 @@ const signToken = (doctor) => {
     { expiresIn: "7d" }
   );
 };
-
-export const updateDoctorAccount = async (req, res) => {
-  try {
-    const doctorId = req.user.id;
-    let doctor = await Doctor.findById(doctorId);
-    if (!doctor) return res.status(404).json({ message: "Doctor not found" });
-    if (req.body.price !== undefined) {
-      delete req.body.price;
-    }
-
-    
-    const updatableFields = ['name','email','phone','dateOfBirth','gender'];
-    updatableFields.forEach(field => {
-      if (req.body[field] !== undefined) {
-        doctor[field] = field === 'dateOfBirth' ? new Date(req.body[field]) : req.body[field];
-      }
-    });
-
-    const { oldPassword, newPassword } = req.body;
-    if (newPassword) {
-      if (!oldPassword) return res.status(400).json({ message: "Old password is required" });
-      const isMatch = await bcrypt.compare(oldPassword, doctor.password);
-      if (!isMatch) return res.status(400).json({ message: "Old password is incorrect" });
-      doctor.password = newPassword;
-    }
-
-  if (req.file) {
-  const uploadToCloudinary = (buffer, folder) => {
-    return new Promise((resolve, reject) => {
-      const stream = cloudinary.uploader.upload_stream(
-        { folder },
-        (error, result) => (result ? resolve(result.secure_url) : reject(error))
-      );
-      streamifier.createReadStream(buffer).pipe(stream);
-    });
-  };
-
-  const uploadedUrl = await uploadToCloudinary(req.file.buffer, "uploads/doctors");
-  doctor.image = uploadedUrl; 
-}
-
-
-    await doctor.save();
-    doctor = doctor.toObject();
-    delete doctor.price;
-    delete doctor.password;
-
-    res.status(200).json({
-      message: "Doctor account updated successfully",
-      doctor,
-    });
-
-  } catch (err) {
-    console.error("UPDATE DOCTOR ACCOUNT ERROR:", err);
-    res.status(500).json({ message: "Server error", error: err.message });
-  }
-};
-
-export const getDoctorAccount = async (req, res) => {
-  try {
-    const doctorId = req.user.id;
-
-    const doctor = await Doctor.findById(doctorId).select("-password -price "); 
-    if (!doctor) return res.status(404).json({ message: "Doctor not found" });
-
-    res.status(200).json({
-      message: "Doctor account fetched successfully",
-      doctor,
-    });
-
-  } catch (err) {
-    console.error("GET DOCTOR ACCOUNT ERROR:", err);
-    res.status(500).json({ message: "Server error", error: err.message });
-  }
-};
-
-
 export const getAppointmentsForDoctor = async (req, res) => {
   try {
     const doctorId = req.query.doctorId;
@@ -158,89 +82,9 @@ export const getAllDoctors = async (req, res) => {
     res.status(500).json({ message: "Server error" });
   }
 };
-export const addDoctor = async (req, res) => {
-  try {
-    const { _id, name, email, phone, price } = req.body;
-
-  
-    if (!_id || !name || !email || !phone || price == null) {
-      return res.status(400).json({ message: "All fields including price are required" });
-    }
-
- 
-    const idExists = await Doctor.findById(_id);
-    if (idExists) return res.status(400).json({ message: "Doctor ID already exists" });
-
-   
-    const emailExists = await Doctor.findOne({ email });
-    if (emailExists) return res.status(400).json({ message: "Doctor email already exists" });
 
 
-    let imageUrl = null;
 
-    if (req.file) {
-      const streamUpload = () =>
-        new Promise((resolve, reject) => {
-          const stream = cloudinary.uploader.upload_stream(
-            { folder: "uploads" },
-            (error, result) => (result ? resolve(result) : reject(error))
-          );
-          streamifier.createReadStream(req.file.buffer).pipe(stream);
-        });
-
-      const result = await streamUpload();
-      imageUrl = result.secure_url;
-    }
-
-   
-    const doctor = await Doctor.create({
-      _id,
-      name,
-      email,
-      phone,
-      image: imageUrl,
-      price,
-    });
-
-    res.status(201).json({ message: "Doctor added", doctor });
-
-  } catch (err) {
-    console.error("ADD DOCTOR ERROR:", err);
-    res.status(500).json({ message: "Server error" });
-  }
-};
-
-export const updateDoctor = async (req, res) => {
-  try {
-    const { id } = req.params;  
-
-    const updates = { ...req.body };
-
-    if (req.file) {
-      const streamUpload = () =>
-        new Promise((resolve, reject) => {
-          const stream = cloudinary.uploader.upload_stream(
-            { folder: "uploads" },
-            (error, result) => (result ? resolve(result) : reject(error))
-          );
-          streamifier.createReadStream(req.file.buffer).pipe(stream);
-        });
-
-      const result = await streamUpload();
-      updates.image = result.secure_url;
-    }
-
-    const doc = await Doctor.findByIdAndUpdate(id, updates, { new: true });
-
-    if (!doc) return res.status(404).json({ message: "Doctor not found" });
-
-    res.json({ message: "Doctor updated", doctor: doc });
-
-  } catch (err) {
-    console.error("UPDATE DOCTOR ERROR:", err);
-    res.status(500).json({ message: "Server error" });
-  }
-};
 export const logoutDoctor = (req, res) => {
   res.cookie("token", "", { httpOnly: true, expires: new Date(0), sameSite: "strict" });
   res.json({ message: "Doctor logged out successfully" });
@@ -252,7 +96,7 @@ export const logoutDoctor = (req, res) => {
 
 
 
-
+/// for doctor signup, login, forgot password, verify OTP, reset password -----------------------------------------------------------------
 
 export const doctorSignup = async (req, res) => {
   try {
@@ -305,8 +149,6 @@ export const doctorSignup = async (req, res) => {
     res.status(500).json({ message: "Server error", error: err.message });
   }
 };
-
-
 
 export const doctorLogin = async (req, res) => {
   try {
@@ -441,9 +283,83 @@ export const getDoctorsForUser = async (req, res) => {
 };
 
 
-const router = express.Router();
+// Update Doctor Account &  get doctor account -----------------------------------------------------------------
+export const updateDoctorAccount = async (req, res) => {
+  try {
+    const doctorId = req.user.id;
+    let doctor = await Doctor.findById(doctorId);
+    if (!doctor) return res.status(404).json({ message: "Doctor not found" });
+    if (req.body.price !== undefined) {
+      delete req.body.price;
+    }
 
-// add exercises to user from doctor -------------------------------------------------------------------------
+    
+    const updatableFields = ['name','email','phone','dateOfBirth','gender'];
+    updatableFields.forEach(field => {
+      if (req.body[field] !== undefined) {
+        doctor[field] = field === 'dateOfBirth' ? new Date(req.body[field]) : req.body[field];
+      }
+    });
+
+    const { oldPassword, newPassword } = req.body;
+    if (newPassword) {
+      if (!oldPassword) return res.status(400).json({ message: "Old password is required" });
+      const isMatch = await bcrypt.compare(oldPassword, doctor.password);
+      if (!isMatch) return res.status(400).json({ message: "Old password is incorrect" });
+      doctor.password = newPassword;
+    }
+
+  if (req.file) {
+  const uploadToCloudinary = (buffer, folder) => {
+    return new Promise((resolve, reject) => {
+      const stream = cloudinary.uploader.upload_stream(
+        { folder },
+        (error, result) => (result ? resolve(result.secure_url) : reject(error))
+      );
+      streamifier.createReadStream(buffer).pipe(stream);
+    });
+  };
+
+  const uploadedUrl = await uploadToCloudinary(req.file.buffer, "uploads/doctors");
+  doctor.image = uploadedUrl; 
+}
+
+
+    await doctor.save();
+    doctor = doctor.toObject();
+    delete doctor.price;
+    delete doctor.password;
+
+    res.status(200).json({
+      message: "Doctor account updated successfully",
+      doctor,
+    });
+
+  } catch (err) {
+    console.error("UPDATE DOCTOR ACCOUNT ERROR:", err);
+    res.status(500).json({ message: "Server error", error: err.message });
+  }
+};
+
+export const getDoctorAccount = async (req, res) => {
+  try {
+    const doctorId = req.user.id;
+
+    const doctor = await Doctor.findById(doctorId).select("-password -price "); 
+    if (!doctor) return res.status(404).json({ message: "Doctor not found" });
+
+    res.status(200).json({
+      message: "Doctor account fetched successfully",
+      doctor,
+    });
+
+  } catch (err) {
+    console.error("GET DOCTOR ACCOUNT ERROR:", err);
+    res.status(500).json({ message: "Server error", error: err.message });
+  }
+};
+
+// add exercises to user from doctor --------------------------------------------------------------------------------------
 export const addExercisesToUser = async (req, res) => {
   try {
     const { userId } = req.params;
@@ -528,6 +444,90 @@ export const deleteUserExercise = async (req, res) => {
   }
 };
 
+
+/// for admin ------------------------------------------------------------------------------------------------------------
+export const updateDoctor = async (req, res) => {
+  try {
+    const { id } = req.params;  
+
+    const updates = { ...req.body };
+
+    if (req.file) {
+      const streamUpload = () =>
+        new Promise((resolve, reject) => {
+          const stream = cloudinary.uploader.upload_stream(
+            { folder: "uploads" },
+            (error, result) => (result ? resolve(result) : reject(error))
+          );
+          streamifier.createReadStream(req.file.buffer).pipe(stream);
+        });
+
+      const result = await streamUpload();
+      updates.image = result.secure_url;
+    }
+
+    const doc = await Doctor.findByIdAndUpdate(id, updates, { new: true });
+
+    if (!doc) return res.status(404).json({ message: "Doctor not found" });
+
+    res.json({ message: "Doctor updated", doctor: doc });
+
+  } catch (err) {
+    console.error("UPDATE DOCTOR ERROR:", err);
+    res.status(500).json({ message: "Server error" });
+  }
+};
+export const addDoctor = async (req, res) => {
+  try {
+    const { _id, name, email, phone, price } = req.body;
+
+  
+    if (!_id || !name || !email || !phone || price == null) {
+      return res.status(400).json({ message: "All fields including price are required" });
+    }
+
+ 
+    const idExists = await Doctor.findById(_id);
+    if (idExists) return res.status(400).json({ message: "Doctor ID already exists" });
+
+   
+    const emailExists = await Doctor.findOne({ email });
+    if (emailExists) return res.status(400).json({ message: "Doctor email already exists" });
+
+
+    let imageUrl = null;
+
+    if (req.file) {
+      const streamUpload = () =>
+        new Promise((resolve, reject) => {
+          const stream = cloudinary.uploader.upload_stream(
+            { folder: "uploads" },
+            (error, result) => (result ? resolve(result) : reject(error))
+          );
+          streamifier.createReadStream(req.file.buffer).pipe(stream);
+        });
+
+      const result = await streamUpload();
+      imageUrl = result.secure_url;
+    }
+
+   
+    const doctor = await Doctor.create({
+      _id,
+      name,
+      email,
+      phone,
+      image: imageUrl,
+      price,
+    });
+
+    res.status(201).json({ message: "Doctor added", doctor });
+
+  } catch (err) {
+    console.error("ADD DOCTOR ERROR:", err);
+    res.status(500).json({ message: "Server error" });
+  }
+};
 router.post("/", protect(["doctor"]), addSchedule);
 
 export default router;
