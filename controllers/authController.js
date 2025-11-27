@@ -4,7 +4,6 @@ import jwt from "jsonwebtoken";
 import crypto from "crypto";
 import streamifier from "streamifier";
 import Schedule from "../models/scheduleModel.js";
-
 import User from "../models/userModel.js";
 import { sendOTPEmail } from "../utils/mailer.js"; 
 import { v2 as cloudinary } from "cloudinary";
@@ -12,7 +11,11 @@ import mongoose from "mongoose";
 import { OAuth2Client } from "google-auth-library";
 import Doctor from "../models/doctorModel.js";
 const hashOTP = (otp) => crypto.createHash("sha256").update(otp).digest("hex");
-
+const signTokenWithRole = (user) => {
+  return jwt.sign({ id: user._id, role: user.role }, process.env.JWT_SECRET, {
+    expiresIn: "7d",
+  });
+};
 cloudinary.config({
   cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
   api_key: process.env.CLOUDINARY_API_KEY,
@@ -114,11 +117,7 @@ export const getAccount = async (req, res) => {
 
 
 
-const signTokenWithRole = (user) => {
-  return jwt.sign({ id: user._id, role: user.role }, process.env.JWT_SECRET, {
-    expiresIn: "7d",
-  });
-};
+
 
 
 
