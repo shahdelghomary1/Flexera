@@ -115,12 +115,6 @@ export const getAccount = async (req, res) => {
   }
 };
 
-
-
-
-
-
-
 export const loginUser = async (req, res) => {
   const { email, password, role: roleFromFront } = req.body;
   try {

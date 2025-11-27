@@ -2,7 +2,8 @@ import express from "express";
 import { protect, authorize } from "../middleware/authMiddleware.js";
 import { upload } from "../middleware/multer.js";
 import { updateDoctorAccount, getAllDoctors, addDoctor, doctorSignup, doctorForgotPassword, doctorVerifyOTP,
-  doctorResetPassword,doctorLogin,logoutDoctor , addExercisesToUser ,getDoctorAccount,updateUserExercise,deleteUserExercise , getUserMedicalFileWithExercises} from "../controllers/doctorController.js";
+  doctorResetPassword,doctorLogin,logoutDoctor , addExercisesToUser ,getDoctorAccount,updateUserExercise,deleteUserExercise , getUserMedicalFileWithExercises,
+ deleteTimeSlot} from "../controllers/doctorController.js";
 import { addDoctorSchema, updateDoctorSchema, doctorSignupSchema, doctorResetPasswordSchema } from "../validators/doctorValidation.js";
 import { getAppointmentsForDoctor} from "../controllers/scheduleController.js";
 
@@ -26,6 +27,8 @@ router.post("/verify-otp", doctorVerifyOTP);
 router.post("/reset-password", validate(doctorResetPasswordSchema), doctorResetPassword);
 router.put("/account", protect(["doctor"]), upload.single("image"), validate(updateDoctorSchema), updateDoctorAccount);
 router.get("/account", protect(["doctor"]), getDoctorAccount);
+router.delete( "/schedule/:scheduleId/slot/:slotId", protect(["doctor"]), deleteTimeSlot);
+
 
 
 //exercises to user

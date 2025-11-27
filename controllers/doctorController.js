@@ -560,6 +560,38 @@ export const getAllDoctors = async (req, res) => {
   }
 };
 
+export const deleteTimeSlot = async (req, res) => {
+  try {
+    const { scheduleId, slotId } = req.params;
+
+    const schedule = await Schedule.findById(scheduleId);
+    if (!schedule) {
+      return res.status(404).json({ message: "Schedule not found" });
+    }
+
+  
+    const exists = schedule.timeSlots.some(slot => slot._id.toString() === slotId);
+    if (!exists) {
+      return res.status(404).json({ message: "Time slot not found" });
+    }
+
+    
+    schedule.timeSlots = schedule.timeSlots.filter(
+      slot => slot._id.toString() !== slotId
+    );
+
+    await schedule.save();
+
+    res.json({
+      message: "Time slot deleted successfully",
+      schedule
+    });
+
+  } catch (err) {
+    console.error("DELETE SLOT ERROR:", err);
+    res.status(500).json({ message: "Server error" });
+  }
+};
 
 
 export const logoutDoctor = (req, res) => {
