@@ -69,33 +69,6 @@ export const getAppointmentsForDoctor = async (req, res) => {
 
 
 
-
-
-
-
-export const getAllDoctors = async (req, res) => {
-  try {
-    const doctors = await Doctor.find().sort({ createdAt: -1 });
-    res.json({ doctors });
-  } catch (err) {
-    console.error(err);
-    res.status(500).json({ message: "Server error" });
-  }
-};
-
-
-
-export const logoutDoctor = (req, res) => {
-  res.cookie("token", "", { httpOnly: true, expires: new Date(0), sameSite: "strict" });
-  res.json({ message: "Doctor logged out successfully" });
-};
-
-
-
-
-
-
-
 /// for doctor signup, login, forgot password, verify OTP, reset password -----------------------------------------------------------------
 
 export const doctorSignup = async (req, res) => {
@@ -527,6 +500,20 @@ export const addDoctor = async (req, res) => {
     console.error("ADD DOCTOR ERROR:", err);
     res.status(500).json({ message: "Server error" });
   }
+};
+export const getAllDoctors = async (req, res) => {
+  try {
+    const doctors = await Doctor.find().sort({ createdAt: -1 });
+    res.json({ doctors });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: "Server error" });
+  }
+};
+
+export const logoutDoctor = (req, res) => {
+  res.cookie("token", "", { httpOnly: true, expires: new Date(0), sameSite: "strict" });
+  res.json({ message: "Doctor logged out successfully" });
 };
 router.post("/", protect(["doctor"]), addSchedule);
 
