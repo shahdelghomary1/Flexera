@@ -376,10 +376,11 @@ export const addExercisesToUser = async (req, res) => {
 export const updateUserExercise = async (req, res) => {
   try {
     const { userId, exerciseId } = req.params;
-    const updatedData = req.body;
+    const doctorId = req.user._id;
 
-    let schedule = await Schedule.findOne({ user: userId });
-    if (!schedule) return res.status(404).json({ message: "Schedule not found" });
+    
+    let schedule = await Schedule.findOne({ user: userId, doctor: doctorId });
+    if (!schedule) return res.status(404).json({ message: "Schedule not found for this doctor" });
 
     const exerciseIndex = schedule.exercises.findIndex(ex => ex._id.toString() === exerciseId);
     if (exerciseIndex === -1) {
@@ -388,7 +389,7 @@ export const updateUserExercise = async (req, res) => {
 
     schedule.exercises[exerciseIndex] = {
       ...schedule.exercises[exerciseIndex].toObject(),
-      ...updatedData
+      ...req.body
     };
 
     await schedule.save();
@@ -399,13 +400,15 @@ export const updateUserExercise = async (req, res) => {
     res.status(500).json({ message: "Server error", error: err.message });
   }
 };
+
  
 export const deleteUserExercise = async (req, res) => {
   try {
     const { userId, exerciseId } = req.params;
+    const doctorId = req.user._id;
 
-    let schedule = await Schedule.findOne({ user: userId });
-    if (!schedule) return res.status(404).json({ message: "Schedule not found" });
+    let schedule = await Schedule.findOne({ user: userId, doctor: doctorId });
+    if (!schedule) return res.status(404).json({ message: "Schedule not found for this doctor" });
 
     const initialLength = schedule.exercises.length;
 
@@ -542,14 +545,6 @@ export const addDoctor = async (req, res) => {
     res.status(500).json({ message: "Server error" });
   }
 };
-/*************  ✨ Windsurf Command ⭐  *************/
-/**
- * Get all doctors from the database.
- * This route fetches all doctors and returns them sorted in descending order of creation date.
- * @returns {Object} - An object containing an array of all doctors.
- * @throws {Error} - Server error if the database query fails.
- */
-/*******  222b262b-09e4-4ead-a980-3a40a54225eb  *******/
 export const getAllDoctors = async (req, res) => {
   try {
     console.log("Reached getAllDoctors route"); 
