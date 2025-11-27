@@ -3,6 +3,8 @@ import { protect } from "../middleware/authMiddleware.js";
 import { addSchedule } from "../controllers/scheduleController.js";
 import Doctor from "../models/doctorModel.js";
 import bcrypt from "bcryptjs";
+import User from "../models/userModel.js";
+
 import { v2 as cloudinary } from "cloudinary";
 import streamifier from "streamifier";
 import jwt from "jsonwebtoken";
