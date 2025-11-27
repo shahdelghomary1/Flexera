@@ -569,13 +569,15 @@ export const deleteTimeSlot = async (req, res) => {
       return res.status(404).json({ message: "Schedule not found" });
     }
 
-  
-    const exists = schedule.timeSlots.some(slot => slot._id.toString() === slotId);
+    // تأكيد وجود الوقت
+    const exists = schedule.timeSlots.some(
+      slot => slot._id.toString() === slotId
+    );
     if (!exists) {
       return res.status(404).json({ message: "Time slot not found" });
     }
 
-    
+    // حذف الوقت
     schedule.timeSlots = schedule.timeSlots.filter(
       slot => slot._id.toString() !== slotId
     );
@@ -584,11 +586,10 @@ export const deleteTimeSlot = async (req, res) => {
 
     res.json({
       message: "Time slot deleted successfully",
-      schedule
+      schedule,
     });
-
   } catch (err) {
-    console.error("DELETE SLOT ERROR:", err);
+    console.error("DELETE TIME SLOT ERROR:", err);
     res.status(500).json({ message: "Server error" });
   }
 };
