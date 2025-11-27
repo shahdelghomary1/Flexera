@@ -504,13 +504,18 @@ export const addDoctor = async (req, res) => {
 export const getAllDoctors = async (req, res) => {
   try {
     console.log("Reached getAllDoctors route"); 
-    const doctors = await Doctor.find().sort({ createdAt: -1 });
+
+    const doctors = await Doctor.find()
+      .select("name email phone price image _id") 
+      .sort({ createdAt: -1 });
+
     res.json({ doctors });
   } catch (err) {
     console.error(err);
     res.status(500).json({ message: "Server error" });
   }
 };
+
 
 
 export const logoutDoctor = (req, res) => {

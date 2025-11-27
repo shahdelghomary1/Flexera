@@ -6,7 +6,7 @@ export const addDoctorSchema = Joi.object({
     .length(6)
     .required()
     .messages({
-      "string.length": "ID must be exactly 5 characters",
+      "string.length": "ID must be exactly 6 characters",
       "any.required": "ID is required"
     }),
 
