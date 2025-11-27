@@ -32,60 +32,62 @@ export const uploadToCloudinary = (buffer) => {
   });
 };
 
-export const updateAccount = async (req, res) => {
+export const updateDoctorAccount = async (req, res) => {
   try {
-    const userId = req.user._id;
+    const doctorId = req.user.id;
+    let doctor = await Doctor.findById(doctorId);
+    if (!doctor) return res.status(404).json({ message: "Doctor not found" });
 
     
-    let updateData = {
-      name: req.body.name,
-      email: req.body.email,
-      phone: req.body.phone,
-      gender: req.body.gender,
-      dob: req.body.dob,
-      height: req.body.height,
-      weight: req.body.weight,
-    };
+    const updatableFields = ['name','email','phone','price','dateOfBirth','gender'];
+    updatableFields.forEach(field => {
+      if (req.body[field] !== undefined) {
+        doctor[field] = field === 'dateOfBirth' ? new Date(req.body[field]) : req.body[field];
+      }
+    });
 
-    
-    if (req.files?.image) {
-      const imageUrl = await uploadToCloudinary(req.files.image[0].buffer);
-      updateData.image = imageUrl;
+ 
+    const { oldPassword, newPassword } = req.body;
+    if (newPassword) {
+      if (!oldPassword) return res.status(400).json({ message: "Old password is required" });
+      const isMatch = await bcrypt.compare(oldPassword, doctor.password);
+      if (!isMatch) return res.status(400).json({ message: "Old password is incorrect" });
+      doctor.password = newPassword;
     }
 
     
-    if (req.files?.medicalFile) {
-      const medicalFileUrl = await uploadToCloudinary(req.files.medicalFile[0].buffer);
-      updateData.medicalFile = medicalFileUrl;
+    if (req.files) {
+      for (const key in req.files) {
+        if (req.files[key][0]) {
+          const uploadToCloudinary = (buffer, folder) => {
+            return new Promise((resolve, reject) => {
+              const stream = cloudinary.uploader.upload_stream(
+                { folder },
+                (error, result) => (result ? resolve(result.secure_url) : reject(error))
+              );
+              streamifier.createReadStream(buffer).pipe(stream);
+            });
+          };
+
+          const uploadedUrl = await uploadToCloudinary(req.files[key][0].buffer, "uploads/doctors");
+          doctor[key] = uploadedUrl; 
+        }
+      }
     }
 
-
-    const updatedUser = await User.findByIdAndUpdate(
-      userId,
-      updateData,
-      { new: true }
-    ).select("-password"); 
-
-    if (!updatedUser) {
-      return res.status(404).json({
-        success: false,
-        message: "User not found",
-      });
-    }
+    await doctor.save();
 
     res.status(200).json({
-      success: true,
-      message: "Account updated successfully",
-      user: updatedUser,
+      message: "Doctor account updated successfully",
+      doctor,
     });
 
-  } catch (error) {
-    res.status(500).json({
-      success: false,
-      message: error.message,
-    });
+  } catch (err) {
+    console.error("UPDATE DOCTOR ACCOUNT ERROR:", err);
+    res.status(500).json({ message: "Server error", error: err.message });
   }
 };
+
 
 
 export const getAccount = async (req, res) => {
