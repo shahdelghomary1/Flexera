@@ -14,7 +14,7 @@ router.put("/appointments/:scheduleId/exercises", protect(["doctor"]), addExerci
  
 
 // deshboard for staff to manage doctors
-router.get("/", protect, authorize("staff"), getAllDoctors);
+router.get("/",  getAllDoctors);
 
 router.post("/", protect(["staff"]), authorize("staff"), upload.single("image"), validate(addDoctorSchema), addDoctor);
   
