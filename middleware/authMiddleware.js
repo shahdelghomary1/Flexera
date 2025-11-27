@@ -14,6 +14,8 @@ export const protect = (roles = ["user", "staff", "doctor"]) => {
       const token = header.split(" ")[1];
       const decoded = jwt.verify(token, process.env.JWT_SECRET);
       console.log("Decoded token:", decoded);
+     console.log("Header:", header);
+      console.log("Decoded token:", decoded);
 
     
 if (!decoded.id) {
@@ -33,6 +35,7 @@ if (!decoded.id) {
       }
 
       console.log("Current user found:", currentUser);
+    console.log("Current user before check:", currentUser);
 
        req.user = {
         ...currentUser.toObject(),
