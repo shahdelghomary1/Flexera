@@ -30,7 +30,7 @@ export const updateDoctorAccount = async (req, res) => {
     if (!doctor) return res.status(404).json({ message: "Doctor not found" });
 
     
-    const updatableFields = ['name','email','phone','price','dateOfBirth','gender'];
+    const updatableFields = ['name','email','phone','dateOfBirth','gender'];
     updatableFields.forEach(field => {
       if (req.body[field] !== undefined) {
         doctor[field] = field === 'dateOfBirth' ? new Date(req.body[field]) : req.body[field];

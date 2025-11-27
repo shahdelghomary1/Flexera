@@ -76,14 +76,7 @@ export const updateDoctorSchema = Joi.object({
       "string.pattern.base": "Phone number must be a valid Egyptian number (11 digits)"
     }),
   
-  price: Joi.number()
-    .min(50)
-    .max(2000)
-    .optional()
-    .messages({
-      "number.min": "Price must be at least 50",
-      "number.max": "Price must not exceed 2000"
-    }),
+  
 
   dateOfBirth: Joi.date()
     .optional()
