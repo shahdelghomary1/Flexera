@@ -347,7 +347,10 @@ export const addExercisesToUser = async (req, res) => {
       return res.status(400).json({ message: "Exercises must be an array" });
     }
 
-    let schedule = await Schedule.findOne({ user: userId });
+    let schedule = await Schedule.findOne({ 
+      user: userId, 
+      doctor: req.user._id 
+    });
 
     if (!schedule) {
       schedule = await Schedule.create({
@@ -368,6 +371,7 @@ export const addExercisesToUser = async (req, res) => {
     res.status(500).json({ message: "Server error", error: err.message });
   }
 };
+
 
 export const updateUserExercise = async (req, res) => {
   try {
@@ -538,6 +542,14 @@ export const addDoctor = async (req, res) => {
     res.status(500).json({ message: "Server error" });
   }
 };
+/*************  ✨ Windsurf Command ⭐  *************/
+/**
+ * Get all doctors from the database.
+ * This route fetches all doctors and returns them sorted in descending order of creation date.
+ * @returns {Object} - An object containing an array of all doctors.
+ * @throws {Error} - Server error if the database query fails.
+ */
+/*******  222b262b-09e4-4ead-a980-3a40a54225eb  *******/
 export const getAllDoctors = async (req, res) => {
   try {
     console.log("Reached getAllDoctors route"); 
