@@ -74,11 +74,28 @@ export const updateSchedule = async (req, res) => {
   try {
     const scheduleId = req.params.id;
 
+    
+    if (req.user.role !== "doctor") {
+      return res.status(403).json({ message: "Access denied" });
+    }
+
+   
+    const schedule = await Schedule.findById(scheduleId);
+    if (!schedule) {
+      return res.status(404).json({ message: "Schedule not found" });
+    }
+
+    if (schedule.doctor.toString() !== req.user.id) {
+      return res.status(403).json({ message: "You cannot edit another doctor's schedule" });
+    }
+
+    
     const timeToMinutes = (time) => {
       const [h, m] = time.split(":").map(Number);
       return h * 60 + m;
     };
 
+    
     for (const slot of req.body.timeSlots) {
       const timeRegex = /^([01]\d|2[0-3]):([0-5]\d)$/;
       if (!timeRegex.test(slot.from) || !timeRegex.test(slot.to)) {
@@ -97,6 +114,7 @@ export const updateSchedule = async (req, res) => {
       }
     }
 
+  
     const updated = await Schedule.findByIdAndUpdate(
       scheduleId,
       {
@@ -105,8 +123,6 @@ export const updateSchedule = async (req, res) => {
       },
       { new: true }
     );
-
-    if (!updated) return res.status(404).json({ message: "Schedule not found" });
 
     res.json({
       message: "Schedule updated successfully",
@@ -118,6 +134,7 @@ export const updateSchedule = async (req, res) => {
     res.status(500).json({ message: "Server error", error: err.message });
   }
 };
+
 
 
 export const bookAppointment = async (req, res) => {
