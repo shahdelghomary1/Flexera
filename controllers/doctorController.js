@@ -430,12 +430,18 @@ export const getUserMedicalFileWithExercises = async (req, res) => {
 
     if (!userId) return res.status(400).json({ message: "userId is required" });
 
-  
+   
     const user = await User.findById(userId).select("name image medicalFile");
     if (!user) return res.status(404).json({ message: "User not found" });
 
     
-    const schedule = await Schedule.findOne({ user: userId, doctor: doctorId }).select("exercises date");
+    const schedule = await Schedule.findOne({
+      user: userId,
+      $or: [
+        { doctor: doctorId }, 
+        { doctor: doctorId.toString() } 
+      ]
+    }).select("exercises date");
 
     res.status(200).json({
       message: "User medical file and your exercises fetched successfully",
