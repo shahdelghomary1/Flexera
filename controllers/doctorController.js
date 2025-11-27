@@ -503,6 +503,7 @@ export const addDoctor = async (req, res) => {
 };
 export const getAllDoctors = async (req, res) => {
   try {
+    console.log("Reached getAllDoctors route"); 
     const doctors = await Doctor.find().sort({ createdAt: -1 });
     res.json({ doctors });
   } catch (err) {
@@ -510,6 +511,7 @@ export const getAllDoctors = async (req, res) => {
     res.status(500).json({ message: "Server error" });
   }
 };
+
 
 export const logoutDoctor = (req, res) => {
   res.cookie("token", "", { httpOnly: true, expires: new Date(0), sameSite: "strict" });
