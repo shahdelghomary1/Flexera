@@ -200,61 +200,61 @@ export const googleOAuth = async (req, res) => {
 };
 
 
-// export const googleOAuthFlutter = async (req, res) => {
-//   try {
-//     const { idToken, platform } = req.body;
+export const googleOAuthFlutter = async (req, res) => {
+  try {
+    const { idToken, platform } = req.body;
 
-//     if (!idToken) {
-//       return res.status(400).json({ message: "No idToken provided" });
-//     }
+    if (!idToken) {
+      return res.status(400).json({ message: "No idToken provided" });
+    }
 
  
-//     let audience = platform === "ios"
-//       ? process.env.GOOGLE_CLIENT_ID_IOS
-//       : process.env.GOOGLE_CLIENT_ID_ANDROID;
+    let audience = platform === "ios"
+      ? process.env.GOOGLE_CLIENT_ID_IOS
+      : process.env.GOOGLE_CLIENT_ID_ANDROID;
 
-//     const ticket = await client.verifyIdToken({
-//       idToken,
-//       audience,
-//     });
+    const ticket = await client.verifyIdToken({
+      idToken,
+      audience,
+    });
 
-//     const payload = ticket.getPayload();
-//     const { email, name, picture, sub } = payload;
+    const payload = ticket.getPayload();
+    const { email, name, picture, sub } = payload;
 
-//     let user = await User.findOne({ email });
-//     let isNewUser = false;
+    let user = await User.findOne({ email });
+    let isNewUser = false;
 
-//     if (!user) {
-//       user = await User.create({
-//         name,
-//         email,
-//         image: picture,
-//         password: sub,
-//         role: "user",
-//       });
-//       isNewUser = true;
-//     }
+    if (!user) {
+      user = await User.create({
+        name,
+        email,
+        image: picture,
+        password: sub,
+        role: "user",
+      });
+      isNewUser = true;
+    }
 
-//     const token = signTokenWithRole(user);
-//     const { password, ...userData } = user._doc;
+    const token = signTokenWithRole(user);
+    const { password, ...userData } = user._doc;
 
-//     res.status(200).json({
-//       message: isNewUser
-//         ? "Google signup successful"
-//         : "Google login successful",
-//       status: isNewUser ? "signup" : "login",
-//       token,
-//       user: userData,
-//     });
+    res.status(200).json({
+      message: isNewUser
+        ? "Google signup successful"
+        : "Google login successful",
+      status: isNewUser ? "signup" : "login",
+      token,
+      user: userData,
+    });
 
-//   } catch (err) {
-//     console.error("Google OAuth error (Flutter):", err);
-//     res.status(500).json({
-//       message: "Google OAuth failed",
-//       error: err.message,
-//     });
-//   }
-// };
+  } catch (err) {
+    console.error("Google OAuth error (Flutter):", err);
+    res.status(500).json({
+      message: "Google OAuth failed",
+      error: err.message,
+    });
+  }
+};
 
 
 export const forgotPassword = async (req, res) => {

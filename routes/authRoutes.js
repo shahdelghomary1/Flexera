@@ -1,5 +1,7 @@
 import express from "express";
-import { registerUser, loginUser, googleOAuth ,forgotPassword, verifyOTP, resetPassword ,updateAccount,getDoctorsForUser ,getDoctorScheduleForUser ,getUserExercises , getAccount ,logoutUser}
+import { registerUser, loginUser, googleOAuth ,forgotPassword, verifyOTP, resetPassword ,updateAccount,getDoctorsForUser ,getDoctorScheduleForUser ,getUserExercises , getAccount ,logoutUser
+  
+}
   from "../controllers/authController.js";
 import { validate } from "../middleware/validate.js";
 import { registerSchema, loginSchema, googleSchema , forgotSchema, verifyOtpSchema, resetPasswordSchema } from "../validators/authValidator.js";
@@ -26,6 +28,6 @@ router.post("/logout", protect(["user"]), logoutUser);
 // appointment routes for users not working aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
 router.post("/book-appointment", protect(["user"]), bookAppointment);
 router.get("/my-appointments", protect(["user"]), getUserAppointments);
-// router.post("/google/flutter", googleOAuthFlutter)
+router.post("/google/flutter", googleOAuthFlutter);
 export default router;
 
