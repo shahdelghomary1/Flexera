@@ -137,37 +137,6 @@ export const getAppointmentsForDoctor = async (req, res) => {
 
 
 
-export const addExercisesToUser = async (req, res) => {
-  try {
-    const { userId } = req.params;
-    const { exercises } = req.body;
-
-    if (!exercises || !Array.isArray(exercises)) {
-      return res.status(400).json({ message: "Exercises must be an array" });
-    }
-
-    let schedule = await Schedule.findOne({ user: userId });
-
-    if (!schedule) {
-      schedule = await Schedule.create({
-        user: userId,
-        doctor: req.user._id,
-        date: new Date().toISOString().split('T')[0], 
-        timeSlots: [],
-        exercises: []
-      });
-    }
-
-    schedule.exercises.push(...exercises);
-    await schedule.save();
-
-    res.status(200).json({ message: "Exercises added successfully", schedule });
-  } catch (err) {
-    console.error(err);
-    res.status(500).json({ message: "Server error", error: err.message });
-  }
-};
-
 
 
 
@@ -465,7 +434,93 @@ export const getDoctorsForUser = async (req, res) => {
   }
 };
 
+
 const router = express.Router();
+
+// add exercises to user from doctor -------------------------------------------------------------------------
+export const addExercisesToUser = async (req, res) => {
+  try {
+    const { userId } = req.params;
+    const { exercises } = req.body;
+
+    if (!exercises || !Array.isArray(exercises)) {
+      return res.status(400).json({ message: "Exercises must be an array" });
+    }
+
+    let schedule = await Schedule.findOne({ user: userId });
+
+    if (!schedule) {
+      schedule = await Schedule.create({
+        user: userId,
+        doctor: req.user._id,
+        date: new Date().toISOString().split('T')[0], 
+        timeSlots: [],
+        exercises: []
+      });
+    }
+
+    schedule.exercises.push(...exercises);
+    await schedule.save();
+
+    res.status(200).json({ message: "Exercises added successfully", schedule });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: "Server error", error: err.message });
+  }
+};
+
+export const updateUserExercise = async (req, res) => {
+  try {
+    const { userId, exerciseId } = req.params;
+    const updatedData = req.body;
+
+    let schedule = await Schedule.findOne({ user: userId });
+    if (!schedule) return res.status(404).json({ message: "Schedule not found" });
+
+    const exerciseIndex = schedule.exercises.findIndex(ex => ex._id.toString() === exerciseId);
+    if (exerciseIndex === -1) {
+      return res.status(404).json({ message: "Exercise not found" });
+    }
+
+    schedule.exercises[exerciseIndex] = {
+      ...schedule.exercises[exerciseIndex].toObject(),
+      ...updatedData
+    };
+
+    await schedule.save();
+
+    res.status(200).json({ message: "Exercise updated", schedule });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: "Server error", error: err.message });
+  }
+};
+ 
+export const deleteUserExercise = async (req, res) => {
+  try {
+    const { userId, exerciseId } = req.params;
+
+    let schedule = await Schedule.findOne({ user: userId });
+    if (!schedule) return res.status(404).json({ message: "Schedule not found" });
+
+    const initialLength = schedule.exercises.length;
+
+    schedule.exercises = schedule.exercises.filter(
+      ex => ex._id.toString() !== exerciseId
+    );
+
+    if (schedule.exercises.length === initialLength) {
+      return res.status(404).json({ message: "Exercise not found" });
+    }
+
+    await schedule.save();
+
+    res.status(200).json({ message: "Exercise deleted", schedule });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: "Server error", error: err.message });
+  }
+};
 
 router.post("/", protect(["doctor"]), addSchedule);
 
