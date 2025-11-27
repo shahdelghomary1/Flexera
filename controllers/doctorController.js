@@ -28,8 +28,10 @@ export const updateDoctorAccount = async (req, res) => {
     const doctorId = req.user.id;
     let doctor = await Doctor.findById(doctorId);
     if (!doctor) return res.status(404).json({ message: "Doctor not found" });
+     if (req.body.price !== undefined) {
+      delete req.body.price;
+    }
 
-    
     const updatableFields = ['name','email','phone','dateOfBirth','gender'];
     updatableFields.forEach(field => {
       if (req.body[field] !== undefined) {
@@ -78,7 +80,8 @@ export const getDoctorAccount = async (req, res) => {
   try {
     const doctorId = req.user.id;
 
-    const doctor = await Doctor.findById(doctorId).select("-password"); 
+    cconst doctor = await Doctor.findById(doctorId).select("-password -price");
+
     if (!doctor) return res.status(404).json({ message: "Doctor not found" });
 
     res.status(200).json({
