@@ -3,7 +3,7 @@ import Joi from "joi";
 
 export const addDoctorSchema = Joi.object({
   _id: Joi.string()
-    .length(5)
+    .length(6)
     .required()
     .messages({
       "string.length": "ID must be exactly 5 characters",
