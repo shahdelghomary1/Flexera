@@ -3,8 +3,8 @@ import Doctor from "../models/doctorModel.js";
 import User from "../models/userModel.js";
 export const addSchedule = async (req, res) => {
   try {
-    const doctorId = req.body.doctorId; 
-    const date = req.body.date;
+    
+    const doctorId = req.user.id;
 
     if (req.user.role !== "doctor") {
       return res.status(403).json({ message: "Access denied" });
@@ -15,7 +15,7 @@ export const addSchedule = async (req, res) => {
       return h * 60 + m;
     };
 
-    
+   
     for (const slot of req.body.timeSlots) {
       const timeRegex = /^([01]\d|2[0-3]):([0-5]\d)$/;
       if (!timeRegex.test(slot.from) || !timeRegex.test(slot.to)) {
@@ -34,33 +34,10 @@ export const addSchedule = async (req, res) => {
       }
     }
 
-    let existingSchedule = await Schedule.findOne({ doctor: doctorId, date });
-    if (existingSchedule) {
-      for (const newSlot of req.body.timeSlots) {
-        const newFrom = timeToMinutes(newSlot.from);
-        const newTo = timeToMinutes(newSlot.to);
-
-        for (const existingSlot of existingSchedule.timeSlots) {
-          const existFrom = timeToMinutes(existingSlot.from);
-          const existTo = timeToMinutes(existingSlot.to);
-
-          if (newFrom < existTo && newTo > existFrom) {
-            return res.status(400).json({ 
-              message: `Time slot ${JSON.stringify(newSlot)} overlaps with existing slot ${JSON.stringify(existingSlot)}` 
-            });
-          }
-        }
-      }
-    
-      existingSchedule.timeSlots.push(...req.body.timeSlots);
-      await existingSchedule.save();
-      return res.json({ message: "Schedule updated successfully", schedule: existingSchedule });
-    }
-
-    
+   
     const schedule = await Schedule.create({
       doctor: doctorId,
-      date,
+      date: req.body.date,
       timeSlots: req.body.timeSlots
     });
 
