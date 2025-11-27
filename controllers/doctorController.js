@@ -65,6 +65,9 @@ export const updateDoctorAccount = async (req, res) => {
 
 
     await doctor.save();
+    doctor = doctor.toObject();
+    delete doctor.price;
+    delete doctor.password;
 
     res.status(200).json({
       message: "Doctor account updated successfully",
