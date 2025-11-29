@@ -17,7 +17,7 @@ const exerciseSchema = new mongoose.Schema({
 
 const doctorScheduleSchema = new mongoose.Schema({
   doctor: {
-    type: mongoose.Schema.Types.ObjectId,
+    type: String,
     ref: "Doctor",
     required: true
   },

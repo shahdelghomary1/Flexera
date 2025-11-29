@@ -246,8 +246,6 @@ export const doctorResetPassword = async (req, res) => {
   }
 };
 
-
-
 export const getDoctorsForUser = async (req, res) => {
   try {
     
