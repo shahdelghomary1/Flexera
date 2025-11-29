@@ -32,7 +32,7 @@ router.delete( "/schedule/:scheduleId/slot/:slotId", protect(["doctor"]), delete
 
 
 //exercises to user
-router.put("/users/:userId/exercises", protect(["doctor"]), addExercisesToUser);
+router.post("/users/:userId/exercises", protect(["doctor"]), addExercisesToUser);
 router.put("/users/:userId/exercises/:exerciseId",protect(["doctor"]),updateUserExercise);
 router.delete("/users/:userId/exercises/:exerciseId",protect(["doctor"]),deleteUserExercise);
 router.get("/user/:userId/full", protect(["doctor"]), getUserMedicalFileWithExercises);

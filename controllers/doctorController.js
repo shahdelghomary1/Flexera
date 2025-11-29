@@ -338,6 +338,7 @@ export const getDoctorAccount = async (req, res) => {
 };
 
 // add exercises to user from doctor --------------------------------------------------------------------------------------
+
 export const addExercisesToUser = async (req, res) => {
   try {
     const { userId } = req.params;
@@ -371,7 +372,6 @@ export const addExercisesToUser = async (req, res) => {
     res.status(500).json({ message: "Server error", error: err.message });
   }
 };
-
 
 export const updateUserExercise = async (req, res) => {
   try {
