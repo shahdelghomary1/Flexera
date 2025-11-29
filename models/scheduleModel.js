@@ -1,46 +1,29 @@
 import mongoose from "mongoose";
 
 const timeSlotSchema = new mongoose.Schema({
-  from: { type: String, required: true }, 
-  to: { type: String, required: true }    
+  from: { type: String, required: true, match: /^([01]\d|2[0-3]):([0-5]\d)$/ },
+  to: { type: String, required: true, match: /^([01]\d|2[0-3]):([0-5]\d)$/ },
+  isBooked: { type: Boolean, default: false },
+  bookedBy: { type: mongoose.Schema.Types.ObjectId, ref: "User", default: null }
+});
+
+
+const exerciseSchema = new mongoose.Schema({
+  name: { type: String, required: true },
+  sets: { type: Number },
+  reps: { type: Number },
+  notes: { type: String }
 });
 
 const doctorScheduleSchema = new mongoose.Schema({
   doctor: {
-    type: String,
+    type: mongoose.Schema.Types.ObjectId,
     ref: "Doctor",
     required: true
   },
-  user: { 
-    type: mongoose.Schema.Types.ObjectId, 
-    ref: "User" 
-  }, 
-  date: {
-    type: String, 
-    required: true
-  },
-  timeSlots: [
-    {
-      from: {
-        type: String,
-        required: true,
-        match: /^([01]\d|2[0-3]):([0-5]\d)$/ 
-      },
-      to: {
-        type: String,
-        required: true,
-        match: /^([01]\d|2[0-3]):([0-5]\d)$/ 
-      }
-    }
-  ],
-  exercises: [
-    {
-      name: { type: String, required: true },
-      sets: { type: Number },
-      reps: { type: Number },
-      notes: { type: String }
-    }
-  ]
+  date: { type: String, required: true },
+  timeSlots: [timeSlotSchema],
+  exercises: [exerciseSchema]
 }, { timestamps: true });
 
 export default mongoose.model("Schedule", doctorScheduleSchema);

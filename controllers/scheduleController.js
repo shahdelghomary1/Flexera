@@ -16,7 +16,7 @@ export const addSchedule = async (req, res) => {
       return h * 60 + m;
     };
 
-    // Validate time format and logical order
+    
     for (const slot of req.body.timeSlots) {
       const timeRegex = /^([01]\d|2[0-3]):([0-5]\d)$/;
       if (!timeRegex.test(slot.from) || !timeRegex.test(slot.to)) {
@@ -35,9 +35,15 @@ export const addSchedule = async (req, res) => {
       }
     }
 
-    // Check for duplicates inside the request itself
+   
+    const slotsWithBooking = req.body.timeSlots.map(slot => ({
+      ...slot,
+      isBooked: false
+    }));
+
+ 
     const seenSlots = new Set();
-    for (const slot of req.body.timeSlots) {
+    for (const slot of slotsWithBooking) {
       const key = `${slot.from}-${slot.to}`;
       if (seenSlots.has(key)) {
         return res.status(400).json({ message: `Duplicate time slot detected in request: ${key}` });
@@ -45,11 +51,11 @@ export const addSchedule = async (req, res) => {
       seenSlots.add(key);
     }
 
-    // Check for duplicates in existing schedule
+  
     const existingSchedule = await Schedule.findOne({ doctor: doctorId, date: req.body.date });
 
     if (existingSchedule) {
-      for (const newSlot of req.body.timeSlots) {
+      for (const newSlot of slotsWithBooking) {
         for (const existingSlot of existingSchedule.timeSlots) {
           if (newSlot.from === existingSlot.from && newSlot.to === existingSlot.to) {
             return res.status(400).json({ 
@@ -59,8 +65,8 @@ export const addSchedule = async (req, res) => {
         }
       }
 
-      // Merge new slots with existing ones
-      existingSchedule.timeSlots.push(...req.body.timeSlots);
+   
+      existingSchedule.timeSlots.push(...slotsWithBooking);
       await existingSchedule.save();
 
       return res.json({
@@ -69,11 +75,11 @@ export const addSchedule = async (req, res) => {
       });
     }
 
-    // Create new schedule if none exists
+   
     const schedule = await Schedule.create({
       doctor: doctorId,
       date: req.body.date,
-      timeSlots: req.body.timeSlots
+      timeSlots: slotsWithBooking
     });
 
     res.json({
@@ -86,7 +92,6 @@ export const addSchedule = async (req, res) => {
     res.status(500).json({ message: "Server error", error: err.message });
   }
 };
-
 
 export const getDoctorSchedule = async (req, res) => {
   try {
@@ -170,30 +175,7 @@ export const updateSchedule = async (req, res) => {
 
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-export const bookAppointment = async (req, res) => {
-  try {
-    const { doctorId, date, timeSlots } = req.body;
-    const userId = req.user._id;
 
-    const doctor = await Doctor.findById(doctorId);
-    if (!doctor) return res.status(404).json({ message: "Doctor not found" });
-
-    const schedule = await Schedule.create({
-      doctor: doctorId,
-      user: userId,
-      date,
-      timeSlots,
-    });
-
-    res.status(201).json({
-      message: "Appointment booked successfully",
-      schedule,
-    });
-  } catch (err) {
-    console.error(err);
-    res.status(500).json({ message: "Server error", error: err.message });
-  }
-};
 export const getUserAppointments = async (req, res) => {
   try {
     const userId = req.user._id;
@@ -210,11 +192,20 @@ export const getUserAppointments = async (req, res) => {
     res.status(500).json({ message: "Server error", error: err.message });
   }
 };
+
+
+
 export const getDoctorAppointments = async (req, res) => {
   try {
+    // جلب جدول المواعيد للطبيب الحالي
     const doctorId = req.user._id;
+    
+    // 🎯 التعديل المطلوب: استخدام populate لجلب معلومات اليوزر المحجوزة
     const schedules = await Schedule.find({ doctor: doctorId })
-      .populate("user", "name image")
+      .populate({
+        path: 'timeSlots.bookedBy', // الوصول إلى الحقل bookedBy داخل كل timeSlot
+        select: 'name image email'  // جلب اسم اليوزر، صورته، وإيميله
+      })
       .sort({ date: 1 });
 
     res.json({
@@ -227,20 +218,38 @@ export const getDoctorAppointments = async (req, res) => {
   }
 };
 
-export const cancelAppointment = async (req, res) => {
-  try {
-    const { id } = req.params; 
-    const appointment = await Schedule.findByIdAndDelete(id);
-    if (!appointment) return res.status(404).json({ message: "Appointment not found" });
-    res.json({ message: "Appointment cancelled successfully" });
-  } catch (err) {
-    console.error(err);
-    res.status(500).json({ message: "Server error" });
-  }
+
+
+export const cancelBookedTimeSlot = async (req, res) => {
+    try {
+        const { scheduleId, from, to } = req.body;
+        const userId = req.user.id; 
+
+        const schedule = await Schedule.findById(scheduleId);
+        if (!schedule) {
+            return res.status(404).json({ message: "Schedule not found" });
+        }
+
+        const slotIndex = schedule.timeSlots.findIndex(
+            slot => slot.from === from && slot.to === to && slot.bookedBy.toString() === userId.toString()
+        );
+
+        if (slotIndex === -1) {
+            return res.status(404).json({ message: "Booked time slot not found for this user" });
+        }
+
+        schedule.timeSlots[slotIndex].isBooked = false;
+        schedule.timeSlots[slotIndex].bookedBy = null; // إزالة مرجع اليوزر
+
+        await schedule.save();
+
+        res.json({ message: "Time slot cancelled successfully", schedule });
+
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ message: "Server error", error: err.message });
+    }
 };
-
-
-
 export const getAppointmentsForDoctor = async (req, res) => {
   try {
     const doctorId = req.params.doctorId;
@@ -257,5 +266,47 @@ export const getAppointmentsForDoctor = async (req, res) => {
     res.status(500).json({ message: "Server error", error: err.message });
   }
 };
+
+
+export const bookTimeSlot = async (req, res) => {
+  try {
+    const { doctorId, date, from, to } = req.body;
+    const userId = req.user._id; 
+
+    
+    if (!doctorId || !date || !from || !to) {
+      return res.status(400).json({ message: "All fields are required" });
+    }
+
+    
+    const schedule = await Schedule.findOne({ doctor: doctorId, date });
+
+    if (!schedule) {
+      return res.status(404).json({ message: "No schedule found for this date" });
+    }
+
+   
+    const slotIndex = schedule.timeSlots.findIndex(slot => slot.from === from && slot.to === to);
+
+    if (slotIndex === -1) {
+      return res.status(404).json({ message: "Time slot not found" });
+    }
+
+  
+    if (schedule.timeSlots[slotIndex].isBooked) {
+      return res.status(400).json({ message: "Time slot already booked" });
+    }
+    schedule.timeSlots[slotIndex].isBooked = true;
+    schedule.timeSlots[slotIndex].bookedBy = userId; 
+    await schedule.save();
+
+    res.json({ message: "Time slot booked successfully", schedule });
+
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: "Server error", error: err.message });
+  }
+};
+
 
 
