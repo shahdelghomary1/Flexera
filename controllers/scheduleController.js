@@ -251,20 +251,51 @@ export const cancelBookedTimeSlot = async (req, res) => {
     }
 };
 export const getAppointmentsForDoctor = async (req, res) => {
-  try {
-    const doctorId = req.params.doctorId;
-    const appointments = await Schedule.find({ doctor: doctorId })
-      .populate("user", "name image medicalFile")
-      .sort({ date: 1 });
+    try {
+      
+        const doctorId = req.user.id; 
 
-    if (!appointments.length)
-      return res.status(404).json({ message: "No appointments found" });
+     
+        const schedules = await Schedule.find({ 
+            doctor: doctorId 
+        })
+        .select('date timeSlots') 
+        .populate({
+            path: 'timeSlots.bookedBy',
+            select: 'name image medicalFile' 
+        })
+        .sort({ date: 1 });
 
-    res.status(200).json(appointments);
-  } catch (err) {
-    console.error(err);
-    res.status(500).json({ message: "Server error", error: err.message });
-  }
+        if (!schedules.length) {
+            return res.status(404).json({ message: "No schedules found" });
+        }
+
+        const bookedAppointments = [];
+
+        schedules.forEach(schedule => {
+            schedule.timeSlots.forEach(slot => {
+               
+                if (slot.isBooked && slot.bookedBy) {
+                    bookedAppointments.push({
+                        date: schedule.date,
+                        from: slot.from,
+                        to: slot.to,
+                        user: slot.bookedBy, 
+                        slotId: slot._id
+                    });
+                }
+            });
+        });
+
+        res.status(200).json({
+            message: "Booked appointments fetched successfully",
+            appointments: bookedAppointments
+        });
+
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ message: "Server error", error: err.message });
+    }
 };
 
 
