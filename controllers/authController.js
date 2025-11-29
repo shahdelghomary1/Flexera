@@ -193,7 +193,6 @@ export const googleOAuth = async (req, res) => {
   }
 };
 
-
 export const googleOAuthFlutter = async (req, res) => {
   try {
     const { idToken, platform } = req.body;
@@ -250,7 +249,6 @@ export const googleOAuthFlutter = async (req, res) => {
   }
 };
 
-
 export const forgotPassword = async (req, res) => {
   const { email } = req.body;
   try {
@@ -273,7 +271,6 @@ export const forgotPassword = async (req, res) => {
     return res.status(500).json({ message: "Server error" });
   }
 };
-
 
 export const verifyOTP = async (req, res) => {
   const { otp } = req.body;
@@ -383,7 +380,6 @@ export const registerUser = async (req, res) => {
     res.status(500).json({ message: err.message });
   }
 };
-
 
 export const getDoctorsForUser = async (req, res) => {
   try {

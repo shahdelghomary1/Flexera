@@ -123,12 +123,14 @@ export const doctorSignupSchema = Joi.object({
       "any.required": "Email is required",
     }),
 
-  password: Joi.string()
-    .min(6)
+ password: Joi.string()
+    .min(8) 
     .required()
+    .regex(/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,}$/) 
     .messages({
-      "string.min": "Password must be at least 6 characters",
-      "any.required": "Password is required",
+        "string.min": "Password must be at least 8 characters long",
+        "any.required": "Password is required",
+        "string.pattern.base": "Password must contain at least one uppercase letter, one lowercase letter, one number, and one special character (@, $, !, %, *, ?, &)"
     }),
 
   confirmPassword: Joi.any()

@@ -1,4 +1,4 @@
-// controllers/adminController.js
+
 import Doctor from "../models/doctorModel.js";
 import User from "../models/userModel.js";
 import { v2 as cloudinary } from "cloudinary";

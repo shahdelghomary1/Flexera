@@ -194,7 +194,6 @@ export const getUserAppointments = async (req, res) => {
 };
 
 
-
 export const getDoctorAppointments = async (req, res) => {
   try {
     // جلب جدول المواعيد للطبيب الحالي
@@ -217,7 +216,6 @@ export const getDoctorAppointments = async (req, res) => {
     res.status(500).json({ message: "Server error", error: err.message });
   }
 };
-
 
 
 export const cancelBookedTimeSlot = async (req, res) => {
