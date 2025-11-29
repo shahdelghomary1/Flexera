@@ -6,10 +6,28 @@ import User from "../models/userModel.js";
 export const addSchedule = async (req, res) => {
   try {
     const doctorId = req.user.id;
+    const requestDate = req.body.date; 
 
     if (req.user.role !== "doctor") {
       return res.status(403).json({ message: "Access denied" });
     }
+
+    const today = new Date();
+ 
+    today.setHours(0, 0, 0, 0); 
+    
+   
+    const scheduledDate = new Date(requestDate);
+   
+    scheduledDate.setHours(0, 0, 0, 0); 
+
+ 
+    if (scheduledDate.getTime() < today.getTime()) {
+      return res.status(400).json({
+        message: "Cannot add a schedule for a past date. Please select today or a future date."
+      });
+    }
+    // ------------------------------------------------------------------
 
     const timeToMinutes = (time) => {
       const [h, m] = time.split(":").map(Number);
@@ -19,6 +37,7 @@ export const addSchedule = async (req, res) => {
     
     for (const slot of req.body.timeSlots) {
       const timeRegex = /^([01]\d|2[0-3]):([0-5]\d)$/;
+   
       if (!timeRegex.test(slot.from) || !timeRegex.test(slot.to)) {
         return res.status(400).json({ 
           message: `Invalid time format in slot ${JSON.stringify(slot)}` 
@@ -41,7 +60,6 @@ export const addSchedule = async (req, res) => {
       isBooked: false
     }));
 
- 
     const seenSlots = new Set();
     for (const slot of slotsWithBooking) {
       const key = `${slot.from}-${slot.to}`;
@@ -51,8 +69,7 @@ export const addSchedule = async (req, res) => {
       seenSlots.add(key);
     }
 
-  
-    const existingSchedule = await Schedule.findOne({ doctor: doctorId, date: req.body.date });
+    const existingSchedule = await Schedule.findOne({ doctor: doctorId, date: requestDate });
 
     if (existingSchedule) {
       for (const newSlot of slotsWithBooking) {
@@ -65,7 +82,6 @@ export const addSchedule = async (req, res) => {
         }
       }
 
-   
       existingSchedule.timeSlots.push(...slotsWithBooking);
       await existingSchedule.save();
 
@@ -75,10 +91,9 @@ export const addSchedule = async (req, res) => {
       });
     }
 
-   
     const schedule = await Schedule.create({
       doctor: doctorId,
-      date: req.body.date,
+      date: requestDate,
       timeSlots: slotsWithBooking
     });
 
