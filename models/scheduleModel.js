@@ -41,7 +41,7 @@ const doctorScheduleSchema = new mongoose.Schema({
   ],
   date: { type: String, required: true },
   timeSlots: [timeSlotSchema],
-   exercises: [
+  exercises: [
     {
       name: { type: String, required: true },
       sets: { type: Number },
