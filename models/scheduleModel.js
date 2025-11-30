@@ -21,6 +21,10 @@ const doctorScheduleSchema = new mongoose.Schema({
     ref: "Doctor",
     required: true
   },
+  user: { 
+    type: mongoose.Schema.Types.ObjectId, 
+    ref: "User" 
+  },
   date: { type: String, required: true },
   timeSlots: [timeSlotSchema],
   exercises: [exerciseSchema]
