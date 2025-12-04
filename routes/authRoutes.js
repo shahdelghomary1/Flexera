@@ -27,7 +27,7 @@ router.post("/logout", protect(["user"]), logoutUser);
 
 
 // appointment routes for users not working aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
-router.post("/book-pay",    , bookAndPayTimeSlot);
+router.post("/book-pay", protect(["user"])  , bookAndPayTimeSlot);
 router.post("/paymob-webhook", paymobWebhook);
 router.post("/book-appointment", protect(["user"]), bookTimeSlot);
 router.get("/my-appointments", protect(["user"]), getUserAppointments);
