@@ -462,6 +462,25 @@ export const bookAndPayTimeSlot = async (req, res) => {
     });
   }
 };
+
+// ==== Helper: Flatten Object ====
+function flattenObject(obj, prefix = "") {
+  let result = {};
+
+  for (let key in obj) {
+    const newKey = prefix ? `${prefix}.${key}` : key;
+
+    if (typeof obj[key] === "object" && obj[key] !== null) {
+      Object.assign(result, flattenObject(obj[key], newKey));
+    } else {
+      result[newKey] = obj[key];
+    }
+  }
+
+  return result;
+}
+
+
 export const paymobWebhook = async (req, res) => {
   try {
     const data = req.body;
@@ -492,7 +511,6 @@ export const paymobWebhook = async (req, res) => {
       .createHmac("sha512", process.env.PAYMOB_HMAC)
       .update(concatenated)
       .digest("hex");
-
     console.log("Calculated HMAC:", calculatedHmac);
 
     if (calculatedHmac !== receivedHmac) {
