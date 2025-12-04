@@ -9,7 +9,7 @@ import { protect } from "../middleware/authMiddleware.js";
 import { upload } from "../middleware/multer.js"
 import {  getUserAppointments ,  bookTimeSlot} from "../controllers/scheduleController.js";
 import { bookAndPayTimeSlot } from "../controllers/scheduleController.js";
-import {   bookPay,
+import {  
   paymobWebhook,
   paymobWebhookGet, } from "../controllers/scheduleController.js";
 
@@ -33,7 +33,7 @@ router.post("/logout", protect(["user"]), logoutUser);
 // appointment routes for users not working aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
 router.post("/book-pay", protect(["user"])  , bookAndPayTimeSlot);
 router.post("/paymob-webhook", paymobWebhook);
-router.post("/book-pay", protect(["user"]), bookPay);
+
 
 
 // Paymob webhook (POST)

@@ -465,7 +465,7 @@ export const bookAndPayTimeSlot = async (req, res) => {
 export const paymobWebhook = async (req, res) => {
   try {
     const data = req.body.obj || req.body;
-    const hmacReceived = req.query.hmac;
+    const hmacReceived = req.query.hmac || "TEST_HMAC"; // لو هتجرب على Postman بدون حساب HMAC حقيقي
     const PAYMOB_HMAC = process.env.PAYMOB_HMAC;
 
     if (!data || !hmacReceived || !PAYMOB_HMAC) {
