@@ -424,13 +424,14 @@ export const bookAndPayTimeSlot = async (req, res) => {
         expiration: 3600,
         order_id: orderId,
         billing_data: {
+
           apartment: "NA",
           email: userDetails.email,
           floor: "NA",
           first_name: firstName,
           street: "NA",
           building: "NA",
-          phone_number: userDetails.phone,
+          phone_number: userDetails.phone || "01000000000",
           shipping_method: "NA",
           postal_code: "NA",
           city: "Cairo",
