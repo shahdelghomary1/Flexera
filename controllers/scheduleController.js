@@ -463,8 +463,7 @@ export const bookAndPayTimeSlot = async (req, res) => {
   }
 };
 
-import crypto from "crypto";
-import Schedule from "../models/scheduleModel.js";
+
 
 // ==== Helper: Flatten Object ====
 function flattenObject(obj, prefix = "") {
