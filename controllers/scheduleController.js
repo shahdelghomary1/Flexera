@@ -611,7 +611,7 @@ export const paymobWebhook = async (req, res) => {
     const hmacReceived = req.query.hmac;
     const transaction = req.query; 
 
-    // 1. التأكد من أن جميع الحقول المطلوبة لـ HMAC موجودة
+    // 1. بناء سلسلة البيانات للتحقق من HMAC
     const hmacKeys = [
         "amount_cents", "created_at", "currency", "error_lapsed", "has_parent_transaction",
         "id", "integration_id", "is_3d_secure", "is_auth", "is_capture", "is_expired",
@@ -620,12 +620,11 @@ export const paymobWebhook = async (req, res) => {
         "pending", "source_data_pan", "source_data_sub_type", "source_data_type", "data_message"
     ];
 
-    // بناء سلسلة HMAC
     const hmacString = hmacKeys.map(key => transaction[key]).join("");
     
     // 2. حساب HMAC والتحقق منه
     const hmacCalculated = crypto
-        .createHmac("sha512", PAYMOB_HMAC) // 🚨 استخدام الثابت PAYMOB_HMAC
+        .createHmac("sha512", PAYMOB_HMAC) 
         .update(hmacString)
         .digest("hex");
         
@@ -658,11 +657,6 @@ export const paymobWebhook = async (req, res) => {
     }
 
     const slotIndex = schedule.timeSlots.findIndex(slot => slot.paymentOrderId == orderId);
-
-    if (slotIndex === -1) {
-         // حالة نادرة: تم العثور على الجدول ولكن لم يتم العثور على Slot
-        return res.status(200).send("Slot mismatch");
-    }
 
     const slot = schedule.timeSlots[slotIndex];
 
@@ -702,7 +696,6 @@ export const paymobWebhook = async (req, res) => {
         res.status(200).send("Processing error");
     }
 };
-
 
 
 
