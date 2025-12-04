@@ -452,81 +452,85 @@ export const bookAndPayTimeSlot = async (req, res) => {
 const PAYMOB_HMAC = process.env.PAYMOB_HMAC || "D0AD002C9EFCDFEB19E6AAFFE4BDC0AF";
 
 export const paymobWebhook = async (req, res) => {
-    try {
-        console.log("PAYMOB WEBHOOK RECEIVED. Query Data:", req.query);
+  try {
+    const { obj, hmac } = req.body;
 
-        const transaction = req.query;
-        const hmacReceived = transaction.hmac;
+    console.log("Received HMAC:", hmac);
 
-        // ترتيب الحقول للتحقق من HMAC
-        const hmacKeys = [
-            "amount_cents", "created_at", "currency", "error_lapsed", "has_parent_transaction",
-            "id", "integration_id", "is_3d_secure", "is_auth", "is_capture", "is_expired",
-            "is_fee_refunded", "is_voided", "is_refunded", "is_standalone_payment",
-            "is_service_at_source", "is_settled", "is_success", "order", "owner",
-            "pending", "source_data_pan", "source_data_sub_type", "source_data_type", "data_message"
-        ];
+    const PAYMOB_HMAC = process.env.PAYMOB_HMAC;
 
-        // بناء السلسلة للتحقق
-        const hmacString = hmacKeys.map(key => transaction[key] || "").join("");
+    const keys = [
+      "amount_cents",
+      "created_at",
+      "currency",
+      "error_occured",
+      "has_parent_transaction",
+      "id",
+      "integration_id",
+      "is_3d_secure",
+      "is_auth",
+      "is_capture",
+      "is_cashout",
+      "is_expired",
+      "is_fraud",
+      "is_pending",
+      "is_refunded",
+      "is_rejected",
+      "is_stand_alone_payment",
+      "is_success",
+      "merchant_commission",
+      "order",
+      "owner",
+      "pending",
+      "source_data_pan",
+      "source_data_sub_type",
+      "source_data_type",
+      "success"
+    ];
 
-        const hmacCalculated = crypto
-            .createHmac("sha512", PAYMOB_HMAC)
-            .update(hmacString)
-            .digest("hex");
+    const concatenated = keys.map(key => obj[key] ?? "").join("");
 
-        console.log(`HMAC Received: ${hmacReceived}`);
-        console.log(`HMAC Calculated: ${hmacCalculated}`);
-        console.log(`HMAC Match: ${hmacCalculated === hmacReceived}`);
+    const calculatedHmac = crypto
+      .createHmac("sha512", PAYMOB_HMAC)
+      .update(concatenated)
+      .digest("hex");
 
-        if (hmacCalculated !== hmacReceived) {
-            console.error("Paymob Webhook ERROR: HMAC mismatch. Possible tampering.");
-            return res.status(200).send("HMAC check failed.");
-        }
+    console.log("Calculated:", calculatedHmac);
 
-        console.log("HMAC check SUCCESSFUL. Processing transaction.");
-
-        const isSuccess = transaction.is_success === 'true';
-        const orderId = transaction.order;
-        const paymobTransactionId = transaction.id;
-
-        // البحث عن الطلب في قاعدة البيانات
-        const schedule = await Schedule.findOne({ "timeSlots.paymentOrderId": orderId });
-
-        if (!schedule) {
-            console.warn(`Webhook received for unknown order: ${orderId}`);
-            return res.status(200).send("Order not found");
-        }
-
-        const slotIndex = schedule.timeSlots.findIndex(slot => slot.paymentOrderId == orderId);
-        if (slotIndex === -1) {
-            console.warn(`Slot not found for order: ${orderId}`);
-            return res.status(200).send("Slot not found");
-        }
-
-        const slot = schedule.timeSlots[slotIndex];
-
-        // تحديث حالة الدفع والـ booking
-        if (isSuccess) {
-            slot.isBooked = true;
-            slot.isPaid = true;
-            slot.paymentTransactionId = paymobTransactionId;
-            console.log(`Payment SUCCESS for Order ID: ${orderId}`);
-        } else {
-            slot.isBooked = false;
-            slot.isPaid = false;
-            slot.bookedBy = null;
-            slot.paymentOrderId = null;
-            console.log(`Payment FAILED for Order ID: ${orderId}`);
-        }
-
-        await schedule.save();
-        res.status(200).send("Webhook processed successfully");
-
-    } catch (error) {
-        console.error("Error processing Paymob webhook:", error);
-        res.status(200).send("Processing error");
+    if (calculatedHmac !== hmac) {
+      console.log("❌ HMAC mismatch");
+      return res.status(200).send("HMAC mismatch");
     }
+
+    console.log("✅ HMAC Verified Successfully");
+
+    const isSuccess = obj.is_success;
+    const orderId = obj.order;
+
+    const schedule = await Schedule.findOne({ "timeSlots.paymentOrderId": orderId });
+    if (!schedule) return res.status(200).send("Order not found");
+
+    const slotIndex = schedule.timeSlots.findIndex(s => s.paymentOrderId == orderId);
+    const slot = schedule.timeSlots[slotIndex];
+
+    if (isSuccess) {
+      slot.isPaid = true;
+      await schedule.save();
+      console.log("Payment Success Updated");
+    } else {
+      slot.isPaid = false;
+      slot.isBooked = false;
+      slot.bookedBy = null;
+      slot.paymentOrderId = null;
+      await schedule.save();
+      console.log("Payment Failed — Rolled Back");
+    }
+
+    return res.status(200).send("Webhook processed");
+  } catch (err) {
+    console.error("Webhook Error:", err);
+    res.status(500).send("Server error");
+  }
 };
 
 
