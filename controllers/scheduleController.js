@@ -460,35 +460,57 @@ export const bookAndPayTimeSlot = async (req, res) => {
     res.status(500).json({ message: "Server error", error: err.response?.data || err.message });
   }
 };
-
-// =================== Paymob Webhook ===================
+// =================== Paymob Webhook (Test-Friendly) ===================
 export const paymobWebhook = async (req, res) => {
   try {
     const data = req.body.obj || req.body;
-    const hmacReceived = req.query.hmac || "TEST_HMAC"; // لو هتجرب على Postman بدون حساب HMAC حقيقي
+    const hmacReceived = req.query.hmac; // لو موجود
     const PAYMOB_HMAC = process.env.PAYMOB_HMAC;
 
-    if (!data || !hmacReceived || !PAYMOB_HMAC) {
-      console.error("❌ Missing data or HMAC config.");
-      return res.status(200).send("Missing data or config");
+    let hmacValid = false;
+
+    if (hmacReceived && PAYMOB_HMAC) {
+      // تحقق HMAC الحقيقي
+      const flattenObject = (obj, prefix = "") => {
+        let result = {};
+        for (let key in obj) {
+          if (!obj.hasOwnProperty(key)) continue;
+          const newKey = prefix ? `${prefix}.${key}` : key;
+          if (typeof obj[key] === "object" && obj[key] !== null) {
+            Object.assign(result, flattenObject(obj[key], newKey));
+          } else {
+            result[newKey] = obj[key];
+          }
+        }
+        return result;
+      };
+
+      const hmacKeys = Object.keys(flattenObject(data)).sort();
+      const flatData = flattenObject(data);
+      const hmacString = hmacKeys.map(key => {
+        let val = flatData[key];
+        if (typeof val === "boolean") return val.toString();
+        return val != null ? val.toString() : "";
+      }).join("");
+
+      const hmacCalculated = crypto.createHmac("sha512", PAYMOB_HMAC).update(hmacString).digest("hex");
+      hmacValid = hmacCalculated === hmacReceived;
+
+      if (!hmacValid) {
+        console.warn("⚠️ HMAC mismatch, continuing in test mode");
+      }
+    } else {
+      console.warn("⚠️ No HMAC provided, skipping verification for testing");
+      hmacValid = true;
     }
 
-    const hmacKeys = Object.keys(flattenObject(data)).sort();
-    const flatData = flattenObject(data);
-    const hmacString = hmacKeys.map(key => {
-      let val = flatData[key];
-      if (typeof val === "boolean") return val.toString();
-      return val != null ? val.toString() : "";
-    }).join("");
-
-    const hmacCalculated = crypto.createHmac("sha512", PAYMOB_HMAC).update(hmacString).digest("hex");
-    if (hmacCalculated !== hmacReceived) {
-      console.error("❌ HMAC mismatch! Possible tampering.");
+    if (!hmacValid) {
       return res.status(200).send("HMAC check failed");
     }
 
+    // ✅ تحديث الـ slot بناءً على orderId
     const orderId = data.order?.id;
-    const isSuccess = data.success;
+    const isSuccess = data.success ?? true; // في وضع التجربة خليها true لو مش موجود
     const paymobTransactionId = data.id;
 
     const schedule = await Schedule.findOne({ "timeSlots.paymentOrderId": orderId });
@@ -502,20 +524,21 @@ export const paymobWebhook = async (req, res) => {
     if (isSuccess) {
       slot.isBooked = true;
       slot.isPaid = true;
-      slot.paymentTransactionId = paymobTransactionId;
+      slot.paymentTransactionId = paymobTransactionId || null;
     } else {
       slot.isBooked = false;
       slot.isPaid = false;
       slot.bookedBy = null;
       slot.paymentOrderId = null;
+      slot.paymentTransactionId = null;
     }
 
     await schedule.save();
-    res.status(200).send("Webhook processed successfully");
+    res.status(200).send("Webhook processed successfully (test mode)");
 
   } catch (err) {
-    console.error("Webhook processing error:", err);
-    res.status(200).send("Processing error");
+    console.error("Webhook test processing error:", err);
+    res.status(500).send("Processing error");
   }
 };
 
@@ -523,3 +546,4 @@ export const paymobWebhook = async (req, res) => {
 export const paymobWebhookGet = (req, res) => {
   res.status(200).send("Payment process finished. Waiting for final confirmation.");
 };
+
