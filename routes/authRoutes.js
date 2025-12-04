@@ -8,8 +8,10 @@ import { registerSchema, loginSchema, googleSchema , forgotSchema, verifyOtpSche
 import { protect } from "../middleware/authMiddleware.js"; 
 import { upload } from "../middleware/multer.js"
 import {  getUserAppointments ,  bookTimeSlot} from "../controllers/scheduleController.js";
-import { bookAndPayTimeSlot, paymobWebhook } from "../controllers/scheduleController.js";
-import { bookPay } from "../controllers/scheduleController.js";
+import { bookAndPayTimeSlot } from "../controllers/scheduleController.js";
+import {   bookPay,
+  paymobWebhook,
+  paymobWebhookGet, } from "../controllers/scheduleController.js";
 
 const router = express.Router();
 // user auth and account management routes
@@ -33,11 +35,11 @@ router.post("/book-pay", protect(["user"])  , bookAndPayTimeSlot);
 router.post("/paymob-webhook", paymobWebhook);
 router.post("/book-pay", protect(["user"]), bookPay);
 
-// 💡 FIX: أضف مسار GET لمنع ظهور "Cannot GET" عند إعادة توجيه المتصفح
-router.get("/paymob-webhook", (req, res) => {
-    // يمكن إرسال رسالة بسيطة للمستخدم تفيد بانتهاء الدفع
-    res.status(200).send("Payment process finished. Waiting for final confirmation.");
-});
+
+// Paymob webhook (POST)
+router.get("/paymob-webhook", paymobWebhookGet);
+// GET route لتجنب "Cannot GET" عند إعادة توجيه المتصفح
+
 router.post("/book-appointment", protect(["user"]), bookTimeSlot);
 router.get("/my-appointments", protect(["user"]), getUserAppointments);
 router.post("/google/flutter", googleOAuthFlutter);

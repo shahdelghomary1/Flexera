@@ -464,99 +464,21 @@ export const bookAndPayTimeSlot = async (req, res) => {
 };
 
 
-
-// ==== Helper: Flatten Object ====
+// ================= Helper: Flatten Object =================
 function flattenObject(obj, prefix = "") {
   let result = {};
-
   for (let key in obj) {
     const newKey = prefix ? `${prefix}.${key}` : key;
-
     if (typeof obj[key] === "object" && obj[key] !== null) {
       Object.assign(result, flattenObject(obj[key], newKey));
     } else {
       result[newKey] = obj[key];
     }
   }
-
   return result;
 }
 
-export const paymobWebhook = async (req, res) => {
-  try {
-    const data = req.body;
-    console.log("✅ Received webhook data:", JSON.stringify(data, null, 2));
-
-    const receivedHmac = data.hmac;
-    console.log("Received HMAC:", receivedHmac);
-
-    // 1️⃣ Remove hmac from data
-    let copy = { ...data };
-    delete copy.hmac;
-    console.log("Data after removing HMAC:", JSON.stringify(copy, null, 2));
-
-    // 2️⃣ Flatten nested objects
-    const flat = flattenObject(copy);
-    console.log("Flattened data:", JSON.stringify(flat, null, 2));
-
-    // 3️⃣ Sort alphabetically
-    const sortedKeys = Object.keys(flat).sort();
-    console.log("Sorted keys:", sortedKeys);
-
-    // 4️⃣ Join values
-    const concatenated = sortedKeys.map((k) => flat[k]).join("");
-    console.log("Concatenated values for HMAC:", concatenated);
-
-    // 5️⃣ Calculate HMAC
-    const calculatedHmac = crypto
-      .createHmac("sha512", process.env.PAYMOB_HMAC)
-      .update(concatenated)
-      .digest("hex");
-
-    console.log("Calculated HMAC:", calculatedHmac);
-
-    if (calculatedHmac !== receivedHmac) {
-      console.log("❌ HMAC MISMATCH");
-      return res.status(200).send("HMAC mismatch");
-    }
-
-    console.log("✅ HMAC VERIFIED");
-
-    // --------------------------
-    //    HANDLE PAYMENT RESULT
-    // --------------------------
-    const isSuccess = data.obj?.success;
-    const orderId = data.obj?.order?.id;
-
-    const schedule = await Schedule.findOne({
-      "timeSlots.paymentOrderId": orderId,
-    });
-
-    if (!schedule) return res.status(200).send("Order not found");
-
-    const slot = schedule.timeSlots.find((s) => s.paymentOrderId == orderId);
-    if (!slot) return res.status(200).send("Slot not found");
-
-    if (isSuccess) {
-      slot.isPaid = true;
-      console.log("💰 Payment SUCCESS");
-    } else {
-      slot.isPaid = false;
-      slot.isBooked = false;
-      slot.bookedBy = null;
-      slot.paymentOrderId = null;
-      console.log("❌ Payment FAILED → Rolled Back");
-    }
-
-    await schedule.save();
-
-    res.status(200).send("Webhook processed");
-  } catch (err) {
-    console.error("Webhook Error:", err);
-    res.status(500).send("Server error");
-  }
-};
-
+// =================== Book & Pay (Sandbox) ===================
 export const bookPay = async (req, res) => {
   try {
     const { doctorId, date, slotId, price, billing } = req.body;
@@ -571,12 +493,12 @@ export const bookPay = async (req, res) => {
 
     // 2️⃣ حدث slot ليكون محجوز مؤقتًا
     slot.isBooked = true;
-    slot.bookedBy = req.user.id; // لازم يكون عندك middleware للتحقق من user
+    slot.bookedBy = req.user._id;
     slot.isPaid = false;
     await schedule.save();
 
     // 3️⃣ جهز بيانات الدفع لـ Paymob Sandbox
-    const authToken = process.env.PAYMOB_SANDBOX_TOKEN; // حط توكن sandbox هنا
+    const authToken = process.env.PAYMOB_SANDBOX_TOKEN;
     const orderData = {
       auth_token: authToken,
       delivery_needed: false,
@@ -590,7 +512,6 @@ export const bookPay = async (req, res) => {
       "https://accept.paymob.com/api/ecommerce/orders",
       orderData
     );
-
     const orderId = orderResp.data.id;
 
     // 5️⃣ إنشاء Payment Key
@@ -610,8 +531,6 @@ export const bookPay = async (req, res) => {
     );
 
     const paymentToken = paymentKeyResp.data.token;
-
-    // 6️⃣ جهز رابط الدفع
     const paymentUrl = `https://accept.paymob.com/api/acceptance/iframes/984851?payment_token=${paymentToken}`;
 
     res.status(200).json({
@@ -625,4 +544,64 @@ export const bookPay = async (req, res) => {
     console.error("Booking payment error:", err.response?.data || err.message);
     res.status(500).json({ message: "Server error", error: err.response?.data || err.message });
   }
+};
+
+// =================== Paymob Webhook ===================
+export const paymobWebhook = async (req, res) => {
+  try {
+    const data = req.body;
+    console.log("✅ Received webhook data:", JSON.stringify(data, null, 2));
+
+    const receivedHmac = data.hmac;
+    let copy = { ...data };
+    delete copy.hmac;
+
+    const flat = flattenObject(copy);
+    const sortedKeys = Object.keys(flat).sort();
+    const concatenated = sortedKeys.map(k => flat[k]).join("");
+
+    const calculatedHmac = crypto
+      .createHmac("sha512", process.env.PAYMOB_HMAC)
+      .update(concatenated)
+      .digest("hex");
+
+    if (calculatedHmac !== receivedHmac) {
+      console.log("❌ HMAC MISMATCH");
+      return res.status(200).send("HMAC mismatch");
+    }
+
+    console.log("✅ HMAC VERIFIED");
+
+    const isSuccess = data.obj?.success;
+    const orderId = data.obj?.order?.id;
+
+    const schedule = await Schedule.findOne({ "timeSlots.paymentOrderId": orderId });
+    if (!schedule) return res.status(200).send("Order not found");
+
+    const slot = schedule.timeSlots.find(s => s.paymentOrderId == orderId);
+    if (!slot) return res.status(200).send("Slot not found");
+
+    if (isSuccess) {
+      slot.isPaid = true;
+      console.log("💰 Payment SUCCESS");
+    } else {
+      slot.isPaid = false;
+      slot.isBooked = false;
+      slot.bookedBy = null;
+      slot.paymentOrderId = null;
+      console.log("❌ Payment FAILED → Rolled Back");
+    }
+
+    await schedule.save();
+    res.status(200).send("Webhook processed");
+
+  } catch (err) {
+    console.error("Webhook Error:", err);
+    res.status(500).send("Server error");
+  }
+};
+
+// =================== GET route for /paymob-webhook ===================
+export const paymobWebhookGet = (req, res) => {
+  res.status(200).send("Payment process finished. Waiting for final confirmation.");
 };
