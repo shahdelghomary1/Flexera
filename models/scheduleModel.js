@@ -4,7 +4,9 @@ const timeSlotSchema = new mongoose.Schema({
   from: { type: String, required: true, match: /^([01]\d|2[0-3]):([0-5]\d)$/ },
   to: { type: String, required: true, match: /^([01]\d|2[0-3]):([0-5]\d)$/ },
   isBooked: { type: Boolean, default: false },
-  bookedBy: { type: mongoose.Schema.Types.ObjectId, ref: "User", default: null }
+  bookedBy: { type: mongoose.Schema.Types.ObjectId, ref: "User", default: null } ,
+    isPaid: { type: Boolean, default: false },
+  paymentOrderId: { type: String, default: null },
 });
 
 
@@ -36,7 +38,12 @@ const doctorScheduleSchema = new mongoose.Schema({
         type: String,
         required: true,
         match: /^([01]\d|2[0-3]):([0-5]\d)$/ 
-      }
+      } ,
+       isBooked: { type: Boolean, default: false },
+      bookedBy: { type: mongoose.Schema.Types.ObjectId, ref: "User", default: null },
+      isPaid: { type: Boolean, default: false },
+      paymentOrderId: { type: String, default: null }
+
     }
   ],
   date: { type: String, required: true },

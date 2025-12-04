@@ -9,7 +9,7 @@ const doctorSchema = new mongoose.Schema({
   password: { type: String }, 
    price: { type: Number, required: true },
  
- 
+
 dateOfBirth: { type: Date, default: null },
 gender: { type: String, enum: ["Female", "Male"], default: null },
 image: { type: String, default: "" }

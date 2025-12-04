@@ -1,7 +1,7 @@
 import Schedule from "../models/scheduleModel.js";
 import Doctor from "../models/doctorModel.js";
 import User from "../models/userModel.js";
-
+import axios from "axios";
 /// Add a new schedule for a doctor and validate time slots and update the schedule
 export const addSchedule = async (req, res) => {
   try {
@@ -351,6 +351,106 @@ export const bookTimeSlot = async (req, res) => {
     res.status(500).json({ message: "Server error", error: err.message });
   }
 };
+//////////////////////////////////////////////////////////////
+
+
+export const bookAndPayTimeSlot = async (req, res) => {
+  try {
+    const { doctorId, date, from } = req.body;
+    const userId = req.user._id;
+
+    const doctor = await Doctor.findById(doctorId);
+    if (!doctor) return res.status(404).json({ message: "Doctor not found" });
+
+    let schedule = await Schedule.findOne({ doctor: doctorId, date });
+    if (!schedule) return res.status(404).json({ message: "No schedule found for this date" });
+
+    const slotIndex = schedule.timeSlots.findIndex(slot => slot.from === from);
+    if (slotIndex === -1) return res.status(404).json({ message: "Time slot not found" });
+    if (schedule.timeSlots[slotIndex].isBooked) return res.status(400).json({ message: "Time slot already booked" });
+
+    // Step 2: Create Paymob Order
+    const authResponse = await axios.post(
+      "https://accept.paymob.com/api/auth/tokens",
+      { api_key: process.env.PAYMOB_API_KEY }
+    );
+    const token = authResponse.data.token;
+
+    const orderResponse = await axios.post(
+      "https://accept.paymob.com/api/ecommerce/orders",
+      {
+        auth_token: token,
+        delivery_needed: false,
+        amount_cents: doctor.price * 100,
+        currency: "EGP",
+        items: [{ name: `Consultation with Dr. ${doctor.name}`, amount_cents: doctor.price * 100, quantity: 1 }]
+      }
+    );
+
+    const orderId = orderResponse.data.id;
+
+    // Step 3: Generate payment key
+    const paymentKeyResponse = await axios.post(
+      "https://accept.paymob.com/api/acceptance/payment_keys",
+      {
+        auth_token: token,
+        amount_cents: doctor.price * 100,
+        expiration: 3600,
+        order_id: orderId,
+        billing_data: {
+          first_name: req.user.name,
+          email: req.user.email,
+          phone_number: req.user.phone
+        },
+        currency: "EGP",
+        integration_id: process.env.PAYMOB_INTEGRATION_ID
+      }
+    );
+
+    const paymentToken = paymentKeyResponse.data.token;
+
+    // Step 4: Save orderId in the slot (so we can confirm payment later)
+    schedule.timeSlots[slotIndex].paymentOrderId = orderId;
+    await schedule.save();
+
+    // Step 5: Return payment token to frontend
+    res.status(200).json({
+      message: "Proceed to payment",
+      paymentToken,
+      orderId,
+      amount: doctor.price
+    });
+
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: "Server error", error: err.message });
+  }
+};
+
+// Step 6: Paymob webhook to confirm payment
+export const paymobWebhook = async (req, res) => {
+  const { order } = req.body; // حسب Paymob webhook structure
+  const { order_id, success } = order;
+
+  if (success) {
+    // Find the schedule & slot with this order_id
+    const schedule = await Schedule.findOne({ "timeSlots.paymentOrderId": order_id });
+    if (schedule) {
+      const slot = schedule.timeSlots.find(slot => slot.paymentOrderId === order_id);
+      if (slot) {
+        slot.isPaid = true;
+        slot.isBooked = true;
+        slot.bookedBy = order.userId || null; // لو عايزة تمرري userId من الفرونت
+        await schedule.save();
+      }
+    }
+  }
+
+  res.status(200).json({ received: true });
+};
+
+
+
 
 
 
