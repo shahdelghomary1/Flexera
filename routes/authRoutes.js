@@ -29,6 +29,12 @@ router.post("/logout", protect(["user"]), logoutUser);
 // appointment routes for users not working aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
 router.post("/book-pay", protect(["user"])  , bookAndPayTimeSlot);
 router.post("/paymob-webhook", paymobWebhook);
+
+// 💡 FIX: أضف مسار GET لمنع ظهور "Cannot GET" عند إعادة توجيه المتصفح
+router.get("/paymob-webhook", (req, res) => {
+    // يمكن إرسال رسالة بسيطة للمستخدم تفيد بانتهاء الدفع
+    res.status(200).send("Payment process finished. Waiting for final confirmation.");
+});
 router.post("/book-appointment", protect(["user"]), bookTimeSlot);
 router.get("/my-appointments", protect(["user"]), getUserAppointments);
 router.post("/google/flutter", googleOAuthFlutter);
