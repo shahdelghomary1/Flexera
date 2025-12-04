@@ -354,27 +354,43 @@ export const bookTimeSlot = async (req, res) => {
 //////////////////////////////////////////////////////////////
 
 
+
 export const bookAndPayTimeSlot = async (req, res) => {
   try {
+    console.log("Request body:", req.body);
+
     const { doctorId, date, from } = req.body;
     const userId = req.user._id;
 
     const doctor = await Doctor.findById(doctorId);
-    if (!doctor) return res.status(404).json({ message: "Doctor not found" });
+    if (!doctor) {
+      console.log("Doctor not found:", doctorId);
+      return res.status(404).json({ message: "Doctor not found" });
+    }
 
     let schedule = await Schedule.findOne({ doctor: doctorId, date });
-    if (!schedule) return res.status(404).json({ message: "No schedule found for this date" });
+    if (!schedule) {
+      console.log("No schedule found for date:", date);
+      return res.status(404).json({ message: "No schedule found for this date" });
+    }
 
     const slotIndex = schedule.timeSlots.findIndex(slot => slot.from === from);
-    if (slotIndex === -1) return res.status(404).json({ message: "Time slot not found" });
-    if (schedule.timeSlots[slotIndex].isBooked) return res.status(400).json({ message: "Time slot already booked" });
+    if (slotIndex === -1) {
+      console.log("Time slot not found:", from);
+      return res.status(404).json({ message: "Time slot not found" });
+    }
+    if (schedule.timeSlots[slotIndex].isBooked) {
+      console.log("Time slot already booked:", from);
+      return res.status(400).json({ message: "Time slot already booked" });
+    }
 
-    // Step 2: Create Paymob Order
+    console.log("Creating Paymob order...");
     const authResponse = await axios.post(
       "https://accept.paymob.com/api/auth/tokens",
       { api_key: process.env.PAYMOB_API_KEY }
     );
     const token = authResponse.data.token;
+    console.log("Paymob auth token:", token);
 
     const orderResponse = await axios.post(
       "https://accept.paymob.com/api/ecommerce/orders",
@@ -386,10 +402,9 @@ export const bookAndPayTimeSlot = async (req, res) => {
         items: [{ name: `Consultation with Dr. ${doctor.name}`, amount_cents: doctor.price * 100, quantity: 1 }]
       }
     );
-
     const orderId = orderResponse.data.id;
+    console.log("Paymob orderId:", orderId);
 
-    // Step 3: Generate payment key
     const paymentKeyResponse = await axios.post(
       "https://accept.paymob.com/api/acceptance/payment_keys",
       {
@@ -408,12 +423,13 @@ export const bookAndPayTimeSlot = async (req, res) => {
     );
 
     const paymentToken = paymentKeyResponse.data.token;
+    console.log("Paymob paymentToken:", paymentToken);
 
-    // Step 4: Save orderId in the slot (so we can confirm payment later)
+    // Save orderId in slot
     schedule.timeSlots[slotIndex].paymentOrderId = orderId;
     await schedule.save();
+    console.log("Schedule updated with payment orderId");
 
-    // Step 5: Return payment token to frontend
     res.status(200).json({
       message: "Proceed to payment",
       paymentToken,
@@ -422,7 +438,7 @@ export const bookAndPayTimeSlot = async (req, res) => {
     });
 
   } catch (err) {
-    console.error(err);
+    console.error("Paymob Error:", err.response?.data || err.message);
     res.status(500).json({ message: "Server error", error: err.message });
   }
 };
