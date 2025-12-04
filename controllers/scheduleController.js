@@ -605,11 +605,13 @@ export const bookAndPayTimeSlot = async (req, res) => {
 
 // Step 6: Paymob webhook to confirm payment (مع التحقق من HMAC)
 export const paymobWebhook = async (req, res) => {
-    // Paymob يرسل البيانات الهامة في الـ query وليس body في حالة الـ Hmac
+    // 💡 سجل: بدأ تنفيذ الدالة - مهم جداً لمتابعة دخول الطلب
+    console.log("PAYMOB WEBHOOK RECEIVED. Query Data:", req.query); 
+
     const hmacReceived = req.query.hmac;
     const transaction = req.query; 
 
-    // 1. بناء سلسلة البيانات للتحقق من HMAC
+    // 1. التأكد من أن جميع الحقول المطلوبة لـ HMAC موجودة
     const hmacKeys = [
         "amount_cents", "created_at", "currency", "error_lapsed", "has_parent_transaction",
         "id", "integration_id", "is_3d_secure", "is_auth", "is_capture", "is_expired",
@@ -618,25 +620,36 @@ export const paymobWebhook = async (req, res) => {
         "pending", "source_data_pan", "source_data_sub_type", "source_data_type", "data_message"
     ];
 
+    // بناء سلسلة HMAC
     const hmacString = hmacKeys.map(key => transaction[key]).join("");
-
-    // 2. حساب HMAC والتحقق منه (الأمن أولاً)
+    
+    // 2. حساب HMAC والتحقق منه
     const hmacCalculated = crypto
-        .createHmac("sha512", PAYMOB_HMAC) 
+        .createHmac("sha512", PAYMOB_HMAC) // 🚨 استخدام الثابت PAYMOB_HMAC
         .update(hmacString)
         .digest("hex");
+        
+    // 💡 سجل: مقارنة مفاتيح HMAC
+    console.log(`HMAC Received: ${hmacReceived}`);
+    console.log(`HMAC Calculated: ${hmacCalculated}`);
+    console.log(`HMAC Match: ${hmacCalculated === hmacReceived}`);
+
 
     if (hmacCalculated !== hmacReceived) {
         console.error("Paymob Webhook ERROR: HMAC mismatch. Possible tampering.");
+        // إذا فشل HMAC، يخرج من هنا ويرد بـ 200 لمنع إعادة الإرسال
         return res.status(200).send("HMAC check failed."); 
     }
     
+    // 💡 سجل: نجح التحقق
+    console.log("HMAC check SUCCESSFUL. Starting DB process."); 
+
     // 3. تحليل بيانات Webhook
-    const isSuccess = transaction.is_success === 'true'; // Paymob يرسلها كسلسلة نصية
-    const orderId = transaction.order; // معرف الطلب الذي استخدمته Paymob
+    const isSuccess = transaction.is_success === 'true'; // يتم إرسالها كسلسلة
+    const orderId = transaction.order; 
     const paymobTransactionId = transaction.id;
     
-    // البحث عن الموعد المؤقت باستخدام orderId
+    // البحث عن الموعد باستخدام Paymob Order ID
     const schedule = await Schedule.findOne({ "timeSlots.paymentOrderId": orderId });
 
     if (!schedule) {
@@ -647,6 +660,7 @@ export const paymobWebhook = async (req, res) => {
     const slotIndex = schedule.timeSlots.findIndex(slot => slot.paymentOrderId == orderId);
 
     if (slotIndex === -1) {
+         // حالة نادرة: تم العثور على الجدول ولكن لم يتم العثور على Slot
         return res.status(200).send("Slot mismatch");
     }
 
@@ -655,29 +669,36 @@ export const paymobWebhook = async (req, res) => {
     try {
         if (isSuccess) {
             
-            // 4. إتمام الحجز
+            // 💡 سجل: حالة الدفع ناجحة
+            console.log(`Processing SUCCESS payment for Order ID: ${orderId}`);
+            
+            // 4. إتمام الحجز (تأكيد الدفع)
             slot.isBooked = true; 
             slot.isPaid = true; 
             slot.paymentTransactionId = paymobTransactionId; 
             
+            await schedule.save();
+
             console.log(`Payment SUCCESS for Paymob Order ID: ${orderId}. Booking confirmed.`);
             
         } else {
-            // 5. فشل الدفع، إلغاء الحجز المؤقت (Rollback)
+             // 5. فشل الدفع، إلغاء الحجز المؤقت (Rollback)
             slot.isBooked = false; 
             slot.isPaid = false; 
             slot.bookedBy = null;
-            slot.paymentOrderId = null; // إزالة OrderID لمنع تكرار البحث
+            slot.paymentOrderId = null; 
+            
+            await schedule.save();
             
             console.log(`Payment FAILED for Paymob Order ID: ${orderId}. Booking rolled back.`);
         }
         
-        await schedule.save();
-
+        // 🚨 الاستجابة بـ 200 OK ضرورية لإخبار Paymob بأننا استلمنا الطلب
         res.status(200).send("Webhook processed successfully");
 
     } catch (error) {
         console.error("Error processing Paymob webhook in DB:", error);
+        // حتى لو حدث خطأ في DB، نرد بـ 200 لمنع الإرسال المتكرر
         res.status(200).send("Processing error");
     }
 };
