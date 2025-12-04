@@ -483,23 +483,27 @@ export const bookAndPayTimeSlot = async (req, res) => {
 
 
 export const paymobWebhook = async (req, res) => {
-  
+    
     console.log("PAYMOB WEBHOOK RECEIVED. Query Data:", req.query); 
 
     const hmacReceived = req.query.hmac;
     const transaction = req.query; 
 
-  
+    // 1. بناء سلسلة البيانات للتحقق من HMAC (ترتيب حقول Paymob الصحيح)
     const hmacKeys = [
-        "amount_cents", "created_at", "currency", "error_lapsed", "has_parent_transaction",
-        "id", "integration_id", "is_3d_secure", "is_auth", "is_capture", "is_expired",
-        "is_fee_refunded", "is_voided", "is_refunded", "is_standalone_payment",
-        "is_service_at_source", "is_settled", "is_success", "order", "owner",
-        "pending", "source_data_pan", "source_data_sub_type", "source_data_type", "data_message"
+    "amount_cents", "created_at", "currency", "error_lapsed", "has_parent_transaction",
+    "id", "integration_id", "is_3d_secure", "is_auth", "is_capture", "is_expired",
+    "is_fee_refunded", "is_voided", "is_refunded", "is_standalone_payment",
+    "is_service_at_source", "is_settled", "is_success", "order", "owner",
+    "pending", "source_data_pan", "source_data_sub_type", "source_data_type", "data_message" 
     ];
 
     const hmacString = hmacKeys.map(key => transaction[key]).join("");
-   
+    
+    // 🚨 الخطوة الحاسمة: طباعة السلسلة لمعرفة سبب عدم التطابق
+    console.log(`HMAC String Generated: ${hmacString}`);
+    // -----------------------------------------------------------------------
+    
     const hmacCalculated = crypto
         .createHmac("sha512", PAYMOB_HMAC) 
         .update(hmacString)
@@ -512,16 +516,15 @@ export const paymobWebhook = async (req, res) => {
 
     if (hmacCalculated !== hmacReceived) {
         console.error("Paymob Webhook ERROR: HMAC mismatch. Possible tampering.");
-      
         return res.status(200).send("HMAC check failed."); 
     }
-  
+    
     console.log("HMAC check SUCCESSFUL. Starting DB process."); 
 
     const isSuccess = transaction.is_success === 'true'; 
     const orderId = transaction.order; 
     const paymobTransactionId = transaction.id;
-   
+    
     const schedule = await Schedule.findOne({ "timeSlots.paymentOrderId": orderId });
 
     if (!schedule) {
@@ -536,7 +539,6 @@ export const paymobWebhook = async (req, res) => {
     try {
         if (isSuccess) {
             
-            
             console.log(`Processing SUCCESS payment for Order ID: ${orderId}`);
             
             slot.isBooked = true; 
@@ -548,7 +550,7 @@ export const paymobWebhook = async (req, res) => {
             console.log(`Payment SUCCESS for Paymob Order ID: ${orderId}. Booking confirmed.`);
             
         } else {
-           
+            
             slot.isBooked = false; 
             slot.isPaid = false; 
             slot.bookedBy = null;
@@ -559,12 +561,10 @@ export const paymobWebhook = async (req, res) => {
             console.log(`Payment FAILED for Paymob Order ID: ${orderId}. Booking rolled back.`);
         }
         
-       
         res.status(200).send("Webhook processed successfully");
 
     } catch (error) {
         console.error("Error processing Paymob webhook in DB:", error);
-      
         res.status(200).send("Processing error");
     }
 };
