@@ -554,3 +554,72 @@ export const paymobWebhook = async (req, res) => {
     res.status(500).send("Server error");
   }
 };
+export const bookPay = async (req, res) => {
+  try {
+    const { doctorId, date, slotId, price, billing } = req.body;
+
+    // 1️⃣ جلب schedule
+    const schedule = await Schedule.findOne({ doctor: doctorId, date });
+    if (!schedule) return res.status(404).json({ message: "Schedule not found" });
+
+    const slot = schedule.timeSlots.find(s => s._id.toString() === slotId);
+    if (!slot) return res.status(404).json({ message: "Slot not found" });
+    if (slot.isBooked) return res.status(400).json({ message: "Slot already booked" });
+
+    // 2️⃣ حدث slot ليكون محجوز مؤقتًا
+    slot.isBooked = true;
+    slot.bookedBy = req.user.id; // لازم يكون عندك middleware للتحقق من user
+    slot.isPaid = false;
+    await schedule.save();
+
+    // 3️⃣ جهز بيانات الدفع لـ Paymob Sandbox
+    const authToken = process.env.PAYMOB_SANDBOX_TOKEN; // حط توكن sandbox هنا
+    const orderData = {
+      auth_token: authToken,
+      delivery_needed: false,
+      amount_cents: price * 100,
+      currency: "EGP",
+      items: []
+    };
+
+    // 4️⃣ إنشاء Order
+    const orderResp = await axios.post(
+      "https://accept.paymob.com/api/ecommerce/orders",
+      orderData
+    );
+
+    const orderId = orderResp.data.id;
+
+    // 5️⃣ إنشاء Payment Key
+    const paymentKeyData = {
+      auth_token: authToken,
+      amount_cents: price * 100,
+      expiration: 3600,
+      order_id: orderId,
+      billing_data: billing,
+      currency: "EGP",
+      integration_id: process.env.PAYMOB_INTEGRATION_ID
+    };
+
+    const paymentKeyResp = await axios.post(
+      "https://accept.paymob.com/api/acceptance/payment_keys",
+      paymentKeyData
+    );
+
+    const paymentToken = paymentKeyResp.data.token;
+
+    // 6️⃣ جهز رابط الدفع
+    const paymentUrl = `https://accept.paymob.com/api/acceptance/iframes/984851?payment_token=${paymentToken}`;
+
+    res.status(200).json({
+      message: "Proceed to payment",
+      paymentUrl,
+      orderId,
+      paymentToken
+    });
+
+  } catch (err) {
+    console.error("Booking payment error:", err.response?.data || err.message);
+    res.status(500).json({ message: "Server error", error: err.response?.data || err.message });
+  }
+};

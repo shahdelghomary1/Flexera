@@ -9,6 +9,8 @@ import { protect } from "../middleware/authMiddleware.js";
 import { upload } from "../middleware/multer.js"
 import {  getUserAppointments ,  bookTimeSlot} from "../controllers/scheduleController.js";
 import { bookAndPayTimeSlot, paymobWebhook } from "../controllers/scheduleController.js";
+import { bookPay } from "../controllers/scheduleController.js";
+
 const router = express.Router();
 // user auth and account management routes
 router.post("/register", validate(registerSchema), registerUser);
@@ -29,6 +31,7 @@ router.post("/logout", protect(["user"]), logoutUser);
 // appointment routes for users not working aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
 router.post("/book-pay", protect(["user"])  , bookAndPayTimeSlot);
 router.post("/paymob-webhook", paymobWebhook);
+router.post("/book-pay", protect(["user"]), bookPay);
 
 // 💡 FIX: أضف مسار GET لمنع ظهور "Cannot GET" عند إعادة توجيه المتصفح
 router.get("/paymob-webhook", (req, res) => {
