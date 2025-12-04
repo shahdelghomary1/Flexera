@@ -465,37 +465,29 @@ export const bookAndPayTimeSlot = async (req, res) => {
 export const paymobWebhook = async (req, res) => {
   try {
     const data = req.body;
+    console.log("✅ Received webhook data:", JSON.stringify(data, null, 2));
+
     const receivedHmac = data.hmac;
     console.log("Received HMAC:", receivedHmac);
 
-    const keys = [
-      "amount_cents",
-      "created_at",
-      "currency",
-      "error_occured",
-      "has_parent_transaction",
-      "id",
-      "integration_id",
-      "is_3d_secure",
-      "is_auth",
-      "is_capture",
-      "is_refunded",
-      "is_standalone_payment",
-      "is_voided",
-      "order.id",
-      "owner",
-      "pending",
-      "source_data.pan",
-      "source_data.sub_type",
-      "source_data.type",
-      "success",
-    ];
+    // 1️⃣ Remove hmac from data
+    let copy = { ...data };
+    delete copy.hmac;
+    console.log("Data after removing HMAC:", JSON.stringify(copy, null, 2));
 
-    // Build the same string Paymob generates
-    const concatenated = keys
-      .map((key) => key.split(".").reduce((o, k) => o?.[k], data.obj))
-      .join("");
+    // 2️⃣ Flatten nested objects (Paymob requirement)
+    const flat = flattenObject(copy);
+    console.log("Flattened data:", JSON.stringify(flat, null, 2));
 
+    // 3️⃣ Sort alphabetically
+    const sortedKeys = Object.keys(flat).sort();
+    console.log("Sorted keys:", sortedKeys);
+
+    // 4️⃣ Join values
+    const concatenated = sortedKeys.map((k) => flat[k]).join("");
+    console.log("Concatenated values for HMAC:", concatenated);
+
+    // 5️⃣ Calculate HMAC
     const calculatedHmac = crypto
       .createHmac("sha512", process.env.PAYMOB_HMAC)
       .update(concatenated)
@@ -504,13 +496,15 @@ export const paymobWebhook = async (req, res) => {
     console.log("Calculated HMAC:", calculatedHmac);
 
     if (calculatedHmac !== receivedHmac) {
-      console.log("❌ HMAC mismatch");
+      console.log("❌ HMAC MISMATCH");
       return res.status(200).send("HMAC mismatch");
     }
 
     console.log("✅ HMAC VERIFIED");
 
-    // Payment result
+    // --------------------------
+    //    HANDLE PAYMENT RESULT
+    // --------------------------
     const isSuccess = data.obj.success;
     const orderId = data.obj.order.id;
 
@@ -520,10 +514,7 @@ export const paymobWebhook = async (req, res) => {
 
     if (!schedule) return res.status(200).send("Order not found");
 
-    const slot = schedule.timeSlots.find(
-      (s) => s.paymentOrderId == orderId
-    );
-
+    const slot = schedule.timeSlots.find((s) => s.paymentOrderId == orderId);
     if (!slot) return res.status(200).send("Slot not found");
 
     if (isSuccess) {
@@ -539,7 +530,7 @@ export const paymobWebhook = async (req, res) => {
 
     await schedule.save();
 
-    return res.status(200).send("Webhook processed");
+    res.status(200).send("Webhook processed");
   } catch (err) {
     console.error("Webhook Error:", err);
     res.status(500).send("Server error");
