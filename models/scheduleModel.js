@@ -6,7 +6,7 @@ const timeSlotSchema = new mongoose.Schema({
   isBooked: { type: Boolean, default: false },
   bookedBy: { type: mongoose.Schema.Types.ObjectId, ref: "User", default: null } ,
     isPaid: { type: Boolean, default: false },
-  paymentOrderId: { type: String, default: null },
+    paymentOrderId: { type: String, default: null }
 });
 
 
@@ -42,7 +42,7 @@ const doctorScheduleSchema = new mongoose.Schema({
        isBooked: { type: Boolean, default: false },
       bookedBy: { type: mongoose.Schema.Types.ObjectId, ref: "User", default: null },
       isPaid: { type: Boolean, default: false },
-      paymentOrderId: { type: String, default: null }
+    paymentOrderId: { type: String, default: null }
 
     }
   ],
