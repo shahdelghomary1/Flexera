@@ -463,6 +463,9 @@ export const bookAndPayTimeSlot = async (req, res) => {
   }
 };
 
+import crypto from "crypto";
+import Schedule from "../models/scheduleModel.js";
+
 // ==== Helper: Flatten Object ====
 function flattenObject(obj, prefix = "") {
   let result = {};
@@ -480,7 +483,6 @@ function flattenObject(obj, prefix = "") {
   return result;
 }
 
-
 export const paymobWebhook = async (req, res) => {
   try {
     const data = req.body;
@@ -494,7 +496,7 @@ export const paymobWebhook = async (req, res) => {
     delete copy.hmac;
     console.log("Data after removing HMAC:", JSON.stringify(copy, null, 2));
 
-    // 2️⃣ Flatten nested objects (Paymob requirement)
+    // 2️⃣ Flatten nested objects
     const flat = flattenObject(copy);
     console.log("Flattened data:", JSON.stringify(flat, null, 2));
 
@@ -511,6 +513,7 @@ export const paymobWebhook = async (req, res) => {
       .createHmac("sha512", process.env.PAYMOB_HMAC)
       .update(concatenated)
       .digest("hex");
+
     console.log("Calculated HMAC:", calculatedHmac);
 
     if (calculatedHmac !== receivedHmac) {
@@ -523,8 +526,8 @@ export const paymobWebhook = async (req, res) => {
     // --------------------------
     //    HANDLE PAYMENT RESULT
     // --------------------------
-    const isSuccess = data.obj.success;
-    const orderId = data.obj.order.id;
+    const isSuccess = data.obj?.success;
+    const orderId = data.obj?.order?.id;
 
     const schedule = await Schedule.findOne({
       "timeSlots.paymentOrderId": orderId,
@@ -554,6 +557,7 @@ export const paymobWebhook = async (req, res) => {
     res.status(500).send("Server error");
   }
 };
+
 export const bookPay = async (req, res) => {
   try {
     const { doctorId, date, slotId, price, billing } = req.body;
