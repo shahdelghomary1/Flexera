@@ -5,8 +5,9 @@ const timeSlotSchema = new mongoose.Schema({
   to: { type: String, required: true, match: /^([01]\d|2[0-3]):([0-5]\d)$/ },
   isBooked: { type: Boolean, default: false },
   bookedBy: { type: mongoose.Schema.Types.ObjectId, ref: "User", default: null } ,
-    isPaid: { type: Boolean, default: false },
-    paymentOrderId: { type: String, default: null }
+  isPaid: { type: Boolean, default: false }, 
+  paymentOrderId: { type: String, default: null, unique: true, sparse: true }, // معرف طلب Paymob
+  paymentTransactionId: { type: String, default: null, unique: true, sparse: true } // معرف عملية Paymob
 });
 
 
@@ -41,8 +42,9 @@ const doctorScheduleSchema = new mongoose.Schema({
       } ,
        isBooked: { type: Boolean, default: false },
       bookedBy: { type: mongoose.Schema.Types.ObjectId, ref: "User", default: null },
-    isPaid: { type: Boolean, default: false },
-    paymentOrderId: { type: String, default: null }
+     isPaid: { type: Boolean, default: false }, 
+  paymentOrderId: { type: String, default: null, unique: true, sparse: true }, // معرف طلب Paymob
+  paymentTransactionId: { type: String, default: null, unique: true, sparse: true } // معرف عملية Paymob
 
     }
   ],
