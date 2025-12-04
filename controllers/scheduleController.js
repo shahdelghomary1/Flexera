@@ -363,96 +363,71 @@ const PAYMOB_INTEGRATION_ID = 5423306;
 const PAYMOB_IFRAME_ID = 984851;
 
 const PAYMOB_BASE_URL = "https://accept.paymob.com/api";
-
 export const bookAndPayTimeSlot = async (req, res) => {
-  let schedule, slotIndex; 
   try {
     const { doctorId, date, from } = req.body;
     const userId = req.user._id;
 
     const doctor = await Doctor.findById(doctorId);
-    if (!doctor) {
-      return res.status(404).json({ message: "Doctor not found" });
-    }
+    if (!doctor) return res.status(404).json({ message: "Doctor not found" });
 
-    schedule = await Schedule.findOne({ doctor: doctorId, date });
-    if (!schedule) {
-      return res.status(404).json({ message: "No schedule found for this date" });
-    }
+    const schedule = await Schedule.findOne({ doctor: doctorId, date });
+    if (!schedule) return res.status(404).json({ message: "No schedule found for this date" });
 
-    slotIndex = schedule.timeSlots.findIndex(slot => slot.from === from);
-    if (slotIndex === -1) {
-      return res.status(404).json({ message: "Time slot not found" });
-    }
-    if (schedule.timeSlots[slotIndex].isBooked) {
-      return res.status(400).json({ message: "Time slot already booked" });
-    }
-    
-    
+    const slot = schedule.timeSlots.find(slot => slot.from === from);
+    if (!slot) return res.status(404).json({ message: "Time slot not found" });
+    if (slot.isBooked) return res.status(400).json({ message: "Time slot already booked" });
+
     const userDetails = await User.findById(userId).select("name email phone");
     const [firstName, ...lastNameParts] = userDetails.name.split(" ");
     const lastName = lastNameParts.join(" ") || "Name";
 
     const amount_cents = Math.round(doctor.price * 100);
 
-    const authResponse = await axios.post(
-      `${PAYMOB_BASE_URL}/auth/tokens`,
-      { api_key: PAYMOB_API_KEY }
-    );
+    // 1️⃣ الحصول على الـ auth token من Paymob
+    const authResponse = await axios.post(`${PAYMOB_BASE_URL}/auth/tokens`, { api_key: PAYMOB_API_KEY });
     const token = authResponse.data.token;
 
-   
-    const orderResponse = await axios.post(
-      `${PAYMOB_BASE_URL}/ecommerce/orders`,
-      {
-        auth_token: token,
-        delivery_needed: false,
-        amount_cents: amount_cents,
-        currency: "EGP",
-       
-        merchant_order_id: `${userId}-${Date.now()}`, 
-        items: [{ name: `Consultation with Dr. ${doctor.name}`, amount_cents: amount_cents, quantity: 1 }]
-      }
-    );
+    // 2️⃣ إنشاء order
+    const orderResponse = await axios.post(`${PAYMOB_BASE_URL}/ecommerce/orders`, {
+      auth_token: token,
+      delivery_needed: false,
+      amount_cents,
+      currency: "EGP",
+      merchant_order_id: `${userId}-${Date.now()}`,
+      items: [{ name: `Consultation with Dr. ${doctor.name}`, amount_cents, quantity: 1 }]
+    });
     const orderId = orderResponse.data.id;
 
-    const paymentKeyResponse = await axios.post(
-      `${PAYMOB_BASE_URL}/acceptance/payment_keys`,
-      {
-        auth_token: token,
-        amount_cents: amount_cents,
-        expiration: 3600, 
-        order_id: orderId,
-        
-        billing_data: {
-          apartment: "NA", 
-          email: userDetails.email || "user@example.com", 
-          floor: "NA", 
-          first_name: firstName || "User", 
-          street: "NA", 
-          building: "NA", 
-          phone_number: userDetails.phone || "01000000000", 
-          shipping_method: "NA",
-          postal_code: "NA", 
-          city: "Cairo", 
-          country: "EGY", 
-          last_name: lastName, 
-          state: "NA"
-        },
-        currency: "EGP",
-        integration_id: PAYMOB_INTEGRATION_ID
-      }
-    );
+    // 3️⃣ إنشاء payment key
+    const paymentKeyResponse = await axios.post(`${PAYMOB_BASE_URL}/acceptance/payment_keys`, {
+      auth_token: token,
+      amount_cents,
+      expiration: 3600,
+      order_id: orderId,
+      billing_data: {
+        apartment: "NA",
+        email: userDetails.email || "user@example.com",
+        floor: "NA",
+        first_name: firstName || "User",
+        street: "NA",
+        building: "NA",
+        phone_number: userDetails.phone || "01000000000",
+        shipping_method: "NA",
+        postal_code: "NA",
+        city: "Cairo",
+        country: "EGY",
+        last_name: lastName,
+        state: "NA"
+      },
+      currency: "EGP",
+      integration_id: PAYMOB_INTEGRATION_ID
+    });
 
     const paymentToken = paymentKeyResponse.data.token;
 
-  
-    schedule.timeSlots[slotIndex].paymentOrderId = orderId;
-    schedule.timeSlots[slotIndex].isBooked = true; 
-    schedule.timeSlots[slotIndex].bookedBy = userId; 
-    await schedule.save();
-    
-    
+    // ❌ ما نعملش أي تحديث للـ slot قبل الدفع
+
     const paymentUrl = `https://accept.paymob.com/api/acceptance/iframes/${PAYMOB_IFRAME_ID}?payment_token=${paymentToken}`;
 
     res.status(200).json({
@@ -460,95 +435,101 @@ export const bookAndPayTimeSlot = async (req, res) => {
       paymentToken,
       orderId,
       amount: doctor.price,
-      paymentUrl 
+      paymentUrl
     });
 
   } catch (err) {
     console.error("Paymob Error:", err.response?.data || err.message);
-    
-    if (schedule && slotIndex !== undefined && slotIndex !== -1) {
-        schedule.timeSlots[slotIndex].isBooked = false;
-        schedule.timeSlots[slotIndex].bookedBy = null;
-        schedule.timeSlots[slotIndex].paymentOrderId = null;
-        await schedule.save();
-    }
-
-    const errorDetails = err.response?.data || { message: err.message };
-    res.status(500).json({ 
-        message: "Server error during payment initiation. Temporary booking has been cancelled.", 
-        error: errorDetails
+    res.status(500).json({
+      message: "Server error during payment initiation.",
+      error: err.response?.data || { message: err.message }
     });
   }
 };
 
 
-const PAYMOB_HMAC = process.env.PAYMOB_HMAC; // خلي المفتاح في env variable
+// المفتاح السري من حساب PayMob
+const PAYMOB_HMAC = process.env.PAYMOB_HMAC || "D0AD002C9EFCDFEB19E6AAFFE4BDC0AF";
 
 export const paymobWebhook = async (req, res) => {
-  try {
-    // دعم GET و POST
-    const transaction = req.method === "POST" ? req.body : req.query;
-    const hmacReceived = transaction.hmac;
+    try {
+        console.log("PAYMOB WEBHOOK RECEIVED. Query Data:", req.query);
 
-    console.log("PAYMOB WEBHOOK RECEIVED. Transaction Data:", transaction);
+        const transaction = req.query;
+        const hmacReceived = transaction.hmac;
 
-    // الحقول المستخدمة في HMAC
-    const hmacKeys = [
-      "amount_cents", "created_at", "currency", "error_lapsed", "has_parent_transaction",
-      "id", "integration_id", "is_3d_secure", "is_auth", "is_capture", "is_expired",
-      "is_fee_refunded", "is_voided", "is_refunded", "is_standalone_payment",
-      "is_service_at_source", "is_settled", "is_success", "order", "owner",
-      "pending", "source_data_pan", "source_data_sub_type", "source_data_type", "data_message"
-    ];
+        // ترتيب الحقول للتحقق من HMAC
+        const hmacKeys = [
+            "amount_cents", "created_at", "currency", "error_lapsed", "has_parent_transaction",
+            "id", "integration_id", "is_3d_secure", "is_auth", "is_capture", "is_expired",
+            "is_fee_refunded", "is_voided", "is_refunded", "is_standalone_payment",
+            "is_service_at_source", "is_settled", "is_success", "order", "owner",
+            "pending", "source_data_pan", "source_data_sub_type", "source_data_type", "data_message"
+        ];
 
-    // إنشاء سلسلة HMAC (لو الحقل مش موجود خليها فارغة)
-    const hmacString = hmacKeys.map(key => transaction[key] || "").join("");
-    const hmacCalculated = crypto.createHmac("sha512", PAYMOB_HMAC).update(hmacString).digest("hex");
+        // بناء السلسلة للتحقق
+        const hmacString = hmacKeys.map(key => transaction[key] || "").join("");
 
-    console.log(`HMAC Received: ${hmacReceived}`);
-    console.log(`HMAC Calculated: ${hmacCalculated}`);
-    console.log(`HMAC Match: ${hmacCalculated === hmacReceived}`);
+        const hmacCalculated = crypto
+            .createHmac("sha512", PAYMOB_HMAC)
+            .update(hmacString)
+            .digest("hex");
 
-    if (hmacCalculated !== hmacReceived) {
-      console.error("Paymob Webhook ERROR: HMAC mismatch. Possible tampering.");
-      return res.status(200).send("HMAC check failed."); 
+        console.log(`HMAC Received: ${hmacReceived}`);
+        console.log(`HMAC Calculated: ${hmacCalculated}`);
+        console.log(`HMAC Match: ${hmacCalculated === hmacReceived}`);
+
+        if (hmacCalculated !== hmacReceived) {
+            console.error("Paymob Webhook ERROR: HMAC mismatch. Possible tampering.");
+            return res.status(200).send("HMAC check failed.");
+        }
+
+        console.log("HMAC check SUCCESSFUL. Processing transaction.");
+
+        const isSuccess = transaction.is_success === 'true';
+        const orderId = transaction.order;
+        const paymobTransactionId = transaction.id;
+
+        // البحث عن الطلب في قاعدة البيانات
+        const schedule = await Schedule.findOne({ "timeSlots.paymentOrderId": orderId });
+
+        if (!schedule) {
+            console.warn(`Webhook received for unknown order: ${orderId}`);
+            return res.status(200).send("Order not found");
+        }
+
+        const slotIndex = schedule.timeSlots.findIndex(slot => slot.paymentOrderId == orderId);
+        if (slotIndex === -1) {
+            console.warn(`Slot not found for order: ${orderId}`);
+            return res.status(200).send("Slot not found");
+        }
+
+        const slot = schedule.timeSlots[slotIndex];
+
+        // تحديث حالة الدفع والـ booking
+        if (isSuccess) {
+            slot.isBooked = true;
+            slot.isPaid = true;
+            slot.paymentTransactionId = paymobTransactionId;
+            console.log(`Payment SUCCESS for Order ID: ${orderId}`);
+        } else {
+            slot.isBooked = false;
+            slot.isPaid = false;
+            slot.bookedBy = null;
+            slot.paymentOrderId = null;
+            console.log(`Payment FAILED for Order ID: ${orderId}`);
+        }
+
+        await schedule.save();
+        res.status(200).send("Webhook processed successfully");
+
+    } catch (error) {
+        console.error("Error processing Paymob webhook:", error);
+        res.status(200).send("Processing error");
     }
-
-    console.log("HMAC check SUCCESSFUL. Processing transaction...");
-
-    const isSuccess = transaction.is_success === 'true';
-    const orderId = transaction.order;
-    const paymobTransactionId = transaction.id;
-
-    const schedule = await Schedule.findOne({ "timeSlots.paymentOrderId": orderId });
-
-    if (!schedule) {
-      console.warn(`Webhook received for unknown order: ${orderId}`);
-      return res.status(200).send("Order not found");
-    }
-
-    const slotIndex = schedule.timeSlots.findIndex(slot => slot.paymentOrderId == orderId);
-    const slot = schedule.timeSlots[slotIndex];
-
-    if (isSuccess) {
-      slot.isBooked = true;
-      slot.isPaid = true;
-      slot.paymentTransactionId = paymobTransactionId;
-      await schedule.save();
-      console.log(`Payment SUCCESS for Paymob Order ID: ${orderId}. Booking confirmed.`);
-    } else {
-      slot.isBooked = false;
-      slot.isPaid = false;
-      slot.bookedBy = null;
-      slot.paymentOrderId = null;
-      await schedule.save();
-      console.log(`Payment FAILED for Paymob Order ID: ${orderId}. Booking rolled back.`);
-    }
-
-    res.status(200).send("Webhook processed successfully");
-
-  } catch (error) {
-    console.error("Error processing Paymob webhook:", error);
-    res.status(500).send("Server error");
-  }
 };
+
+
+
+
+
