@@ -450,7 +450,7 @@ const maskedPhone = phone.replace(/\d(?=\d{3})/g, "*");
       administrativeFees: `EGP ${administrativeFees}`,
       total: `EGP ${totalAmount}`,
       user: userDetails.name,
-      maskedPhone: userDetails.phone.replace(/\d(?=\d{3})/g, "*"),
+      maskedPhone,
       paymentUrl,
       orderId,
       paymentToken,
