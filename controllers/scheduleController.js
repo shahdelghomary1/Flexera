@@ -358,7 +358,7 @@ export const bookAndPayTimeSlot = async (req, res) => {
     const { doctorId, date, slotId } = req.body;
     const userId = req.user._id;
 
-  
+   
     const doctor = await Doctor.findById(doctorId);
     if (!doctor) return res.status(404).json({ message: "Doctor not found" });
 
@@ -374,6 +374,7 @@ export const bookAndPayTimeSlot = async (req, res) => {
     slot.isPaid = false;
     await schedule.save();
 
+  
     const userDetails = await User.findById(userId).select("name email phone");
     const [firstName, ...rest] = userDetails.name.split(" ");
     const lastName = rest.join(" ") || "User";
@@ -435,10 +436,14 @@ export const bookAndPayTimeSlot = async (req, res) => {
     const paymentToken = payKeyResp.data.token;
     const paymentUrl = `https://accept.paymob.com/api/acceptance/iframes/${PAYMOB_IFRAME_ID}?payment_token=${paymentToken}`;
 
- 
+  
+    const scheduleDate = new Date(schedule.date);
+    const appointmentDateStr = scheduleDate.toDateString();
+
+  
     const appointmentDetails = {
       doctor: `Dr. ${doctor.name}`,
-      appointment: `${schedule.date.toDateString()} – ${slot.from} PM`,
+      appointment: `${appointmentDateStr} – ${slot.from} PM`,
       confirmationFee: `EGP ${confirmationFee}`,
       administrativeFees: `EGP ${administrativeFees}`,
       total: `EGP ${totalAmount}`,
@@ -456,6 +461,7 @@ export const bookAndPayTimeSlot = async (req, res) => {
     res.status(500).json({ message: "Server error", error: err.response?.data || err.message });
   }
 };
+// =================== Paymob Webhook ===================
 export const paymobWebhook = async (req, res) => {
   try {
     const data = req.body.obj || req.body; 
