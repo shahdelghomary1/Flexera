@@ -597,6 +597,129 @@ export const logoutDoctor = (req, res) => {
   res.cookie("token", "", { httpOnly: true, expires: new Date(0), sameSite: "strict" });
   res.json({ message: "Doctor logged out successfully" });
 };
+
+
+export const getAllPaidPatients = async (req, res) => {
+  try {
+    const doctorId = req.user._id; // الدكتور الحالي
+
+    // نجيب كل الـ schedules اللي فيها timeSlots مدفوعة
+    const schedules = await Schedule.find({ doctor: doctorId });
+
+    const patientsMap = new Map();
+
+    schedules.forEach((schedule) => {
+      schedule.timeSlots.forEach((slot) => {
+        if (slot.isBooked && slot.paymentStatus === "paid" && slot.user) {
+          patientsMap.set(slot.user.toString(), slot.user);
+        }
+      });
+    });
+
+    // نجيب بيانات المستخدمين
+    const patientIds = Array.from(patientsMap.keys());
+    const patients = await User.find({ _id: { $in: patientIds } }).select(
+      "_id name email photo"
+    );
+
+    res.json({ success: true, patients });
+  } catch (err) {
+    console.log(err);
+    res.status(500).json({ success: false, message: err.message });
+  }
+};
+// ---------------------------------------------
+// الحجزات القديمة المدفوعة مع بيانات المستخدم
+// ---------------------------------------------
+export const getPastPaidAppointments = async (req, res) => {
+  try {
+    const doctorId = req.user._id;
+    const now = new Date();
+
+    const schedules = await Schedule.find({ doctor: doctorId }).populate(
+      "timeSlots.user",
+      "name photo"
+    );
+
+    const pastAppointments = [];
+
+    schedules.forEach((schedule) => {
+      schedule.timeSlots.forEach((slot) => {
+        const slotDateTime = new Date(`${schedule.date}T${slot.from}`);
+        if (
+          slot.isBooked &&
+          slot.paymentStatus === "paid" &&
+          slotDateTime < now &&
+          slot.user
+        ) {
+          pastAppointments.push({
+            scheduleId: schedule._id,
+            date: schedule.date,
+            time: `${slot.from} - ${slot.to}`,
+            user: {
+              _id: slot.user._id,
+              name: slot.user.name,
+              photo: slot.user.photo,
+            },
+            status: "Confirmed",
+          });
+        }
+      });
+    });
+
+    res.json({ success: true, pastAppointments });
+  } catch (err) {
+    console.log(err);
+    res.status(500).json({ success: false, message: err.message });
+  }
+};
+
+// ---------------------------------------------
+// الحجزات القادمة المدفوعة مع بيانات المستخدم
+// ---------------------------------------------
+export const getUpcomingPaidAppointments = async (req, res) => {
+  try {
+    const doctorId = req.user._id;
+    const now = new Date();
+
+    const schedules = await Schedule.find({ doctor: doctorId }).populate(
+      "timeSlots.user",
+      "name photo"
+    );
+
+    const upcomingAppointments = [];
+
+    schedules.forEach((schedule) => {
+      schedule.timeSlots.forEach((slot) => {
+        const slotDateTime = new Date(`${schedule.date}T${slot.from}`);
+        if (
+          slot.isBooked &&
+          slot.paymentStatus === "paid" &&
+          slotDateTime >= now &&
+          slot.user
+        ) {
+          upcomingAppointments.push({
+            scheduleId: schedule._id,
+            date: schedule.date,
+            time: `${slot.from} - ${slot.to}`,
+            user: {
+              _id: slot.user._id,
+              name: slot.user.name,
+              photo: slot.user.photo,
+            },
+            status: "Confirmed",
+          });
+        }
+      });
+    });
+
+    res.json({ success: true, upcomingAppointments });
+  } catch (err) {
+    console.log(err);
+    res.status(500).json({ success: false, message: err.message });
+  }
+};
+
 router.post("/", protect(["doctor"]), addSchedule);
 
 export default router;

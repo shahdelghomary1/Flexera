@@ -6,7 +6,11 @@ import { updateDoctorAccount, getAllDoctors, addDoctor, doctorSignup, doctorForg
  deleteTimeSlot} from "../controllers/doctorController.js";
 import { addDoctorSchema, updateDoctorSchema, doctorSignupSchema, doctorResetPasswordSchema } from "../validators/doctorValidation.js";
 import { getAppointmentsForDoctor} from "../controllers/scheduleController.js";
-
+import {
+  getAllPaidPatients,
+  getPastPaidAppointments,
+  getUpcomingPaidAppointments,
+} from "../controllers/doctorController.js";
 import { validate } from "../middleware/validate.js";
 const router = express.Router();
 // appointments for doctor not working aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
@@ -29,7 +33,10 @@ router.put("/account", protect(["doctor"]), upload.single("image"), validate(upd
 router.get("/account", protect(["doctor"]), getDoctorAccount);
 router.delete( "/schedule/:scheduleId/slot/:slotId", protect(["doctor"]), deleteTimeSlot);
 
-
+// paid patients and their appointments
+router.get("/all-paid-patients", protect(["doctor"]), getAllPaidPatients);
+router.get("/past-paid-appointments", protect(["doctor"]), getPastPaidAppointments);
+router.get("/upcoming-paid-appointments", protect(["doctor"]),  getUpcomingPaidAppointments);
 
 //exercises to user
 router.post("/users/:userId/exercises", protect(["doctor"]), addExercisesToUser);
