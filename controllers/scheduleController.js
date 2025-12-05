@@ -429,23 +429,30 @@ export const bookAndPayTimeSlot = async (req, res) => {
     await schedule.save();
 
     // إنشاء payment key
-    const payKeyResp = await axios.post(`${PAYMOB_BASE_URL}/acceptance/payment_keys`, {
-      auth_token: token,
-      amount_cents,
-      expiration: 3600,
-      order_id: orderId,
-      billing_data: {
-        apartment: "NA",
-        email: userDetails.email,
-        first_name: firstName,
-        last_name: lastName,
-        phone_number: userDetails.phone || "01000000000",
-        city: "Cairo",
-        country: "EGY",
-      },
-      currency: "EGP",
-      integration_id: PAYMOB_INTEGRATION_ID,
-    });
+   const payKeyResp = await axios.post(`${PAYMOB_BASE_URL}/acceptance/payment_keys`, {
+  auth_token: token,
+  amount_cents,
+  expiration: 3600,
+  order_id: orderId,
+  billing_data: {
+    apartment: "NA",
+    email: userDetails.email,
+    floor: "NA",      // ✅ أضف هذا
+    first_name: firstName,
+    street: "NA",     // ✅ أضف هذا
+    building: "NA",   // ✅ أضف هذا
+    phone_number: userDetails.phone || "01000000000",
+    shipping_method: "NA",
+    postal_code: "NA",
+    city: "Cairo",
+    country: "EGY",
+    last_name: lastName,
+    state: "NA",
+  },
+  currency: "EGP",
+  integration_id: PAYMOB_INTEGRATION_ID,
+});
+
 
     const paymentToken = payKeyResp.data.token;
     const paymentUrl = `https://accept.paymob.com/api/acceptance/iframes/${PAYMOB_IFRAME_ID}?payment_token=${paymentToken}`;
