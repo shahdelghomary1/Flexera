@@ -11,7 +11,7 @@ import {  getUserAppointments ,  bookTimeSlot} from "../controllers/scheduleCont
 import { bookAndPayTimeSlot } from "../controllers/scheduleController.js";
 import {  
   paymobWebhook,
-  paymobWebhookGetTest } from "../controllers/scheduleController.js";
+  paymobWebhookGetTest} from "../controllers/scheduleController.js";
 
 const router = express.Router();
 // user auth and account management routes
