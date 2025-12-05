@@ -67,7 +67,7 @@ export const initPayment = async (req, res) => {
     if (slot.isBooked)
       return res.status(400).json({ message: "Slot is already booked" });
 
-    // Price from doctor NOW ✔
+    // Price from doctor
     const amountCents = doctor.price * 100;
 
     // Billing info
@@ -160,7 +160,8 @@ export const paymobCallback = async (req, res) => {
   try {
     const data = req.body.obj;
 
-   console.log("⚠️ HMAC BYPASSED FOR TESTING");
+    // Uncomment this line in production:
+    // if (!verifyHmac(data)) return res.status(400).json({ success: false, message: "Invalid HMAC" });
 
     if (!data.success)
       return res.json({ success: false, message: "Payment failed" });
@@ -197,3 +198,4 @@ export const paymobCallback = async (req, res) => {
     res.status(500).json({ message: "Callback error", error: err.message });
   }
 };
+
