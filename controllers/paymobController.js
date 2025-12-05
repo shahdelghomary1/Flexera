@@ -1,13 +1,11 @@
-// controllers/paymobController.js
+
 import axios from "axios";
 import crypto from "crypto";
 import Schedule from "../models/scheduleModel.js";
 import Doctor from "../models/doctorModel.js";
 import { PAYMOB } from "../utils/paymobConfig.js";
 
-// ---------------------------------------------------------
-// Generate Paymob Auth Token
-// ---------------------------------------------------------
+
 const getAuthToken = async () => {
   const res = await axios.post(`${PAYMOB.API_URL}/auth/tokens`, {
     api_key: PAYMOB.API_KEY,
@@ -15,9 +13,7 @@ const getAuthToken = async () => {
   return res.data.token;
 };
 
-// ---------------------------------------------------------
-// Create Order
-// ---------------------------------------------------------
+
 const createOrder = async (authToken, amountCents) => {
   const res = await axios.post(`${PAYMOB.API_URL}/ecommerce/orders`, {
     auth_token: authToken,
@@ -29,9 +25,7 @@ const createOrder = async (authToken, amountCents) => {
   return res.data;
 };
 
-// ---------------------------------------------------------
-// Payment Key
-// ---------------------------------------------------------
+
 const getPaymentKey = async (authToken, orderId, amountCents, billingData) => {
   const res = await axios.post(`${PAYMOB.API_URL}/acceptance/payment_keys`, {
     auth_token: authToken,
@@ -46,9 +40,7 @@ const getPaymentKey = async (authToken, orderId, amountCents, billingData) => {
   return res.data.token;
 };
 
-// ---------------------------------------------------------
-// INIT PAYMENT after selecting doctor + date + time
-// ---------------------------------------------------------
+
 export const initPayment = async (req, res) => {
   try {
     const { doctorId, date, from } = req.body;
@@ -88,10 +80,10 @@ export const initPayment = async (req, res) => {
     const order = await createOrder(authToken, amountCents);
     const paymentKey = await getPaymentKey(authToken, order.id, amountCents, billingData);
 
-    // Store temporary pending payment
+
     slot.price = doctor.price;
     slot.paymentStatus = "pending";
-    slot.orderId = order.id.toString(); // ✅ اجعل orderId دائماً String لتجنب مشاكل Mongoose
+    slot.orderId = order.id.toString(); 
 
     await schedule.save();
 
@@ -110,9 +102,7 @@ export const initPayment = async (req, res) => {
   }
 };
 
-// ---------------------------------------------------------
-// Verify HMAC
-// ---------------------------------------------------------
+
 const verifyHmac = (data) => {
   const hmacString =
     data.amount_cents +
@@ -144,21 +134,12 @@ const verifyHmac = (data) => {
   return expected === data.hmac;
 };
 
-// ---------------------------------------------------------
-// CALLBACK — Paymob POST
-// ---------------------------------------------------------
-// ---------------------------------------------------------
-// CALLBACK — book slot only if payment success
-// ---------------------------------------------------------
 export const paymobCallback = async (req, res) => {
   try {
     console.log("💥 CALLBACK RECEIVED:", req.body);
 
-    // بعض النسخ من Paymob تبعت البيانات مباشرة في req.body
-    // وبعضها جوه obj
+   
     const data = req.body.obj || req.body;
-
-    // تحويل orderId لـ string لضمان عدم حدوث CastError
     const orderId = (data.order?.id || data.order)?.toString();
 
     if (!data.success) {
@@ -166,7 +147,7 @@ export const paymobCallback = async (req, res) => {
       return res.json({ success: false, message: "Payment failed" });
     }
 
-    // البحث عن الـ schedule اللي فيه الـ orderId
+   
     const schedule = await Schedule.findOne({
       "timeSlots.orderId": orderId,
     });
@@ -182,14 +163,14 @@ export const paymobCallback = async (req, res) => {
       return res.status(404).json({ message: "Slot not found" });
     }
 
-    // تحديث حالة الحجز
+   
     slot.isBooked = true;
     slot.paymentStatus = "paid";
     slot.transactionId = data.id;
 
     await schedule.save();
 
-    console.log("✅ Payment successful and slot booked for order:", orderId);
+    console.log(" Payment successful and slot booked for order:", orderId);
 
     res.json({
       success: true,
