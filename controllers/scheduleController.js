@@ -358,7 +358,7 @@ export const bookAndPayTimeSlot = async (req, res) => {
     const { doctorId, date, slotId } = req.body;
     const userId = req.user._id;
 
-   
+    // 1. التحقق من وجود الطبيب والجدول وتوفر الموعد
     const doctor = await Doctor.findById(doctorId);
     if (!doctor) return res.status(404).json({ message: "Doctor not found" });
 
@@ -369,32 +369,34 @@ export const bookAndPayTimeSlot = async (req, res) => {
     if (!slot) return res.status(404).json({ message: "Slot not found" });
     if (slot.isBooked) return res.status(400).json({ message: "Slot already booked" });
 
+    // 2. حجز الموعد مؤقتاً قبل الدفع
     slot.isBooked = true;
     slot.bookedBy = userId;
     slot.isPaid = false;
     await schedule.save();
 
-  
+    // 3. جلب تفاصيل المستخدم لحساب Paymob
     const userDetails = await User.findById(userId).select("name email phone");
     const [firstName, ...rest] = userDetails.name.split(" ");
     const lastName = rest.join(" ") || "User";
 
-   
+    // 4. حساب المبلغ الإجمالي
     const confirmationFee = doctor.price; 
     const administrativeFees = 25; 
     const totalAmount = confirmationFee + administrativeFees;
     const amount_cents = Math.round(totalAmount * 100); 
 
-   
+    // 5. متغيرات Paymob
     const PAYMOB_API_KEY = process.env.PAYMOB_API_KEY;
     const PAYMOB_INTEGRATION_ID = process.env.PAYMOB_INTEGRATION_ID;
     const PAYMOB_IFRAME_ID = process.env.PAYMOB_IFRAME_ID;
     const PAYMOB_BASE_URL = "https://accept.paymob.com/api";
 
+    // 6. الحصول على Authentication Token
     const authResp = await axios.post(`${PAYMOB_BASE_URL}/auth/tokens`, { api_key: PAYMOB_API_KEY });
     const token = authResp.data.token;
 
-  
+    // 7. تسجيل الطلب (Order) في Paymob
     const orderResp = await axios.post(`${PAYMOB_BASE_URL}/ecommerce/orders`, {
       auth_token: token,
       delivery_needed: false,
@@ -405,9 +407,10 @@ export const bookAndPayTimeSlot = async (req, res) => {
     });
 
     const orderId = orderResp.data.id;
-    slot.paymentOrderId = orderId;
+    slot.paymentOrderId = orderId; // حفظ Order ID لربطه بالـ Webhook
     await schedule.save();
 
+    // 8. الحصول على Payment Key
     const payKeyResp = await axios.post(`${PAYMOB_BASE_URL}/acceptance/payment_keys`, {
       auth_token: token,
       amount_cents,
@@ -433,15 +436,15 @@ export const bookAndPayTimeSlot = async (req, res) => {
     });
 
     const paymentToken = payKeyResp.data.token;
+    // 9. بناء رابط الدفع (Iframe URL)
     const paymentUrl = `https://accept.paymob.com/api/acceptance/iframes/${PAYMOB_IFRAME_ID}?payment_token=${paymentToken}`;
 
-  
+    // 10. إرسال تفاصيل الموعد ورابط الدفع للواجهة الأمامية
     const scheduleDate = new Date(schedule.date);
     const appointmentDateStr = scheduleDate.toDateString();
-const phone = userDetails.phone || "01000000000";
-const maskedPhone = phone.replace(/\d(?=\d{3})/g, "*");
+    const phone = userDetails.phone || "01000000000";
+    const maskedPhone = phone.replace(/\d(?=\d{3})/g, "*");
 
-  
     const appointmentDetails = {
       doctor: ` ${doctor.name}`,
       appointment: `${appointmentDateStr} – ${slot.from} PM`,
@@ -510,6 +513,7 @@ export const paymobWebhook = async (req, res) => {
     const isSuccess = data.success ?? true; 
     const paymobTransactionId = data.id;
 
+    // 1. البحث عن الجدول والموعد باستخدام Order ID
     const schedule = await Schedule.findOne({ "timeSlots.paymentOrderId": orderId });
     if (!schedule) return res.status(200).send("Order not found");
 
@@ -518,11 +522,13 @@ export const paymobWebhook = async (req, res) => {
 
     const slot = schedule.timeSlots[slotIndex];
 
+    // 2. تحديث حالة الدفع والحجز بناءً على نتيجة Webhook
     if (isSuccess) {
       slot.isBooked = true;
       slot.isPaid = true;
       slot.paymentTransactionId = paymobTransactionId || null;
     } else {
+      // إلغاء الحجز في حالة فشل الدفع
       slot.isBooked = false;
       slot.isPaid = false;
       slot.bookedBy = null;
