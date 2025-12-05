@@ -353,35 +353,12 @@ export const bookTimeSlot = async (req, res) => {
   }
 };
 //////////////////////////////////////////////////////////////
-
-// NOTE: تأكد من وجود السطر التالي في أعلى ملفك لاستخدام دالة crypto:
-// import crypto from "crypto"; 
-// وكذلك تأكد من استيراد النماذج (Doctor, Schedule, User) و axios.
-
-// =================== Helpers ===================
-function flattenObject(obj, prefix = "") {
-  let result = {};
-  for (let key in obj) {
-    if (!obj.hasOwnProperty(key)) continue;
-    const newKey = prefix ? `${prefix}.${key}` : key;
-    if (typeof obj[key] === "object" && obj[key] !== null) {
-      Object.assign(result, flattenObject(obj[key], newKey));
-    } else {
-      result[newKey] = obj[key];
-    }
-  }
-  return result;
-}
-
-// =================== Booking + Payment ===================
-// =================== Book & Pay Time Slot ===================
-// POST /api/auth/book-and-pay
 export const bookAndPayTimeSlot = async (req, res) => {
   try {
     const { doctorId, date, slotId } = req.body;
     const userId = req.user._id;
 
-    // جلب الطبيب والجدول
+  
     const doctor = await Doctor.findById(doctorId);
     if (!doctor) return res.status(404).json({ message: "Doctor not found" });
 
@@ -392,20 +369,22 @@ export const bookAndPayTimeSlot = async (req, res) => {
     if (!slot) return res.status(404).json({ message: "Slot not found" });
     if (slot.isBooked) return res.status(400).json({ message: "Slot already booked" });
 
-    // تحديث slot مؤقتًا
     slot.isBooked = true;
     slot.bookedBy = userId;
     slot.isPaid = false;
     await schedule.save();
 
-    // بيانات المستخدم
     const userDetails = await User.findById(userId).select("name email phone");
     const [firstName, ...rest] = userDetails.name.split(" ");
     const lastName = rest.join(" ") || "User";
 
-    const amount_cents = Math.round(doctor.price * 100);
+    // 4️⃣ Fees
+    const confirmationFee = doctor.price; // سعر الاستشارة
+    const administrativeFees = 25; // مثال ثابت
+    const totalAmount = confirmationFee + administrativeFees;
+    const amount_cents = Math.round(totalAmount * 100); // Paymob requires cents
 
-    // auth token
+    // 5️⃣ الحصول على auth token
     const PAYMOB_API_KEY = process.env.PAYMOB_API_KEY;
     const PAYMOB_INTEGRATION_ID = process.env.PAYMOB_INTEGRATION_ID;
     const PAYMOB_IFRAME_ID = process.env.PAYMOB_IFRAME_ID;
@@ -414,7 +393,7 @@ export const bookAndPayTimeSlot = async (req, res) => {
     const authResp = await axios.post(`${PAYMOB_BASE_URL}/auth/tokens`, { api_key: PAYMOB_API_KEY });
     const token = authResp.data.token;
 
-    // إنشاء order
+    // 6️⃣ إنشاء order
     const orderResp = await axios.post(`${PAYMOB_BASE_URL}/ecommerce/orders`, {
       auth_token: token,
       delivery_needed: false,
@@ -428,58 +407,100 @@ export const bookAndPayTimeSlot = async (req, res) => {
     slot.paymentOrderId = orderId;
     await schedule.save();
 
-    // إنشاء payment key
-   const payKeyResp = await axios.post(`${PAYMOB_BASE_URL}/acceptance/payment_keys`, {
-  auth_token: token,
-  amount_cents,
-  expiration: 3600,
-  order_id: orderId,
-  billing_data: {
-    apartment: "NA",
-    email: userDetails.email,
-    floor: "NA",      // ✅ أضف هذا
-    first_name: firstName,
-    street: "NA",     // ✅ أضف هذا
-    building: "NA",   // ✅ أضف هذا
-    phone_number: userDetails.phone || "01000000000",
-    shipping_method: "NA",
-    postal_code: "NA",
-    city: "Cairo",
-    country: "EGY",
-    last_name: lastName,
-    state: "NA",
-  },
-  currency: "EGP",
-  integration_id: PAYMOB_INTEGRATION_ID,
-});
-
+    // 7️⃣ إنشاء payment key
+    const payKeyResp = await axios.post(`${PAYMOB_BASE_URL}/acceptance/payment_keys`, {
+      auth_token: token,
+      amount_cents,
+      expiration: 3600,
+      order_id: orderId,
+      billing_data: {
+        apartment: "NA",
+        email: userDetails.email,
+        floor: "NA",
+        first_name: firstName,
+        street: "NA",
+        building: "NA",
+        phone_number: userDetails.phone || "01000000000",
+        shipping_method: "NA",
+        postal_code: "NA",
+        city: "Cairo",
+        country: "EGY",
+        last_name: lastName,
+        state: "NA",
+      },
+      currency: "EGP",
+      integration_id: PAYMOB_INTEGRATION_ID,
+    });
 
     const paymentToken = payKeyResp.data.token;
     const paymentUrl = `https://accept.paymob.com/api/acceptance/iframes/${PAYMOB_IFRAME_ID}?payment_token=${paymentToken}`;
 
-    res.status(200).json({ message: "Proceed to payment (Test Mode)", paymentUrl, orderId, paymentToken });
+ 
+    const appointmentDetails = {
+      doctor: `Dr. ${doctor.name}`,
+      appointment: `${schedule.date.toDateString()} – ${slot.from} PM`,
+      confirmationFee: `EGP ${confirmationFee}`,
+      administrativeFees: `EGP ${administrativeFees}`,
+      total: `EGP ${totalAmount}`,
+      user: userDetails.name,
+      maskedPhone: userDetails.phone.replace(/\d(?=\d{3})/g, "*"),
+      paymentUrl,
+      orderId,
+      paymentToken,
+    };
+
+    res.status(200).json({ message: "Proceed to payment (Test Mode)", appointmentDetails });
 
   } catch (err) {
     console.error("Booking payment error:", err.response?.data || err.message);
     res.status(500).json({ message: "Server error", error: err.response?.data || err.message });
   }
 };
-
-
-
-// =================== Paymob Webhook (Test Mode) ===================
-// POST /api/auth/paymob-webhook
 export const paymobWebhook = async (req, res) => {
   try {
-    const data = req.body.obj || req.body;
-    const hmacReceived = req.query.hmac;
+    const data = req.body.obj || req.body; 
+    const hmacReceived = req.query.hmac; 
     const PAYMOB_HMAC = process.env.PAYMOB_HMAC;
 
-    let hmacValid = true; // في Test Mode نتجاهل HMAC
+    let hmacValid = false;
 
-    // تحديث الـ slot بناءً على orderId
+    if (hmacReceived && PAYMOB_HMAC) {
+      
+      const flattenObject = (obj, prefix = "") => {
+        let result = {};
+        for (let key in obj) {
+          if (!obj.hasOwnProperty(key)) continue;
+          const newKey = prefix ? `${prefix}.${key}` : key;
+          if (typeof obj[key] === "object" && obj[key] !== null) {
+            Object.assign(result, flattenObject(obj[key], newKey));
+          } else {
+            result[newKey] = obj[key];
+          }
+        }
+        return result;
+      };
+
+      const flatData = flattenObject(data);
+      const hmacKeys = Object.keys(flatData).sort();
+      const hmacString = hmacKeys.map(key => {
+        let val = flatData[key];
+        if (typeof val === "boolean") return val.toString();
+        return val != null ? val.toString() : "";
+      }).join("");
+
+      const hmacCalculated = crypto.createHmac("sha512", PAYMOB_HMAC).update(hmacString).digest("hex");
+      hmacValid = hmacCalculated === hmacReceived;
+
+      if (!hmacValid) console.warn("⚠️ HMAC mismatch, continuing in test mode");
+    } else {
+      console.warn("⚠️ No HMAC provided, skipping verification for testing");
+      hmacValid = true; 
+    }
+
+    if (!hmacValid) return res.status(200).send("HMAC check failed");
+
     const orderId = data.order?.id;
-    const isSuccess = data.success ?? true; // دائماً true في Test Mode
+    const isSuccess = data.success ?? true; 
     const paymobTransactionId = data.id;
 
     const schedule = await Schedule.findOne({ "timeSlots.paymentOrderId": orderId });
@@ -493,7 +514,7 @@ export const paymobWebhook = async (req, res) => {
     if (isSuccess) {
       slot.isBooked = true;
       slot.isPaid = true;
-      slot.paymentTransactionId = paymobTransactionId || "TEST_TXN";
+      slot.paymentTransactionId = paymobTransactionId || null;
     } else {
       slot.isBooked = false;
       slot.isPaid = false;
@@ -503,18 +524,14 @@ export const paymobWebhook = async (req, res) => {
     }
 
     await schedule.save();
-    res.status(200).send("Webhook processed successfully (Test Mode)");
+
+    res.status(200).send("Webhook processed successfully (test mode)");
 
   } catch (err) {
     console.error("Webhook processing error:", err);
     res.status(500).send("Processing error");
   }
 };
-
-
-// =================== GET Route Optional ===================
-export const paymobWebhookGetTest = (req, res) => {
+export const paymobWebhookGet = (req, res) => {
   res.status(200).send("Payment process finished. Waiting for final confirmation.");
 };
-
-
