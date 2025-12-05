@@ -11,7 +11,7 @@ import {  getUserAppointments ,  bookTimeSlot} from "../controllers/scheduleCont
 import { bookAndPayTimeSlot } from "../controllers/scheduleController.js";
 import {  
   paymobWebhook,
-  paymobWebhookGetTest} from "../controllers/scheduleController.js";
+  paymobWebhookGet} from "../controllers/scheduleController.js";
 
 const router = express.Router();
 // user auth and account management routes
@@ -37,7 +37,7 @@ router.post("/paymob-webhook", paymobWebhook);
 
 
 // Paymob webhook (POST)
-router.get("/paymob-webhook", paymobWebhookGetTest);
+router.get("/paymob-webhook", paymobWebhookGet);
 // GET route لتجنب "Cannot GET" عند إعادة توجيه المتصفح
 
 router.post("/book-appointment", protect(["user"]), bookTimeSlot);
