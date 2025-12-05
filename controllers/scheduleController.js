@@ -374,7 +374,9 @@ function flattenObject(obj, prefix = "") {
 }
 
 // =================== Booking + Payment ===================
-export const bookAndPayTimeSlot = async (req, res) => {
+
+// =================== Book & Pay Slot (Test Mode) ===================
+export const bookAndPayTimeSlotTest = async (req, res) => {
   try {
     const { doctorId, date, slotId } = req.body;
     const userId = req.user._id;
@@ -403,110 +405,33 @@ export const bookAndPayTimeSlot = async (req, res) => {
 
     const amount_cents = Math.round(doctor.price * 100);
 
-    // 4️⃣ الحصول على auth token
-    const PAYMOB_API_KEY = process.env.PAYMOB_API_KEY;
-    const PAYMOB_INTEGRATION_ID = process.env.PAYMOB_INTEGRATION_ID;
-    const PAYMOB_IFRAME_ID = process.env.PAYMOB_IFRAME_ID;
-    const PAYMOB_BASE_URL = "https://accept.paymob.com/api";
-
-    const authResp = await axios.post(`${PAYMOB_BASE_URL}/auth/tokens`, { api_key: PAYMOB_API_KEY });
-    const token = authResp.data.token;
-
-    // 5️⃣ إنشاء order
-    const orderResp = await axios.post(`${PAYMOB_BASE_URL}/ecommerce/orders`, {
-      auth_token: token,
-      delivery_needed: false,
-      amount_cents,
-      currency: "EGP",
-      merchant_order_id: `${userId}-${Date.now()}`,
-      items: [{ name: `Consultation with Dr. ${doctor.name}`, amount_cents, quantity: 1 }],
-    });
-
-    const orderId = orderResp.data.id;
+    // 4️⃣ إعداد بيانات الدفع التجريبية (Test Mode)
+    const PAYMOB_IFRAME_ID = process.env.PAYMOB_IFRAME_ID || "TEST_IFRAME";
+    const orderId = `${userId}-${Date.now()}`; // Order ID وهمي للاختبار
     slot.paymentOrderId = orderId;
     await schedule.save();
 
-    // 6️⃣ إنشاء payment key
-    const payKeyResp = await axios.post(`${PAYMOB_BASE_URL}/acceptance/payment_keys`, {
-      auth_token: token,
-      amount_cents,
-      expiration: 3600,
-      order_id: orderId,
-      billing_data: {
-        apartment: "NA",
-        email: userDetails.email,
-        floor: "NA",
-        first_name: firstName,
-        street: "NA",
-        building: "NA",
-        phone_number: userDetails.phone || "01000000000",
-        shipping_method: "NA",
-        postal_code: "NA",
-        city: "Cairo",
-        country: "EGY",
-        last_name: lastName,
-        state: "NA",
-      },
-      currency: "EGP",
-      integration_id: PAYMOB_INTEGRATION_ID,
-    });
-
-    const paymentToken = payKeyResp.data.token;
+    // رابط الدفع التجريبي
+    const paymentToken = "TEST_TOKEN_" + Date.now();
     const paymentUrl = `https://accept.paymob.com/api/acceptance/iframes/${PAYMOB_IFRAME_ID}?payment_token=${paymentToken}`;
 
-    res.status(200).json({ message: "Proceed to payment", paymentUrl, orderId, paymentToken });
+    res.status(200).json({
+      message: "Proceed to payment (Test Mode)",
+      paymentUrl,
+      orderId,
+      paymentToken
+    });
+
   } catch (err) {
-    console.error("Booking payment error:", err.response?.data || err.message);
-    res.status(500).json({ message: "Server error", error: err.response?.data || err.message });
+    console.error("Booking payment error:", err.message);
+    res.status(500).json({ message: "Server error", error: err.message });
   }
 };
-// =================== Paymob Webhook (Test-Friendly) ===================
-export const paymobWebhook = async (req, res) => {
+
+// =================== Paymob Webhook (Test Mode) ===================
+export const paymobWebhookTest = async (req, res) => {
   try {
-    const data = req.body.obj || req.body;
-    const hmacReceived = req.query.hmac; // لو موجود
-    const PAYMOB_HMAC = process.env.PAYMOB_HMAC;
-
-    let hmacValid = false;
-
-    if (hmacReceived && PAYMOB_HMAC) {
-      // تحقق HMAC الحقيقي
-      const flattenObject = (obj, prefix = "") => {
-        let result = {};
-        for (let key in obj) {
-          if (!obj.hasOwnProperty(key)) continue;
-          const newKey = prefix ? `${prefix}.${key}` : key;
-          if (typeof obj[key] === "object" && obj[key] !== null) {
-            Object.assign(result, flattenObject(obj[key], newKey));
-          } else {
-            result[newKey] = obj[key];
-          }
-        }
-        return result;
-      };
-
-      const hmacKeys = Object.keys(flattenObject(data)).sort();
-      const flatData = flattenObject(data);
-      const hmacString = hmacKeys.map(key => {
-        let val = flatData[key];
-        if (typeof val === "boolean") return val.toString();
-        return val != null ? val.toString() : "";
-      }).join("");
-
-      const hmacCalculated = crypto.createHmac("sha512", PAYMOB_HMAC).update(hmacString).digest("hex");
-      hmacValid = hmacCalculated === hmacReceived;
-
-      if (!hmacValid) {
-        console.warn("⚠️ HMAC mismatch, continuing in test mode");
-      }
-    } else {
-      console.warn("⚠️ No HMAC provided, skipping verification for testing");
-      hmacValid = true;
-    }
-
-    if (!hmacValid) {
-      return res.status(200).send("HMAC check failed");
-    }
+    const data = req.body;
 
     // ✅ تحديث الـ slot بناءً على orderId
     const orderId = data.order?.id;
@@ -534,7 +459,7 @@ export const paymobWebhook = async (req, res) => {
     }
 
     await schedule.save();
-    res.status(200).send("Webhook processed successfully (test mode)");
+    res.status(200).send("Webhook processed successfully (Test Mode)");
 
   } catch (err) {
     console.error("Webhook test processing error:", err);
@@ -542,8 +467,9 @@ export const paymobWebhook = async (req, res) => {
   }
 };
 
-// =================== GET Route (optional) ===================
-export const paymobWebhookGet = (req, res) => {
+// =================== GET Route Optional ===================
+export const paymobWebhookGetTest = (req, res) => {
   res.status(200).send("Payment process finished. Waiting for final confirmation.");
 };
+
 
