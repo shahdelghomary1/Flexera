@@ -379,13 +379,13 @@ export const bookAndPayTimeSlot = async (req, res) => {
     const [firstName, ...rest] = userDetails.name.split(" ");
     const lastName = rest.join(" ") || "User";
 
-    // 4️⃣ Fees
-    const confirmationFee = doctor.price; // سعر الاستشارة
-    const administrativeFees = 25; // مثال ثابت
+   
+    const confirmationFee = doctor.price; 
+    const administrativeFees = 25; 
     const totalAmount = confirmationFee + administrativeFees;
-    const amount_cents = Math.round(totalAmount * 100); // Paymob requires cents
+    const amount_cents = Math.round(totalAmount * 100); 
 
-    // 5️⃣ الحصول على auth token
+   
     const PAYMOB_API_KEY = process.env.PAYMOB_API_KEY;
     const PAYMOB_INTEGRATION_ID = process.env.PAYMOB_INTEGRATION_ID;
     const PAYMOB_IFRAME_ID = process.env.PAYMOB_IFRAME_ID;
@@ -394,7 +394,7 @@ export const bookAndPayTimeSlot = async (req, res) => {
     const authResp = await axios.post(`${PAYMOB_BASE_URL}/auth/tokens`, { api_key: PAYMOB_API_KEY });
     const token = authResp.data.token;
 
-    // 6️⃣ إنشاء order
+  
     const orderResp = await axios.post(`${PAYMOB_BASE_URL}/ecommerce/orders`, {
       auth_token: token,
       delivery_needed: false,
@@ -408,7 +408,6 @@ export const bookAndPayTimeSlot = async (req, res) => {
     slot.paymentOrderId = orderId;
     await schedule.save();
 
-    // 7️⃣ إنشاء payment key
     const payKeyResp = await axios.post(`${PAYMOB_BASE_URL}/acceptance/payment_keys`, {
       auth_token: token,
       amount_cents,
