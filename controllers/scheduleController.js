@@ -439,6 +439,8 @@ export const bookAndPayTimeSlot = async (req, res) => {
   
     const scheduleDate = new Date(schedule.date);
     const appointmentDateStr = scheduleDate.toDateString();
+const phone = userDetails.phone || "01000000000";
+const maskedPhone = phone.replace(/\d(?=\d{3})/g, "*");
 
   
     const appointmentDetails = {
