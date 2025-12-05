@@ -467,12 +467,8 @@ export const bookAndPayTimeSlot = async (req, res) => {
 };
 // =================== Paymob Webhook ===================
 
-import crypto from "crypto";
-// تأكد من استيراد crypto في بداية ملف scheduleController.js
 
-// ------------------------------------------------------------------------
-// ملاحظة هامة: يجب تعريف هذه الدالة المساعدة في مكان ما في هذا الملف 
-// (عادةً قبل دالة paymobWebhook) لكي يعمل التحقق من HMAC بشكل صحيح
+
 // ------------------------------------------------------------------------
 const flattenObject = (obj, parentKey = '', result = {}) => {
   for (const key in obj) {
