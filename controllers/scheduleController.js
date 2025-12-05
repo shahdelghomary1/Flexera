@@ -466,7 +466,7 @@ export const bookAndPayTimeSlot = async (req, res) => {
   }
 };
 // =================== Paymob Webhook ===================
-import Schedule from "../models/scheduleModel.js";
+
 import crypto from "crypto";
 // تأكد من استيراد crypto في بداية ملف scheduleController.js
 
