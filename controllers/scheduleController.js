@@ -444,7 +444,7 @@ const maskedPhone = phone.replace(/\d(?=\d{3})/g, "*");
 
   
     const appointmentDetails = {
-      doctor: `Dr. ${doctor.name}`,
+      doctor: ` ${doctor.name}`,
       appointment: `${appointmentDateStr} – ${slot.from} PM`,
       confirmationFee: `EGP ${confirmationFee}`,
       administrativeFees: `EGP ${administrativeFees}`,
