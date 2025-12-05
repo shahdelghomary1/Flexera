@@ -52,7 +52,6 @@ const getPaymentKey = async (authToken, orderId, amountCents, billingData) => {
 export const initPayment = async (req, res) => {
   try {
     const { doctorId, date, from } = req.body;
-    const userId = req.user._id;
 
     const doctor = await Doctor.findById(doctorId);
     if (!doctor) return res.status(404).json({ message: "Doctor not found" });
@@ -67,10 +66,8 @@ export const initPayment = async (req, res) => {
     if (slot.isBooked)
       return res.status(400).json({ message: "Slot is already booked" });
 
-    // Price from doctor
     const amountCents = doctor.price * 100;
 
-    // Billing info
     const billingData = {
       first_name: req.user.name,
       last_name: req.user.name,
@@ -89,22 +86,16 @@ export const initPayment = async (req, res) => {
 
     const authToken = await getAuthToken();
     const order = await createOrder(authToken, amountCents);
-    const paymentKey = await getPaymentKey(
-      authToken,
-      order.id,
-      amountCents,
-      billingData
-    );
+    const paymentKey = await getPaymentKey(authToken, order.id, amountCents, billingData);
 
     // Store temporary pending payment
     slot.price = doctor.price;
     slot.paymentStatus = "pending";
-    slot.orderId = order.id;
+    slot.orderId = order.id.toString(); // ✅ اجعل orderId دائماً String لتجنب مشاكل Mongoose
 
     await schedule.save();
 
-    const iframeUrl =
-      `${PAYMOB.IFRAME_URL}${PAYMOB.IFRAME_ID}?payment_token=${paymentKey}`;
+    const iframeUrl = `${PAYMOB.IFRAME_URL}${PAYMOB.IFRAME_ID}?payment_token=${paymentKey}`;
 
     res.json({
       success: true,
@@ -154,23 +145,24 @@ const verifyHmac = (data) => {
 };
 
 // ---------------------------------------------------------
-// CALLBACK — book slot only if payment success
+// CALLBACK — Paymob POST
 // ---------------------------------------------------------
 export const paymobCallback = async (req, res) => {
   try {
-    console.log("💥 CALLBACK RECEIVED:", req.body); // 👈 اضغط هنا
+    console.log("💥 CALLBACK RECEIVED:", req.body); // لرؤية ما أرسله Paymob
 
     const data = req.body.obj;
+
+    // Uncomment for production
+    // if (!verifyHmac(data)) return res.status(400).json({ success: false, message: "Invalid HMAC" });
 
     if (!data.success)
       return res.json({ success: false, message: "Payment failed" });
 
-    const orderId = data.order;
+    // Safety: orderId ممكن يكون رقم أو Object حسب نوع الدفع
+    const orderId = (data.order?.id || data.order).toString();
 
-    const schedule = await Schedule.findOne({
-      "timeSlots.orderId": orderId,
-    });
-
+    const schedule = await Schedule.findOne({ "timeSlots.orderId": orderId });
     if (!schedule)
       return res.status(404).json({ message: "Pending booking not found" });
 
@@ -183,10 +175,15 @@ export const paymobCallback = async (req, res) => {
 
     await schedule.save();
 
-    res.json({ success: true, message: "Payment successful and slot booked!" });
+    res.json({
+      success: true,
+      message: "Payment successful and slot booked!",
+      transactionId: data.id,
+      orderId: orderId,
+      price: slot.price,
+    });
   } catch (err) {
     console.log(err);
     res.status(500).json({ message: "Callback error", error: err.message });
   }
 };
-
