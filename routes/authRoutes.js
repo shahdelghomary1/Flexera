@@ -8,7 +8,7 @@ import { registerSchema, loginSchema, googleSchema , forgotSchema, verifyOtpSche
 import { protect } from "../middleware/authMiddleware.js"; 
 import { upload } from "../middleware/multer.js"
 import {  getUserAppointments ,  bookTimeSlot} from "../controllers/scheduleController.js";
-import { bookAndPayTimeSlotTest } from "../controllers/scheduleController.js";
+import { bookAndPayTimeSlot } from "../controllers/scheduleController.js";
 import {  
   paymobWebhookTest,
   paymobWebhookGetTest } from "../controllers/scheduleController.js";
@@ -31,7 +31,7 @@ router.post("/logout", protect(["user"]), logoutUser);
 
 
 // appointment routes for users not working aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
-router.post("/book-pay", protect(["user"])  , bookAndPayTimeSlotTest);
+router.post("/book-pay", protect(["user"])  , bookAndPayTimeSlot);
 router.post("/paymob-webhook", paymobWebhookTest);
 
 

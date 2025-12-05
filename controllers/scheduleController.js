@@ -374,9 +374,8 @@ function flattenObject(obj, prefix = "") {
 }
 
 // =================== Booking + Payment ===================
-
-// =================== Book & Pay Slot (Test Mode) ===================
-export const bookAndPayTimeSlotTest = async (req, res) => {
+// =================== Book & Pay Time Slot ===================
+export const bookAndPayTimeSlot = async (req, res) => {
   try {
     const { doctorId, date, slotId } = req.body;
     const userId = req.user._id;
@@ -403,16 +402,74 @@ export const bookAndPayTimeSlotTest = async (req, res) => {
     const [firstName, ...rest] = userDetails.name.split(" ");
     const lastName = rest.join(" ") || "User";
 
-    const amount_cents = Math.round(doctor.price * 100);
+    // 4️⃣ حساب السعر
+    const confirmationFee = doctor.price;
+    const adminFee = 25; // مثال رسوم إدارية
+    const totalAmount = confirmationFee + adminFee;
+    const amount_cents = totalAmount * 100; // بالـ cents
 
-    // 4️⃣ إعداد بيانات الدفع التجريبية (Test Mode)
-    const PAYMOB_IFRAME_ID = process.env.PAYMOB_IFRAME_ID || "TEST_IFRAME";
-    const orderId = `${userId}-${Date.now()}`; // Order ID وهمي للاختبار
+    // 5️⃣ auth token
+    const PAYMOB_API_KEY = process.env.PAYMOB_API_KEY;
+    const PAYMOB_INTEGRATION_ID = process.env.PAYMOB_INTEGRATION_ID;
+    const PAYMOB_IFRAME_ID = process.env.PAYMOB_IFRAME_ID;
+    const PAYMOB_BASE_URL = "https://accept.paymob.com/api";
+
+    const authResp = await axios.post(`${PAYMOB_BASE_URL}/auth/tokens`, { api_key: PAYMOB_API_KEY });
+    const token = authResp.data.token;
+
+    // 6️⃣ إنشاء order
+    const orderResp = await axios.post(`${PAYMOB_BASE_URL}/ecommerce/orders`, {
+      auth_token: token,
+      delivery_needed: false,
+      amount_cents,
+      currency: "EGP",
+      merchant_order_id: `${userId}-${Date.now()}`,
+      items: [
+        {
+          name: `Consultation with Dr. ${doctor.name}`,
+          amount_cents: confirmationFee * 100,
+          quantity: 1,
+          description: `Appointment: ${date} – ${slot.from}`
+        },
+        {
+          name: `Administrative Fees`,
+          amount_cents: adminFee * 100,
+          quantity: 1,
+          description: "Service charge"
+        }
+      ],
+    });
+
+    const orderId = orderResp.data.id;
     slot.paymentOrderId = orderId;
     await schedule.save();
 
-    // رابط الدفع التجريبي
-    const paymentToken = "TEST_TOKEN_" + Date.now();
+    // 7️⃣ إنشاء payment key
+    const payKeyResp = await axios.post(`${PAYMOB_BASE_URL}/acceptance/payment_keys`, {
+      auth_token: token,
+      amount_cents,
+      expiration: 3600,
+      order_id: orderId,
+      billing_data: {
+        apartment: "NA",
+        email: userDetails.email,
+        floor: "NA",
+        first_name: firstName,
+        street: "NA",
+        building: "NA",
+        phone_number: userDetails.phone || "01000000000",
+        shipping_method: "NA",
+        postal_code: "NA",
+        city: "Cairo",
+        country: "EGY",
+        last_name: lastName,
+        state: "NA",
+      },
+      currency: "EGP",
+      integration_id: PAYMOB_INTEGRATION_ID,
+    });
+
+    const paymentToken = payKeyResp.data.token;
     const paymentUrl = `https://accept.paymob.com/api/acceptance/iframes/${PAYMOB_IFRAME_ID}?payment_token=${paymentToken}`;
 
     res.status(200).json({
@@ -423,10 +480,11 @@ export const bookAndPayTimeSlotTest = async (req, res) => {
     });
 
   } catch (err) {
-    console.error("Booking payment error:", err.message);
-    res.status(500).json({ message: "Server error", error: err.message });
+    console.error("Booking payment error:", err.response?.data || err.message);
+    res.status(500).json({ message: "Server error", error: err.response?.data || err.message });
   }
 };
+
 
 // =================== Paymob Webhook (Test Mode) ===================
 export const paymobWebhookTest = async (req, res) => {
