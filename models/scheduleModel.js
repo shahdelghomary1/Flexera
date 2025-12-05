@@ -4,10 +4,12 @@ const timeSlotSchema = new mongoose.Schema({
   from: { type: String, required: true, match: /^([01]\d|2[0-3]):([0-5]\d)$/ },
   to: { type: String, required: true, match: /^([01]\d|2[0-3]):([0-5]\d)$/ },
   isBooked: { type: Boolean, default: false },
-  bookedBy: { type: mongoose.Schema.Types.ObjectId, ref: "User", default: null } ,
-  isPaid: { type: Boolean, default: false },
-  paymentOrderId: { type: String, default: null, unique: true, sparse: true },
-  paymentTransactionId: { type: String, default: null, unique: true, sparse: true },
+  bookedBy: { type: mongoose.Schema.Types.ObjectId, ref: "User", default: null },
+  price: { type: Number }, 
+  paymentStatus: { type: String, default: "pending" }, 
+  orderId: { type: String },  
+  transactionId: { type: String }
+
 });
 
 
@@ -28,9 +30,22 @@ const doctorScheduleSchema = new mongoose.Schema({
     type: mongoose.Schema.Types.ObjectId, 
     ref: "User" 
   },
-
+  timeSlots: [
+    {
+      from: {
+        type: String,
+        required: true,
+        match: /^([01]\d|2[0-3]):([0-5]\d)$/ 
+      },
+      to: {
+        type: String,
+        required: true,
+        match: /^([01]\d|2[0-3]):([0-5]\d)$/ 
+      }
+    }
+  ],
   date: { type: String, required: true },
- timeSlots: [timeSlotSchema],
+  timeSlots: [timeSlotSchema],
   exercises: [
     {
       name: { type: String, required: true },

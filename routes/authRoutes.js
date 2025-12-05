@@ -8,11 +8,6 @@ import { registerSchema, loginSchema, googleSchema , forgotSchema, verifyOtpSche
 import { protect } from "../middleware/authMiddleware.js"; 
 import { upload } from "../middleware/multer.js"
 import {  getUserAppointments ,  bookTimeSlot} from "../controllers/scheduleController.js";
-import { bookAndPayTimeSlot } from "../controllers/scheduleController.js";
-import {  
-  paymobWebhook,
-  paymobWebhookGet} from "../controllers/scheduleController.js";
-
 const router = express.Router();
 // user auth and account management routes
 router.post("/register", validate(registerSchema), registerUser);
@@ -31,15 +26,6 @@ router.post("/logout", protect(["user"]), logoutUser);
 
 
 // appointment routes for users not working aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
-router.post("/book-pay", protect(["user"])  , bookAndPayTimeSlot);
-router.post("/paymob-webhook", paymobWebhook);
-
-
-
-// Paymob webhook (POST)
-router.get("/paymob-webhook", paymobWebhookGet);
-// GET route لتجنب "Cannot GET" عند إعادة توجيه المتصفح
-
 router.post("/book-appointment", protect(["user"]), bookTimeSlot);
 router.get("/my-appointments", protect(["user"]), getUserAppointments);
 router.post("/google/flutter", googleOAuthFlutter);
