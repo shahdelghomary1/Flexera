@@ -158,17 +158,15 @@ const verifyHmac = (data) => {
 // ---------------------------------------------------------
 export const paymobCallback = async (req, res) => {
   try {
-    const data = req.body.obj;
+    console.log("💥 CALLBACK RECEIVED:", req.body); // 👈 اضغط هنا
 
-    // Uncomment this line in production:
-    // if (!verifyHmac(data)) return res.status(400).json({ success: false, message: "Invalid HMAC" });
+    const data = req.body.obj;
 
     if (!data.success)
       return res.json({ success: false, message: "Payment failed" });
 
     const orderId = data.order;
 
-    // Find schedule containing this orderId
     const schedule = await Schedule.findOne({
       "timeSlots.orderId": orderId,
     });
@@ -179,20 +177,13 @@ export const paymobCallback = async (req, res) => {
     const slot = schedule.timeSlots.find((s) => s.orderId === orderId);
     if (!slot) return res.status(404).json({ message: "Slot not found" });
 
-    // Final booking
     slot.isBooked = true;
     slot.paymentStatus = "paid";
-    slot.transactionId = data.id; // paymob transaction id
+    slot.transactionId = data.id;
 
     await schedule.save();
 
-    res.json({
-      success: true,
-      message: "Payment successful and slot booked!",
-      transactionId: data.id,
-      orderId: data.order,
-      price: slot.price,
-    });
+    res.json({ success: true, message: "Payment successful and slot booked!" });
   } catch (err) {
     console.log(err);
     res.status(500).json({ message: "Callback error", error: err.message });
