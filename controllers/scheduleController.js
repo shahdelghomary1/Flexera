@@ -375,7 +375,7 @@ function flattenObject(obj, prefix = "") {
 
 // =================== Booking + Payment ===================
 // =================== Book & Pay Time Slot ===================
-export const bookAndPayTimeSlot = async (req, res) => {
+export const bookAndPayTimeSlotTest = async (req, res) => {
   try {
     const { doctorId, date, slotId } = req.body;
     const userId = req.user._id;
@@ -487,13 +487,18 @@ export const bookAndPayTimeSlot = async (req, res) => {
 
 
 // =================== Paymob Webhook (Test Mode) ===================
-export const paymobWebhookTest = async (req, res) => {
+// POST /api/auth/paymob-webhook
+export const paymobWebhook = async (req, res) => {
   try {
-    const data = req.body;
+    const data = req.body.obj || req.body;
+    const hmacReceived = req.query.hmac;
+    const PAYMOB_HMAC = process.env.PAYMOB_HMAC;
 
-    // ✅ تحديث الـ slot بناءً على orderId
+    let hmacValid = true; // في Test Mode نتجاهل HMAC
+
+    // تحديث الـ slot بناءً على orderId
     const orderId = data.order?.id;
-    const isSuccess = data.success ?? true; // في وضع التجربة خليها true لو مش موجود
+    const isSuccess = data.success ?? true; // دائماً true في Test Mode
     const paymobTransactionId = data.id;
 
     const schedule = await Schedule.findOne({ "timeSlots.paymentOrderId": orderId });
@@ -507,7 +512,7 @@ export const paymobWebhookTest = async (req, res) => {
     if (isSuccess) {
       slot.isBooked = true;
       slot.isPaid = true;
-      slot.paymentTransactionId = paymobTransactionId || null;
+      slot.paymentTransactionId = paymobTransactionId || "TEST_TXN";
     } else {
       slot.isBooked = false;
       slot.isPaid = false;
@@ -520,10 +525,11 @@ export const paymobWebhookTest = async (req, res) => {
     res.status(200).send("Webhook processed successfully (Test Mode)");
 
   } catch (err) {
-    console.error("Webhook test processing error:", err);
+    console.error("Webhook processing error:", err);
     res.status(500).send("Processing error");
   }
 };
+
 
 // =================== GET Route Optional ===================
 export const paymobWebhookGetTest = (req, res) => {

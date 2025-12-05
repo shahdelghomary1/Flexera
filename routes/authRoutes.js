@@ -10,7 +10,7 @@ import { upload } from "../middleware/multer.js"
 import {  getUserAppointments ,  bookTimeSlot} from "../controllers/scheduleController.js";
 import { bookAndPayTimeSlot } from "../controllers/scheduleController.js";
 import {  
-  paymobWebhookTest,
+  paymobWebhook,
   paymobWebhookGetTest } from "../controllers/scheduleController.js";
 
 const router = express.Router();
@@ -32,7 +32,7 @@ router.post("/logout", protect(["user"]), logoutUser);
 
 // appointment routes for users not working aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
 router.post("/book-pay", protect(["user"])  , bookAndPayTimeSlot);
-router.post("/paymob-webhook", paymobWebhookTest);
+router.post("/paymob-webhook", paymobWebhook);
 
 
 
