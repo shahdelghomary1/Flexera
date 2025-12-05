@@ -466,54 +466,95 @@ export const bookAndPayTimeSlot = async (req, res) => {
   }
 };
 // =================== Paymob Webhook ===================
+import Schedule from "../models/scheduleModel.js";
+import crypto from "crypto";
+// تأكد من استيراد crypto في بداية ملف scheduleController.js
+
+// ------------------------------------------------------------------------
+// ملاحظة هامة: يجب تعريف هذه الدالة المساعدة في مكان ما في هذا الملف 
+// (عادةً قبل دالة paymobWebhook) لكي يعمل التحقق من HMAC بشكل صحيح
+// ------------------------------------------------------------------------
+const flattenObject = (obj, parentKey = '', result = {}) => {
+  for (const key in obj) {
+    if (obj.hasOwnProperty(key)) {
+      const newKey = parentKey ? `${parentKey}.${key}` : key;
+      if (typeof obj[key] === 'object' && obj[key] !== null) {
+        // إذا كان المفتاح هو 'data.message' فاجعله فارغًا (حسب متطلبات paymob)
+        if (newKey === 'data.message') {
+            result[newKey] = '';
+        } else {
+            flattenObject(obj[key], newKey, result);
+        }
+      } else {
+        result[newKey] = obj[key];
+      }
+    }
+  }
+  return result;
+};
+// ------------------------------------------------------------------------
+
 export const paymobWebhook = async (req, res) => {
   try {
-    const data = req.body.obj || req.body; 
-    const hmacReceived = req.query.hmac; 
-    const PAYMOB_HMAC = process.env.PAYMOB_HMAC;
+    const data = req.body;
+    const hmacReceived = req.query.hmac;
+
+    // متغيّرات البيئة المطلوبة
+    const PAYMOB_HMAC = process.env.PAYMOB_HMAC; 
 
     let hmacValid = false;
 
+    // تحقق من HMAC (الأمان)
     if (hmacReceived && PAYMOB_HMAC) {
+      // إزالة حقل hmac من الكائن قبل التسطيح 
+      const dataToFlatten = { ...data };
+      if (dataToFlatten.hmac) delete dataToFlatten.hmac;
       
-      const flattenObject = (obj, prefix = "") => {
-        let result = {};
-        for (let key in obj) {
-          if (!obj.hasOwnProperty(key)) continue;
-          const newKey = prefix ? `${prefix}.${key}` : key;
-          if (typeof obj[key] === "object" && obj[key] !== null) {
-            Object.assign(result, flattenObject(obj[key], newKey));
-          } else {
-            result[newKey] = obj[key];
-          }
-        }
-        return result;
-      };
-
-      const flatData = flattenObject(data);
-      const hmacKeys = Object.keys(flatData).sort();
+      const flatData = flattenObject(dataToFlatten);
+      
+      // Paymob تتطلب ترتيب مفاتيح الـ hmac حسب الترتيب الأبجدي 
+      // ويجب إزالة المفاتيح التي تحتوي على object
+      const hmacKeys = Object.keys(flatData).filter(key => 
+          typeof flatData[key] !== 'object' || flatData[key] === null
+      ).sort();
+      
       const hmacString = hmacKeys.map(key => {
         let val = flatData[key];
         if (typeof val === "boolean") return val.toString();
+        // Paymob تطلب معالجة خاصة لبعض القيم الفارغة أو الصفرية
         return val != null ? val.toString() : "";
       }).join("");
 
+
       const hmacCalculated = crypto.createHmac("sha512", PAYMOB_HMAC).update(hmacString).digest("hex");
+      
+      // *** START DEBUGGING LINES - لحل مشكلة عدم التطابق ***
+      console.log("DEBUG | المفتاح من Paymob:", hmacReceived);
+      console.log("DEBUG | المفتاح المحسوب بالكود:", hmacCalculated);
+      console.log("DEBUG | مفتاح البيئة المُستخدم (PAYMOB_HMAC):", PAYMOB_HMAC);
+      // *** END DEBUGGING LINES ***
+      
       hmacValid = hmacCalculated === hmacReceived;
 
-      if (!hmacValid) console.warn("⚠️ HMAC mismatch, continuing in test mode");
+      if (!hmacValid) console.warn("⚠️ HMAC mismatch. فشل التحقق الأمني.");
+      
     } else {
-      console.warn("⚠️ No HMAC provided, skipping verification for testing");
-      hmacValid = true; 
+      console.warn("⚠️ HMAC check skipped (Missing ENV or Query).");
+      hmacValid = false; // ✅ يجب أن تكون false لضمان الأمان في الإنتاج
     }
 
-    if (!hmacValid) return res.status(200).send("HMAC check failed");
+    if (!hmacValid) return res.status(200).send("HMAC check failed: Critical Security Error");
+
+    // ------------------------------------------------------------------------
+    // منطق تحديث قاعدة البيانات
+    // ------------------------------------------------------------------------
 
     const orderId = data.order?.id;
-    const isSuccess = data.success ?? true; 
+    // Paymob تستخدم data.success لتحديد نجاح المعاملة
+    const isSuccess = data.success ?? false; 
     const paymobTransactionId = data.id;
 
-    // 1. البحث عن الجدول والموعد باستخدام Order ID
+    // البحث عن الموعد باستخدام Paymob Order ID
     const schedule = await Schedule.findOne({ "timeSlots.paymentOrderId": orderId });
     if (!schedule) return res.status(200).send("Order not found");
 
@@ -522,13 +563,12 @@ export const paymobWebhook = async (req, res) => {
 
     const slot = schedule.timeSlots[slotIndex];
 
-    // 2. تحديث حالة الدفع والحجز بناءً على نتيجة Webhook
     if (isSuccess) {
       slot.isBooked = true;
       slot.isPaid = true;
       slot.paymentTransactionId = paymobTransactionId || null;
     } else {
-      // إلغاء الحجز في حالة فشل الدفع
+      // إذا فشلت المعاملة، قم بإلغاء حجز الموعد
       slot.isBooked = false;
       slot.isPaid = false;
       slot.bookedBy = null;
@@ -538,11 +578,11 @@ export const paymobWebhook = async (req, res) => {
 
     await schedule.save();
 
-    res.status(200).send("Webhook processed successfully (test mode)");
-
+    res.status(200).send("Webhook processed successfully");
   } catch (err) {
-    console.error("Webhook processing error:", err);
-    res.status(500).send("Processing error");
+    console.error("Error processing Paymob webhook:", err);
+    // تأكد دائمًا من إرسال 200 لتجنب إعادة محاولة Paymob
+    res.status(200).send("Internal server error during processing"); 
   }
 };
 export const paymobWebhookGet = (req, res) => {
