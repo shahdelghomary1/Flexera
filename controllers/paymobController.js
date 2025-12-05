@@ -147,43 +147,60 @@ const verifyHmac = (data) => {
 // ---------------------------------------------------------
 // CALLBACK — Paymob POST
 // ---------------------------------------------------------
+// ---------------------------------------------------------
+// CALLBACK — book slot only if payment success
+// ---------------------------------------------------------
 export const paymobCallback = async (req, res) => {
   try {
-    console.log("💥 CALLBACK RECEIVED:", req.body); // لرؤية ما أرسله Paymob
+    console.log("💥 CALLBACK RECEIVED:", req.body);
 
-    const data = req.body.obj;
+    // بعض النسخ من Paymob تبعت البيانات مباشرة في req.body
+    // وبعضها جوه obj
+    const data = req.body.obj || req.body;
 
-    // Uncomment for production
-    // if (!verifyHmac(data)) return res.status(400).json({ success: false, message: "Invalid HMAC" });
+    // تحويل orderId لـ string لضمان عدم حدوث CastError
+    const orderId = (data.order?.id || data.order)?.toString();
 
-    if (!data.success)
+    if (!data.success) {
+      console.log("Payment failed for order:", orderId);
       return res.json({ success: false, message: "Payment failed" });
+    }
 
-    // Safety: orderId ممكن يكون رقم أو Object حسب نوع الدفع
-    const orderId = (data.order?.id || data.order).toString();
+    // البحث عن الـ schedule اللي فيه الـ orderId
+    const schedule = await Schedule.findOne({
+      "timeSlots.orderId": orderId,
+    });
 
-    const schedule = await Schedule.findOne({ "timeSlots.orderId": orderId });
-    if (!schedule)
+    if (!schedule) {
+      console.log("Pending booking not found for order:", orderId);
       return res.status(404).json({ message: "Pending booking not found" });
+    }
 
     const slot = schedule.timeSlots.find((s) => s.orderId === orderId);
-    if (!slot) return res.status(404).json({ message: "Slot not found" });
+    if (!slot) {
+      console.log("Slot not found for order:", orderId);
+      return res.status(404).json({ message: "Slot not found" });
+    }
 
+    // تحديث حالة الحجز
     slot.isBooked = true;
     slot.paymentStatus = "paid";
     slot.transactionId = data.id;
 
     await schedule.save();
 
+    console.log("✅ Payment successful and slot booked for order:", orderId);
+
     res.json({
       success: true,
       message: "Payment successful and slot booked!",
+      orderId,
       transactionId: data.id,
-      orderId: orderId,
       price: slot.price,
     });
   } catch (err) {
-    console.log(err);
+    console.error("Callback error:", err);
     res.status(500).json({ message: "Callback error", error: err.message });
   }
 };
+
