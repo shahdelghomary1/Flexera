@@ -468,14 +468,12 @@ export const bookAndPayTimeSlot = async (req, res) => {
 // =================== Paymob Webhook ===================
 
 
-
-// ------------------------------------------------------------------------
 const flattenObject = (obj, parentKey = '', result = {}) => {
   for (const key in obj) {
     if (obj.hasOwnProperty(key)) {
       const newKey = parentKey ? `${parentKey}.${key}` : key;
       if (typeof obj[key] === 'object' && obj[key] !== null) {
-        // إذا كان المفتاح هو 'data.message' فاجعله فارغًا (حسب متطلبات paymob)
+      
         if (newKey === 'data.message') {
             result[newKey] = '';
         } else {
@@ -495,21 +493,20 @@ export const paymobWebhook = async (req, res) => {
     const data = req.body;
     const hmacReceived = req.query.hmac;
 
-    // متغيّرات البيئة المطلوبة
+ 
     const PAYMOB_HMAC = process.env.PAYMOB_HMAC; 
 
     let hmacValid = false;
 
-    // تحقق من HMAC (الأمان)
+  
     if (hmacReceived && PAYMOB_HMAC) {
-      // إزالة حقل hmac من الكائن قبل التسطيح 
+     
       const dataToFlatten = { ...data };
       if (dataToFlatten.hmac) delete dataToFlatten.hmac;
       
       const flatData = flattenObject(dataToFlatten);
       
-      // Paymob تتطلب ترتيب مفاتيح الـ hmac حسب الترتيب الأبجدي 
-      // ويجب إزالة المفاتيح التي تحتوي على object
+     
       const hmacKeys = Object.keys(flatData).filter(key => 
           typeof flatData[key] !== 'object' || flatData[key] === null
       ).sort();
@@ -517,40 +514,37 @@ export const paymobWebhook = async (req, res) => {
       const hmacString = hmacKeys.map(key => {
         let val = flatData[key];
         if (typeof val === "boolean") return val.toString();
-        // Paymob تطلب معالجة خاصة لبعض القيم الفارغة أو الصفرية
+      
         return val != null ? val.toString() : "";
       }).join("");
 
 
       const hmacCalculated = crypto.createHmac("sha512", PAYMOB_HMAC).update(hmacString).digest("hex");
       
-      // *** START DEBUGGING LINES - لحل مشكلة عدم التطابق ***
+     
       console.log("DEBUG | المفتاح من Paymob:", hmacReceived);
       console.log("DEBUG | المفتاح المحسوب بالكود:", hmacCalculated);
       console.log("DEBUG | مفتاح البيئة المُستخدم (PAYMOB_HMAC):", PAYMOB_HMAC);
-      // *** END DEBUGGING LINES ***
+  
       
       hmacValid = hmacCalculated === hmacReceived;
 
-      if (!hmacValid) console.warn("⚠️ HMAC mismatch. فشل التحقق الأمني.");
+      if (!hmacValid) console.warn("HMAC mismatch.");
       
     } else {
-      console.warn("⚠️ HMAC check skipped (Missing ENV or Query).");
-      hmacValid = false; // ✅ يجب أن تكون false لضمان الأمان في الإنتاج
+      console.warn(" HMAC check skipped (Missing ENV or Query).");
+      hmacValid = false; 
     }
 
     if (!hmacValid) return res.status(200).send("HMAC check failed: Critical Security Error");
 
-    // ------------------------------------------------------------------------
-    // منطق تحديث قاعدة البيانات
-    // ------------------------------------------------------------------------
-
+    
     const orderId = data.order?.id;
-    // Paymob تستخدم data.success لتحديد نجاح المعاملة
+  
     const isSuccess = data.success ?? false; 
     const paymobTransactionId = data.id;
 
-    // البحث عن الموعد باستخدام Paymob Order ID
+  
     const schedule = await Schedule.findOne({ "timeSlots.paymentOrderId": orderId });
     if (!schedule) return res.status(200).send("Order not found");
 
@@ -564,7 +558,7 @@ export const paymobWebhook = async (req, res) => {
       slot.isPaid = true;
       slot.paymentTransactionId = paymobTransactionId || null;
     } else {
-      // إذا فشلت المعاملة، قم بإلغاء حجز الموعد
+   
       slot.isBooked = false;
       slot.isPaid = false;
       slot.bookedBy = null;
@@ -577,7 +571,7 @@ export const paymobWebhook = async (req, res) => {
     res.status(200).send("Webhook processed successfully");
   } catch (err) {
     console.error("Error processing Paymob webhook:", err);
-    // تأكد دائمًا من إرسال 200 لتجنب إعادة محاولة Paymob
+   
     res.status(200).send("Internal server error during processing"); 
   }
 };
