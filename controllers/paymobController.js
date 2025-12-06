@@ -84,7 +84,7 @@ export const initPayment = async (req, res) => {
     slot.price = doctor.price;
     slot.paymentStatus = "pending";
     slot.orderId = order.id.toString(); 
-
+    schedule.user = req.user._id;
     await schedule.save();
 
     const iframeUrl = `${PAYMOB.IFRAME_URL}${PAYMOB.IFRAME_ID}?payment_token=${paymentKey}`;
