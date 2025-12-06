@@ -1,6 +1,7 @@
 
 import Doctor from "../models/doctorModel.js";
 import User from "../models/userModel.js";
+import Schedule from "../models/scheduleModel.js";
 import { v2 as cloudinary } from "cloudinary";
 import streamifier from "streamifier";
 cloudinary.config({
