@@ -646,6 +646,7 @@ export const getUpcomingPaidPatients = async (req, res) => {
     const doctorId = req.user._id;
     const now = new Date();
 
+    // نجيب كل الجداول مع بيانات bookedBy
     const schedules = await Schedule.find({ doctor: doctorId }).populate(
       "timeSlots.bookedBy",
       "_id name email photo"
@@ -655,7 +656,11 @@ export const getUpcomingPaidPatients = async (req, res) => {
 
     schedules.forEach((schedule) => {
       schedule.timeSlots.forEach((slot) => {
-        const slotDateTime = new Date(`${schedule.date.split('-').slice(0,3).join('-')}T${slot.from}:00`);
+        // إصلاح التاريخ: YYYY-MM-DD
+        const [year, month, day] = schedule.date.split('-');
+        const slotDateTime = new Date(`${year}-${month.padStart(2, '0')}-${day.padStart(2, '0')}T${slot.from}:00`);
+
+        // نتحقق من الشروط
         if (slot.isBooked && slot.paymentStatus === "paid" && slot.bookedBy && slotDateTime >= now) {
           const userId = slot.bookedBy._id.toString();
 
@@ -666,6 +671,7 @@ export const getUpcomingPaidPatients = async (req, res) => {
             });
           }
 
+          // إضافة الموعد
           patientsMap.get(userId).upcoming.push({
             scheduleId: schedule._id,
             date: schedule.date,
@@ -681,10 +687,11 @@ export const getUpcomingPaidPatients = async (req, res) => {
 
     res.json({ success: true, patients });
   } catch (err) {
-    console.log(err);
+    console.error("Error in getUpcomingPaidPatients:", err);
     res.status(500).json({ success: false, message: err.message });
   }
 };
+
 
 
 export const getPastPaidPatients = async (req, res) => {
