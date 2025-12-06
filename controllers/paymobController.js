@@ -86,8 +86,11 @@ export const initPayment = async (req, res) => {
     slot.orderId = order.id.toString(); 
     schedule.user = req.user._id;
     await schedule.save();
+const SUCCESS_URL = "https://github.com/shahdelghomary1/shahdelghomary1?status=success";
+const FAIL_URL = "https://github.com/shahdelghomary1/shahdelghomary1?status=fail";
 
-    const iframeUrl = `${PAYMOB.IFRAME_URL}${PAYMOB.IFRAME_ID}?payment_token=${paymentKey}`;
+   const iframeUrl = `${PAYMOB.IFRAME_URL}${PAYMOB.IFRAME_ID}?payment_token=${paymentKey}&success_url=${SUCCESS_URL}&fail_url=${FAIL_URL}`;
+
 
     res.json({
       success: true,
