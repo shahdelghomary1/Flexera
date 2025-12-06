@@ -8,7 +8,7 @@ import { addDoctorSchema, updateDoctorSchema, doctorSignupSchema, doctorResetPas
 import { getAppointmentsForDoctor} from "../controllers/scheduleController.js";
 import {
   getAllPaidPatients,
-  getPastPaidAppointments,
+   getUpcomingPaidPatients,
    getPastPaidPatients  ,
 } from "../controllers/doctorController.js";
 import { validate } from "../middleware/validate.js";
