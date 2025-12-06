@@ -9,7 +9,7 @@ import { getAppointmentsForDoctor} from "../controllers/scheduleController.js";
 import {
   getAllPaidPatients,
   getPastPaidAppointments,
-  getUpcomingPaidAppointments,
+   getPastPaidPatients ,
 } from "../controllers/doctorController.js";
 import { validate } from "../middleware/validate.js";
 const router = express.Router();
@@ -35,8 +35,8 @@ router.delete( "/schedule/:scheduleId/slot/:slotId", protect(["doctor"]), delete
 
 // paid patients and their appointments
 router.get("/all-paid-patients", protect(["doctor"]), getAllPaidPatients);
-router.get("/past-paid-appointments", protect(["doctor"]), getPastPaidAppointments);
-router.get("/upcoming-paid-appointments", protect(["doctor"]),  getUpcomingPaidAppointments);
+router.get("/past-paid-appointments", protect(["doctor"]), getPastPaidPatients );
+router.get("/upcoming-paid-appointments", protect(["doctor"]),  getUpcomingPaidPatients);
 
 //exercises to user
 router.post("/users/:userId/exercises", protect(["doctor"]), addExercisesToUser);
