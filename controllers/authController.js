@@ -467,7 +467,6 @@ export const getUserLastPaidAppointment = async (req, res) => {
   try {
     const userId = req.user._id;
 
-   
     const schedules = await Schedule.find({
       "timeSlots.bookedBy": userId,
       "timeSlots.paymentStatus": "paid"

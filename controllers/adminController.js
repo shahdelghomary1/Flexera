@@ -114,3 +114,50 @@ export const logoutStaff = (req, res) => {
   res.cookie("token", "", { httpOnly: true, expires: new Date(0), sameSite: "strict" });
   res.json({ message: "Staff logged out successfully" });
 };
+export const getAllPaidAppointmentsForStaff = async (req, res) => {
+  try {
+   
+    if (req.user.role !== "staff") {
+      return res.status(403).json({ message: "Access denied" });
+    }
+
+    const schedules = await Schedule.find({
+      "timeSlots.paymentStatus": "paid",
+    })
+      .populate("doctor", "_id name photo")
+      .populate("timeSlots.bookedBy", "_id name photo"); 
+
+    const appointments = [];
+
+    schedules.forEach((schedule) => {
+      schedule.timeSlots.forEach((slot) => {
+        if (slot.paymentStatus === "paid" && slot.bookedBy) {
+          appointments.push({
+            patient: {
+              id: slot.bookedBy._id,
+              name: slot.bookedBy.name,
+              photo: slot.bookedBy.photo,
+            },
+            doctor: {
+              id: schedule.doctor._id,
+              name: schedule.doctor.name,
+              photo: schedule.doctor.photo,
+            },
+            date: schedule.date,
+            time: `${slot.from} - ${slot.to}`,
+            orderId: slot.orderId,
+          });
+        }
+      });
+    });
+
+    return res.json({
+      success: true,
+      appointments,
+    });
+
+  } catch (err) {
+    console.error("Error in getAllPaidAppointmentsForStaff:", err);
+    res.status(500).json({ message: "Server error", error: err.message });
+  }
+};
