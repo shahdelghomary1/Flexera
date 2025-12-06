@@ -1,6 +1,6 @@
 import express from "express";
 import { registerUser, loginUser, googleOAuth ,forgotPassword, verifyOTP, resetPassword ,updateAccount,getDoctorsForUser ,getDoctorScheduleForUser ,getUserExercises , getAccount ,logoutUser
-  , googleOAuthFlutter , etUserLastPaidAppointment
+  , googleOAuthFlutter , getUserLastPaidAppointment
 }
   from "../controllers/authController.js";
 import { validate } from "../middleware/validate.js";
