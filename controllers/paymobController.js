@@ -167,7 +167,7 @@ export const paymobCallback = async (req, res) => {
     slot.isBooked = true;
     slot.paymentStatus = "paid";
     slot.transactionId = data.id;
-    slot.bookedBy = schedule.userId;
+    slot.bookedBy = schedule.user;
     await schedule.save();
 
     console.log(" Payment successful and slot booked for order:", orderId);
