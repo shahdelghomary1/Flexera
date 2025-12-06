@@ -707,7 +707,7 @@ export const getPastPaidPatients = async (req, res) => {
 
     schedules.forEach((schedule) => {
       schedule.timeSlots.forEach((slot) => {
-        // إصلاح التاريخ: YYYY-MM-DD
+        
         const [year, month, day] = schedule.date.split('-');
         const slotDateTime = new Date(`${year}-${month.padStart(2, '0')}-${day.padStart(2, '0')}T${slot.from}:00`);
 
