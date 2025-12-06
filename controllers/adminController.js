@@ -117,7 +117,6 @@ export const logoutStaff = (req, res) => {
 };
 export const getAllPaidAppointmentsForStaff = async (req, res) => {
   try {
-   
     if (req.user.role !== "staff") {
       return res.status(403).json({ message: "Access denied" });
     }
@@ -126,7 +125,7 @@ export const getAllPaidAppointmentsForStaff = async (req, res) => {
       "timeSlots.paymentStatus": "paid",
     })
       .populate("doctor", "_id name image")
-      .populate("timeSlots.bookedBy", "_id name image"); 
+      .populate("timeSlots.bookedBy", "_id name image");
 
     const appointments = [];
 
@@ -137,12 +136,12 @@ export const getAllPaidAppointmentsForStaff = async (req, res) => {
             patient: {
               id: slot.bookedBy._id,
               name: slot.bookedBy.name,
-              image: slot.bookedBy.image    ,
+              image: slot.bookedBy.image || null,
             },
             doctor: {
-              id: schedule.doctor._id,
-              name: schedule.doctor.name,
-              image: schedule.doctor.image,
+              id: schedule.doctor?._id || null,
+              name: schedule.doctor?.name || null,
+              image: schedule.doctor?.image || null,
             },
             date: schedule.date,
             time: `${slot.from} - ${slot.to}`,
@@ -162,3 +161,4 @@ export const getAllPaidAppointmentsForStaff = async (req, res) => {
     res.status(500).json({ message: "Server error", error: err.message });
   }
 };
+
