@@ -617,11 +617,8 @@ export const getAllPaidPatients = async (req, res) => {
 });
 
 
-    // نجيب بيانات المستخدمين
-    const patientIds = Array.from(patientsMap.keys());
-    const patients = await User.find({ _id: { $in: patientIds } }).select(
-      "_id name email photo"
-    );
+   const patientIds = Array.from(patientsMap.keys());
+const patients = await User.find({ _id: { $in: patientIds } }).select("_id name email photo");
 
     res.json({ success: true, patients });
   } catch (err) {
