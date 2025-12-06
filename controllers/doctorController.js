@@ -655,7 +655,7 @@ export const getUpcomingPaidPatients = async (req, res) => {
 
     schedules.forEach((schedule) => {
       schedule.timeSlots.forEach((slot) => {
-        const slotDateTime = new Date(`${schedule.date}T${slot.from}`);
+        const slotDateTime = new Date(`${schedule.date.split('-').slice(0,3).join('-')}T${slot.from}:00`);
         if (slot.isBooked && slot.paymentStatus === "paid" && slot.bookedBy && slotDateTime >= now) {
           const userId = slot.bookedBy._id.toString();
 
