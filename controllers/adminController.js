@@ -125,8 +125,8 @@ export const getAllPaidAppointmentsForStaff = async (req, res) => {
     const schedules = await Schedule.find({
       "timeSlots.paymentStatus": "paid",
     })
-      .populate("doctor", "_id name photo")
-      .populate("timeSlots.bookedBy", "_id name photo"); 
+      .populate("doctor", "_id name image")
+      .populate("timeSlots.bookedBy", "_id name image"); 
 
     const appointments = [];
 
