@@ -601,9 +601,8 @@ export const logoutDoctor = (req, res) => {
 
 export const getAllPaidPatients = async (req, res) => {
   try {
-    const doctorId = req.user._id; // الدكتور الحالي
+    const doctorId = req.user._id; 
 
-    // نجيب كل الـ schedules اللي فيها timeSlots مدفوعة
     const schedules = await Schedule.find({ doctor: doctorId }).populate(
       "timeSlots.bookedBy",
       "_id name email photo"
@@ -642,98 +641,93 @@ export const getAllPaidPatients = async (req, res) => {
   }
 };
 
-// ---------------------------------------------
-// الحجزات القديمة المدفوعة مع بيانات المستخدم
-// ---------------------------------------------
-export const getPastPaidAppointments = async (req, res) => {
+export const getUpcomingPaidPatients = async (req, res) => {
   try {
     const doctorId = req.user._id;
     const now = new Date();
 
     const schedules = await Schedule.find({ doctor: doctorId }).populate(
-      "timeSlots.user",
-      "name photo"
+      "timeSlots.bookedBy",
+      "_id name email photo"
     );
 
-    const pastAppointments = [];
+    const patientsMap = new Map();
 
     schedules.forEach((schedule) => {
       schedule.timeSlots.forEach((slot) => {
         const slotDateTime = new Date(`${schedule.date}T${slot.from}`);
-        if (
-          slot.isBooked &&
-          slot.paymentStatus === "paid" &&
-          slotDateTime < now &&
-          slot.user
-        ) {
-          pastAppointments.push({
+        if (slot.isBooked && slot.paymentStatus === "paid" && slot.bookedBy && slotDateTime >= now) {
+          const userId = slot.bookedBy._id.toString();
+
+          if (!patientsMap.has(userId)) {
+            patientsMap.set(userId, {
+              user: slot.bookedBy,
+              upcoming: [],
+            });
+          }
+
+          patientsMap.get(userId).upcoming.push({
             scheduleId: schedule._id,
             date: schedule.date,
             time: `${slot.from} - ${slot.to}`,
-            user: {
-              _id: slot.user._id,
-              name: slot.user.name,
-              photo: slot.user.photo,
-            },
+            orderId: slot.orderId,
             status: "Confirmed",
           });
         }
       });
     });
 
-    res.json({ success: true, pastAppointments });
+    const patients = Array.from(patientsMap.values());
+
+    res.json({ success: true, patients });
   } catch (err) {
     console.log(err);
     res.status(500).json({ success: false, message: err.message });
   }
 };
 
-// ---------------------------------------------
-// الحجزات القادمة المدفوعة مع بيانات المستخدم
-// ---------------------------------------------
-export const getUpcomingPaidAppointments = async (req, res) => {
+
+export const getPastPaidPatients = async (req, res) => {
   try {
     const doctorId = req.user._id;
     const now = new Date();
 
     const schedules = await Schedule.find({ doctor: doctorId }).populate(
-      "timeSlots.user",
-      "name photo"
+      "timeSlots.bookedBy",
+      "_id name email photo"
     );
 
-    const upcomingAppointments = [];
+    const patientsMap = new Map();
 
     schedules.forEach((schedule) => {
       schedule.timeSlots.forEach((slot) => {
         const slotDateTime = new Date(`${schedule.date}T${slot.from}`);
-        if (
-          slot.isBooked &&
-          slot.paymentStatus === "paid" &&
-          slotDateTime >= now &&
-          slot.user
-        ) {
-          upcomingAppointments.push({
+        if (slot.isBooked && slot.paymentStatus === "paid" && slot.bookedBy && slotDateTime < now) {
+          const userId = slot.bookedBy._id.toString();
+
+          if (!patientsMap.has(userId)) {
+            patientsMap.set(userId, {
+              user: slot.bookedBy,
+              past: [],
+            });
+          }
+
+          patientsMap.get(userId).past.push({
             scheduleId: schedule._id,
             date: schedule.date,
             time: `${slot.from} - ${slot.to}`,
-            user: {
-              _id: slot.user._id,
-              name: slot.user.name,
-              photo: slot.user.photo,
-            },
+            orderId: slot.orderId,
             status: "Confirmed",
           });
         }
       });
     });
 
-    res.json({ success: true, upcomingAppointments });
+    const patients = Array.from(patientsMap.values());
+
+    res.json({ success: true, patients });
   } catch (err) {
     console.log(err);
     res.status(500).json({ success: false, message: err.message });
   }
 };
-
-router.post("/", protect(["doctor"]), addSchedule);
-
-export default router;
