@@ -6,41 +6,52 @@ import User from "../models/userModel.js";
 export const addSchedule = async (req, res) => {
   try {
     const doctorId = req.user.id;
-    const requestDate = req.body.date; 
+    const requestDate = req.body.date;
 
     if (req.user.role !== "doctor") {
       return res.status(403).json({ message: "Access denied" });
     }
+    const dateRegex = /^\d{4}-(0[1-9]|1[0-2])-(0[1-9]|[12][0-9]|3[01])$/;
 
+    if (!dateRegex.test(requestDate)) {
+      return res.status(400).json({
+        message: "Invalid date format. Use YYYY-MM-DD (e.g., 2025-12-07)"
+      });
+    }
+    const parsedDate = new Date(requestDate);
+    const [year, month, day] = requestDate.split("-").map(Number);
+    if (
+      parsedDate.getFullYear() !== year ||
+      parsedDate.getMonth() + 1 !== month ||
+      parsedDate.getDate() !== day
+    ) {
+      return res.status(400).json({
+        message: "Invalid date value. This date does not exist."
+      });
+    }
+   
     const today = new Date();
- 
-    today.setHours(0, 0, 0, 0); 
-    
-   
-    const scheduledDate = new Date(requestDate);
-   
-    scheduledDate.setHours(0, 0, 0, 0); 
+    today.setHours(0, 0, 0, 0);
 
- 
+    const scheduledDate = new Date(requestDate);
+    scheduledDate.setHours(0, 0, 0, 0);
+
     if (scheduledDate.getTime() < today.getTime()) {
       return res.status(400).json({
         message: "Cannot add a schedule for a past date. Please select today or a future date."
       });
     }
-    // ------------------------------------------------------------------
-
     const timeToMinutes = (time) => {
       const [h, m] = time.split(":").map(Number);
       return h * 60 + m;
     };
 
-    
     for (const slot of req.body.timeSlots) {
       const timeRegex = /^([01]\d|2[0-3]):([0-5]\d)$/;
-   
+
       if (!timeRegex.test(slot.from) || !timeRegex.test(slot.to)) {
-        return res.status(400).json({ 
-          message: `Invalid time format in slot ${JSON.stringify(slot)}` 
+        return res.status(400).json({
+          message: `Invalid time format in slot ${JSON.stringify(slot)}`
         });
       }
 
@@ -48,13 +59,12 @@ export const addSchedule = async (req, res) => {
       const toMinutes = timeToMinutes(slot.to);
 
       if (toMinutes <= fromMinutes) {
-        return res.status(400).json({ 
-          message: `Invalid slot: 'to' must be after 'from' in slot ${JSON.stringify(slot)}` 
+        return res.status(400).json({
+          message: `Invalid slot: 'to' must be after 'from' in slot ${JSON.stringify(slot)}`
         });
       }
     }
 
-   
     const slotsWithBooking = req.body.timeSlots.map(slot => ({
       ...slot,
       isBooked: false
@@ -75,8 +85,8 @@ export const addSchedule = async (req, res) => {
       for (const newSlot of slotsWithBooking) {
         for (const existingSlot of existingSchedule.timeSlots) {
           if (newSlot.from === existingSlot.from && newSlot.to === existingSlot.to) {
-            return res.status(400).json({ 
-              message: `This time slot already exists for the day: ${newSlot.from}-${newSlot.to}` 
+            return res.status(400).json({
+              message: `This time slot already exists for the day: ${newSlot.from}-${newSlot.to}`
             });
           }
         }
@@ -107,6 +117,7 @@ export const addSchedule = async (req, res) => {
     res.status(500).json({ message: "Server error", error: err.message });
   }
 };
+
 
 export const getDoctorSchedule = async (req, res) => {
   try {
