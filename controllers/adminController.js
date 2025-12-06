@@ -137,12 +137,12 @@ export const getAllPaidAppointmentsForStaff = async (req, res) => {
             patient: {
               id: slot.bookedBy._id,
               name: slot.bookedBy.name,
-              photo: slot.bookedBy.photo,
+              image: slot.bookedBy.image    ,
             },
             doctor: {
               id: schedule.doctor._id,
               name: schedule.doctor.name,
-              photo: schedule.doctor.photo,
+              image: schedule.doctor.image,
             },
             date: schedule.date,
             time: `${slot.from} - ${slot.to}`,
