@@ -136,7 +136,7 @@ const verifyHmac = (data) => {
 
 export const paymobCallback = async (req, res) => {
   try {
-    console.log("💥 CALLBACK RECEIVED:", req.body);
+    console.log(" CALLBACK RECEIVED:", req.body);
 
    
     const data = req.body.obj || req.body;
@@ -167,7 +167,7 @@ export const paymobCallback = async (req, res) => {
     slot.isBooked = true;
     slot.paymentStatus = "paid";
     slot.transactionId = data.id;
-
+    slot.bookedBy = schedule.userId;
     await schedule.save();
 
     console.log(" Payment successful and slot booked for order:", orderId);
