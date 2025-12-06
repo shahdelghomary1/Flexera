@@ -117,10 +117,13 @@ export const doctorSignupSchema = Joi.object({
 
   email: Joi.string()
     .email()
+     .pattern(/@gmail\.com$/)
     .required()
     .messages({
-      "string.email": "Invalid email format",
+
       "any.required": "Email is required",
+      "string.email": "Email must be valid",
+      "string.pattern.base": "Email must be a Gmail address (must end with @gmail.com)"
     }),
 
  password: Joi.string()

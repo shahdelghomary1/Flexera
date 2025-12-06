@@ -12,7 +12,6 @@ export const addSchedule = async (req, res) => {
       return res.status(403).json({ message: "Access denied" });
     }
     const dateRegex = /^\d{4}-(0[1-9]|1[0-2])-(0[1-9]|[12][0-9]|3[01])$/;
-
     if (!dateRegex.test(requestDate)) {
       return res.status(400).json({
         message: "Invalid date format. Use YYYY-MM-DD (e.g., 2025-12-07)"
@@ -243,7 +242,6 @@ export const getDoctorAppointments = async (req, res) => {
   }
 };
 
-
 export const cancelBookedTimeSlot = async (req, res) => {
     try {
         const { scheduleId, from, to } = req.body;
@@ -321,7 +319,6 @@ export const getAppointmentsForDoctor = async (req, res) => {
         res.status(500).json({ message: "Server error", error: err.message });
     }
 };
-
 
 export const bookTimeSlot = async (req, res) => {
   try {
