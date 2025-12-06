@@ -609,12 +609,13 @@ export const getAllPaidPatients = async (req, res) => {
     const patientsMap = new Map();
 
     schedules.forEach((schedule) => {
-      schedule.timeSlots.forEach((slot) => {
-        if (slot.isBooked && slot.paymentStatus === "paid" && slot.user) {
-          patientsMap.set(slot.user.toString(), slot.user);
-        }
-      });
-    });
+  schedule.timeSlots.forEach((slot) => {
+    if (slot.isBooked && slot.paymentStatus === "paid" && slot.bookedBy) {
+      patientsMap.set(slot.bookedBy.toString(), slot.bookedBy);
+    }
+  });
+});
+
 
     // نجيب بيانات المستخدمين
     const patientIds = Array.from(patientsMap.keys());
