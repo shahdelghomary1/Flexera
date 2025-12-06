@@ -463,3 +463,71 @@ export const logoutUser = async (req, res) => {
     });
   }
 };
+export const getUserLastPaidAppointment = async (req, res) => {
+  try {
+    const userId = req.user._id;
+
+   
+    const schedules = await Schedule.find({
+      "timeSlots.bookedBy": userId,
+      "timeSlots.paymentStatus": "paid"
+    })
+      .populate("doctor", "_id name photo jobTitle")
+      .sort({ "timeSlots.bookingTime": -1 }); 
+
+    if (!schedules.length) {
+      return res.json({
+        success: false,
+        message: "No paid appointments found"
+      });
+    }
+
+   
+    let lastSlot = null;
+
+    for (const schedule of schedules) {
+      const paidSlots = schedule.timeSlots
+        .filter(s => s.bookedBy?.toString() === userId.toString() && s.paymentStatus === "paid")
+        .sort((a, b) => new Date(b.bookingTime) - new Date(a.bookingTime));
+
+      if (paidSlots.length) {
+        lastSlot = {
+          schedule,
+          slot: paidSlots[0]
+        };
+        break;
+      }
+    }
+
+    if (!lastSlot) {
+      return res.json({
+        success: false,
+        message: "No valid paid appointment found"
+      });
+    }
+
+    const { schedule, slot } = lastSlot;
+
+    return res.json({
+      success: true,
+      appointment: {
+        doctor: {
+          id: schedule.doctor._id,
+          name: schedule.doctor.name,
+          photo: schedule.doctor.photo,
+          jobTitle: schedule.doctor.jobTitle || "Doctor"
+        },
+        date: schedule.date,
+        time: `${slot.from} - ${slot.to}`,
+        from: slot.from,
+        to: slot.to,
+        paymentStatus: slot.paymentStatus,
+        orderId: slot.orderId
+      }
+    });
+
+  } catch (err) {
+    console.error("Error fetching last paid appointment:", err);
+    res.status(500).json({ message: "Server error", error: err.message });
+  }
+};

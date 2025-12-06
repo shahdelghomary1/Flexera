@@ -1,6 +1,6 @@
 import express from "express";
 import { registerUser, loginUser, googleOAuth ,forgotPassword, verifyOTP, resetPassword ,updateAccount,getDoctorsForUser ,getDoctorScheduleForUser ,getUserExercises , getAccount ,logoutUser
-  , googleOAuthFlutter
+  , googleOAuthFlutter , etUserLastPaidAppointment
 }
   from "../controllers/authController.js";
 import { validate } from "../middleware/validate.js";
@@ -21,6 +21,8 @@ router.get("/authaccount", protect(),protect(["user"]),getAccount);
 router.get("/authdoctors", protect(), getDoctorsForUser);
 router.get("/doctor-schedule", protect(), getDoctorScheduleForUser);
 router.get("/my-exercises", protect(["user"]), getUserExercises);
+router.get("/summary", protect(["user"]), getUserLastPaidAppointment);
+
 router.post("/logout", protect(["user"]), logoutUser);
 
 
