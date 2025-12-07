@@ -477,7 +477,6 @@ export const getUserLastPaidAppointment = async (req, res) => {
         path: "doctor",
         select: "name image"
       })
-      // لا يمكننا الفرز على مستوى قاعدة البيانات بشكل موثوق هنا بدون حقل bookingTime
       .exec();
 
     if (!schedules.length) {
@@ -486,9 +485,9 @@ export const getUserLastPaidAppointment = async (req, res) => {
 
     let allPaidSlots = [];
 
-    // جمع كل الفتحات المدفوعة في قائمة واحدة
+    
     for (const schedule of schedules) {
-      // التأكد من تعبئة الطبيب (ضروري لإرجاع الاسم والصورة)
+    
       if (!schedule.doctor) continue;
 
       const paidSlots = schedule.timeSlots.filter(
@@ -497,13 +496,12 @@ export const getUserLastPaidAppointment = async (req, res) => {
           s.paymentStatus === "paid"
       );
 
-      // إضافة الفتحات مع مرجع لبيانات الجدول والطبيب
+   
       paidSlots.forEach(slot => {
         allPaidSlots.push({
           schedule,
           slot,
-          // يجب أن يكون لديك حقل bookingTime أو تعتمد على تاريخ إنشاء السجل
-          // إذا لم يكن لديك bookingTime، سنعتمد على bookingTime الموجود في الكود السابق (قد تكون قيمة null)
+         
           sortTime: slot.bookingTime ? new Date(slot.bookingTime) : new Date(schedule.date) 
         });
       });
@@ -513,7 +511,6 @@ export const getUserLastPaidAppointment = async (req, res) => {
       return res.json({ success: false, message: "No valid paid appointment found" });
     }
 
-    // 2. الفرز النهائي لتحديد الأحدث
     allPaidSlots.sort((a, b) => b.sortTime - a.sortTime);
 
     const lastSlot = allPaidSlots[0];
