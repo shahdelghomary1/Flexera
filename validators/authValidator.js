@@ -88,7 +88,7 @@ export const resetPassword = async (req, res) => {
 export const resetPasswordSchema = Joi.object({
   newPassword: Joi.string()
     .min(8)
-    .pattern(new RegExp("^(?=.*[a-z])(?=.*[A-Z])(?=.*\\d)(?=.*[@$!%*?&]).*$"))
+    .pattern(new RegExp("^(?=.*[a-z])(?=.*[A-Z])(?=.*\\d)(?=.*[@$!%*?&#]).*$"))
     .required()
     .messages({
       "string.empty": "New password is required",
