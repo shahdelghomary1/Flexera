@@ -464,8 +464,7 @@ export const logoutUser = async (req, res) => {
     });
   }
 };
-import Schedule from "../models/scheduleModel.js";
-import Doctor from "../models/doctorModel.js";
+
 
 export const getUserLastPaidAppointment = async (req, res) => {
   try {
