@@ -470,7 +470,7 @@ export const getUserLastPaidAppointment = async (req, res) => {
   try {
     const userId = req.user._id;
 
-    // 1) جلب كل الـ schedules اللي فيها حجز مدفوع للمستخدم
+    // 1) هات كل الـ schedules اللي فيها حجز مدفوع للمستخدم
     const schedules = await Schedule.find({
       "timeSlots.bookedBy": userId,
       "timeSlots.paymentStatus": "paid"
@@ -483,7 +483,7 @@ export const getUserLastPaidAppointment = async (req, res) => {
       });
     }
 
-    // 2) إيجاد آخر Slot مدفوع
+    // 2) دور على آخر Slot مدفوع فعلياً
     let lastSlot = null;
 
     for (const schedule of schedules) {
@@ -513,25 +513,14 @@ export const getUserLastPaidAppointment = async (req, res) => {
 
     const { schedule, slot } = lastSlot;
 
-    // 3) جلب بيانات الدكتور من الـ Doctor collection مباشرة باستخدام الكود الموجود في Schedule
-    const doctor = await Doctor.findOne({ _id: schedule.doctor }).select("name image");
+    // 3) استخدم الكود المخزن في الـ schedule مباشرة (من غير جلب object من Doctor)
+    const doctorCode = schedule.doctor;
 
-    // لو الدكتور مش موجود، ارجع رسالة واضحة
-    if (!doctor) {
-      return res.json({
-        success: false,
-        message: "Doctor profile not found for this appointment"
-      });
-    }
-
-    // 4) تجهيز الرد النهائي
     return res.json({
       success: true,
       appointment: {
         doctor: {
-          code: schedule.doctor,  // الكود المخزن في Schedule
-          name: doctor.name,      // اسم الدكتور
-          image: doctor.image     // صورة الدكتور
+          code: doctorCode, // الكود اللي موجود في Schedule
         },
         date: schedule.date,
         time: `${slot.from} - ${slot.to}`,
