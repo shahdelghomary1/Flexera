@@ -8,7 +8,8 @@ const timeSlotSchema = new mongoose.Schema({
   price: { type: Number }, 
   paymentStatus: { type: String, default: "pending" }, 
   orderId: { type: String },  
-  transactionId: { type: String }
+  transactionId: { type: String },
+  bookingTime: { type: Date, default: null }
 
 });
 

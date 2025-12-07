@@ -2,7 +2,6 @@ import Schedule from "../models/scheduleModel.js";
 import Doctor from "../models/doctorModel.js";
 import User from "../models/userModel.js";
 
-/// Add a new schedule for a doctor and validate time slots and update the schedule
 export const addSchedule = async (req, res) => {
   try {
     const doctorId = req.user.id;

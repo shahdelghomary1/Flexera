@@ -465,76 +465,68 @@ export const logoutUser = async (req, res) => {
   }
 };
 
-
 export const getUserLastPaidAppointment = async (req, res) => {
   try {
     const userId = req.user._id;
 
-    // 1. استخدام populate لجلب بيانات الطبيب (الاسم والصورة) مباشرةً
     const schedules = await Schedule.find({
       "timeSlots.bookedBy": userId,
       "timeSlots.paymentStatus": "paid"
     })
       .populate({
         path: "doctor",
-        select: "name image" // لجلب الاسم والصورة فقط من نموذج الطبيب
+        select: "name image"
       })
-      .sort({ "timeSlots.bookingTime": -1 });
+      // لا يمكننا الفرز على مستوى قاعدة البيانات بشكل موثوق هنا بدون حقل bookingTime
+      .exec();
 
     if (!schedules.length) {
-      return res.json({
-        success: false,
-        message: "No paid appointments found"
-      });
+      return res.json({ success: false, message: "No paid appointments found" });
     }
 
-    let lastSlot = null;
+    let allPaidSlots = [];
 
-    // 2. البحث عن آخر حجز مدفوع بنجاح
+    // جمع كل الفتحات المدفوعة في قائمة واحدة
     for (const schedule of schedules) {
-      // التأكد من أن حقل doctor تم تعبئته بنجاح
-      if (!schedule.doctor) {
-          console.warn(`Doctor data missing for schedule ID: ${schedule._id}`);
-          continue; // تخطي الجدول الذي لا يحتوي بيانات طبيب صالحة
-      }
-      
-      const paidSlots = schedule.timeSlots
-        .filter(
-          (s) =>
-            s.bookedBy?.toString() === userId.toString() &&
-            s.paymentStatus === "paid"
-        )
-        // يجب أن يحتوي الـ timeSlot على حقل bookingTime ليتم الفرز بشكل صحيح
-        .sort((a, b) => new Date(b.bookingTime) - new Date(a.bookingTime)); 
+      // التأكد من تعبئة الطبيب (ضروري لإرجاع الاسم والصورة)
+      if (!schedule.doctor) continue;
 
-      if (paidSlots.length) {
-        lastSlot = {
+      const paidSlots = schedule.timeSlots.filter(
+        (s) =>
+          s.bookedBy?.toString() === userId.toString() &&
+          s.paymentStatus === "paid"
+      );
+
+      // إضافة الفتحات مع مرجع لبيانات الجدول والطبيب
+      paidSlots.forEach(slot => {
+        allPaidSlots.push({
           schedule,
-          slot: paidSlots[0]
-        };
-        break; // وجدنا أحدث موعد، نوقف التكرار
-      }
-    }
-
-    if (!lastSlot) {
-      return res.json({
-        success: false,
-        message: "No valid paid appointment found"
+          slot,
+          // يجب أن يكون لديك حقل bookingTime أو تعتمد على تاريخ إنشاء السجل
+          // إذا لم يكن لديك bookingTime، سنعتمد على bookingTime الموجود في الكود السابق (قد تكون قيمة null)
+          sortTime: slot.bookingTime ? new Date(slot.bookingTime) : new Date(schedule.date) 
+        });
       });
     }
+    
+    if (!allPaidSlots.length) {
+      return res.json({ success: false, message: "No valid paid appointment found" });
+    }
 
+    // 2. الفرز النهائي لتحديد الأحدث
+    allPaidSlots.sort((a, b) => b.sortTime - a.sortTime);
+
+    const lastSlot = allPaidSlots[0];
     const { schedule, slot } = lastSlot;
-
-    // 3. استخدام بيانات الطبيب المعبأة
-    const doctorData = schedule.doctor; // الآن هو كائن يحتوي على { _id, name, image }
+    const doctorData = schedule.doctor;
 
     return res.json({
       success: true,
       appointment: {
         doctor: {
-          code: doctorData._id, // المعرف (الكود)
-          name: doctorData.name, // الاسم المطلوب
-          image: doctorData.image // الصورة المطلوبة
+          code: doctorData._id,
+          name: doctorData.name,
+          image: doctorData.image
         },
         date: schedule.date,
         time: `${slot.from} - ${slot.to}`,
