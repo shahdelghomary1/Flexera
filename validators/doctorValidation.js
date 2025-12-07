@@ -148,7 +148,7 @@ export const doctorResetPasswordSchema = Joi.object({
   newPassword: Joi.string()
     .min(6)
     .max(30)
-    .pattern(/^(?=.*[A-Za-z])(?=.*\d)[A-Za-z\d@$!%*?&]+$/)
+    .pattern(/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&#])[A-Za-z\d@$!%*?&#]{8,}$/)
     .required()
     .messages({
       "string.min": "Password must be at least 6 characters",
