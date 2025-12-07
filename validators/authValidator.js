@@ -16,7 +16,7 @@ export const registerSchema = Joi.object({
     }),
   password: Joi.string()
     .min(8)
-    .pattern(new RegExp("^(?=.*[a-z])(?=.*[A-Z])(?=.*\\d)(?=.*[@$!%*?&]).*$"))
+    .pattern(new RegExp("^(?=.*[a-z])(?=.*[A-Z])(?=.*\\d)(?=.*[@$!%*?&#]).*$"))
     .required()
     .messages({
       "string.empty": "Password is required",
