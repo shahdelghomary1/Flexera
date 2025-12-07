@@ -470,7 +470,7 @@ export const getUserLastPaidAppointment = async (req, res) => {
   try {
     const userId = req.user._id;
 
-   
+    // 1) هات كل الـ schedules اللي فيها حجز مدفوع للمستخدم
     const schedules = await Schedule.find({
       "timeSlots.bookedBy": userId,
       "timeSlots.paymentStatus": "paid"
@@ -483,7 +483,7 @@ export const getUserLastPaidAppointment = async (req, res) => {
       });
     }
 
-    
+    // 2) دور على آخر Slot مدفوع فعلياً
     let lastSlot = null;
 
     for (const schedule of schedules) {
@@ -513,34 +513,14 @@ export const getUserLastPaidAppointment = async (req, res) => {
 
     const { schedule, slot } = lastSlot;
 
-   
-    if (!schedule.doctor) {
-      return res.json({
-        success: false,
-        message: "Doctor profile not found for this appointment"
-      });
-    }
+    // 3) استخدم الكود المخزن في الـ schedule مباشرة (من غير جلب object من Doctor)
+    const doctorCode = schedule.doctor;
 
-    const doctor = await Doctor.findOne({ _id: schedule.doctor }).select(
-      "_id name photo jobTitle"
-    );
-
-    if (!doctor) {
-      return res.json({
-        success: false,
-        message: "Doctor profile not found for this appointment"
-      });
-    }
-
-  
     return res.json({
       success: true,
       appointment: {
         doctor: {
-          id: doctor._id,
-          name: doctor.name,
-          photo: doctor.photo,
-          jobTitle: doctor.jobTitle || "Doctor"
+          code: doctorCode, // الكود اللي موجود في Schedule
         },
         date: schedule.date,
         time: `${slot.from} - ${slot.to}`,
@@ -556,3 +536,4 @@ export const getUserLastPaidAppointment = async (req, res) => {
     res.status(500).json({ message: "Server error", error: err.message });
   }
 };
+
