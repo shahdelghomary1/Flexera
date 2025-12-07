@@ -469,7 +469,8 @@ export const getUserLastPaidAppointment = async (req, res) => {
 
     const schedules = await Schedule.find({
       "timeSlots.bookedBy": userId,
-      "timeSlots.paymentStatus": "paid"
+      "timeSlots.paymentStatus": "paid",
+      doctor: { $ne: null }
     })
       .populate("doctor", "_id name photo jobTitle")
       .sort({ "timeSlots.bookingTime": -1 }); 
