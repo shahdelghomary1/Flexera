@@ -4,6 +4,7 @@ import jwt from "jsonwebtoken";
 import crypto from "crypto";
 import streamifier from "streamifier";
 import Schedule from "../models/scheduleModel.js";
+
 import User from "../models/userModel.js";
 import { sendOTPEmail } from "../utils/mailer.js"; 
 import { v2 as cloudinary } from "cloudinary";
@@ -463,11 +464,14 @@ export const logoutUser = async (req, res) => {
     });
   }
 };
+import Schedule from "../models/scheduleModel.js";
+import Doctor from "../models/doctorModel.js";
+
 export const getUserLastPaidAppointment = async (req, res) => {
   try {
     const userId = req.user._id;
 
-    // 1) هات كل الـ schedules اللي فيها حجز مدفوع للمستخدم
+   
     const schedules = await Schedule.find({
       "timeSlots.bookedBy": userId,
       "timeSlots.paymentStatus": "paid"
@@ -480,7 +484,7 @@ export const getUserLastPaidAppointment = async (req, res) => {
       });
     }
 
-    // 2) دور على آخر Slot مدفوع فعلياً
+    
     let lastSlot = null;
 
     for (const schedule of schedules) {
@@ -510,11 +514,15 @@ export const getUserLastPaidAppointment = async (req, res) => {
 
     const { schedule, slot } = lastSlot;
 
-    // 3) Manual populate للدكتور لأن الـ doctor عندك string مش ObjectId
-    const doctorId = schedule.doctor; // string
+   
+    if (!schedule.doctor) {
+      return res.json({
+        success: false,
+        message: "Doctor profile not found for this appointment"
+      });
+    }
 
-    const doctor = await Doctor.findOne(
-      { _id: doctorId },
+    const doctor = await Doctor.findOne({ _id: schedule.doctor }).select(
       "_id name photo jobTitle"
     );
 
@@ -525,7 +533,7 @@ export const getUserLastPaidAppointment = async (req, res) => {
       });
     }
 
-    // 4) رجّع الريسبونس النهائي
+  
     return res.json({
       success: true,
       appointment: {
@@ -543,9 +551,9 @@ export const getUserLastPaidAppointment = async (req, res) => {
         orderId: slot.orderId
       }
     });
+
   } catch (err) {
     console.error("Error fetching last paid appointment:", err);
     res.status(500).json({ message: "Server error", error: err.message });
   }
 };
-
