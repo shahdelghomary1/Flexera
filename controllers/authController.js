@@ -467,12 +467,11 @@ export const getUserLastPaidAppointment = async (req, res) => {
   try {
     const userId = req.user._id;
 
+    // 1) هات كل الـ schedules اللي فيها حجز مدفوع للمستخدم
     const schedules = await Schedule.find({
       "timeSlots.bookedBy": userId,
       "timeSlots.paymentStatus": "paid"
-    })
-      .populate("doctor", "_id name photo jobTitle")
-      .sort({ "timeSlots.bookingTime": -1 }); 
+    }).sort({ "timeSlots.bookingTime": -1 });
 
     if (!schedules.length) {
       return res.json({
@@ -481,12 +480,16 @@ export const getUserLastPaidAppointment = async (req, res) => {
       });
     }
 
-   
+    // 2) دور على آخر Slot مدفوع فعلياً
     let lastSlot = null;
 
     for (const schedule of schedules) {
       const paidSlots = schedule.timeSlots
-        .filter(s => s.bookedBy?.toString() === userId.toString() && s.paymentStatus === "paid")
+        .filter(
+          (s) =>
+            s.bookedBy?.toString() === userId.toString() &&
+            s.paymentStatus === "paid"
+        )
         .sort((a, b) => new Date(b.bookingTime) - new Date(a.bookingTime));
 
       if (paidSlots.length) {
@@ -507,14 +510,30 @@ export const getUserLastPaidAppointment = async (req, res) => {
 
     const { schedule, slot } = lastSlot;
 
+    // 3) Manual populate للدكتور لأن الـ doctor عندك string مش ObjectId
+    const doctorId = schedule.doctor; // string
+
+    const doctor = await Doctor.findOne(
+      { _id: doctorId },
+      "_id name photo jobTitle"
+    );
+
+    if (!doctor) {
+      return res.json({
+        success: false,
+        message: "Doctor profile not found for this appointment"
+      });
+    }
+
+    // 4) رجّع الريسبونس النهائي
     return res.json({
       success: true,
       appointment: {
         doctor: {
-          id: schedule.doctor._id,
-          name: schedule.doctor.name,
-          photo: schedule.doctor.photo,
-          jobTitle: schedule.doctor.jobTitle || "Doctor"
+          id: doctor._id,
+          name: doctor.name,
+          photo: doctor.photo,
+          jobTitle: doctor.jobTitle || "Doctor"
         },
         date: schedule.date,
         time: `${slot.from} - ${slot.to}`,
@@ -524,9 +543,9 @@ export const getUserLastPaidAppointment = async (req, res) => {
         orderId: slot.orderId
       }
     });
-
   } catch (err) {
     console.error("Error fetching last paid appointment:", err);
     res.status(500).json({ message: "Server error", error: err.message });
   }
 };
+
