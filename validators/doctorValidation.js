@@ -128,7 +128,7 @@ export const doctorSignupSchema = Joi.object({
  password: Joi.string()
     .min(8) 
     .required()
-    .regex(/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,}$/) 
+    .regex(/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&#])[A-Za-z\d@$!%*?&#]{8,}$/) 
     .messages({
         "string.min": "Password must be at least 8 characters long",
         "any.required": "Password is required",
