@@ -513,14 +513,24 @@ export const getUserLastPaidAppointment = async (req, res) => {
 
     const { schedule, slot } = lastSlot;
 
-    // 3) استخدم الكود المخزن في الـ schedule مباشرة (من غير جلب object من Doctor)
-    const doctorCode = schedule.doctor;
+    // 3) جلب بيانات الدكتور من الـ Doctor collection باستخدام الكود
+    const doctor = await Doctor.findOne({ _id: schedule.doctor }).select("name image");
+    
+    if (!doctor) {
+      return res.json({
+        success: false,
+        message: "Doctor profile not found for this appointment"
+      });
+    }
 
+    // 4) رجّع الريسبونس النهائي
     return res.json({
       success: true,
       appointment: {
         doctor: {
-          code: doctorCode, // الكود اللي موجود في Schedule
+          code: schedule.doctor,  // الكود الموجود في Schedule
+          name: doctor.name,      // اسم الدكتور
+          image: doctor.image     // صورة الدكتور
         },
         date: schedule.date,
         time: `${slot.from} - ${slot.to}`,
@@ -536,4 +546,5 @@ export const getUserLastPaidAppointment = async (req, res) => {
     res.status(500).json({ message: "Server error", error: err.message });
   }
 };
+
 
