@@ -30,20 +30,6 @@ const doctorScheduleSchema = new mongoose.Schema({
     type: mongoose.Schema.Types.ObjectId, 
     ref: "User" 
   },
-  timeSlots: [
-    {
-      from: {
-        type: String,
-        required: true,
-        match: /^([01]\d|2[0-3]):([0-5]\d)$/ 
-      },
-      to: {
-        type: String,
-        required: true,
-        match: /^([01]\d|2[0-3]):([0-5]\d)$/ 
-      }
-    }
-  ],
   date: { type: String, required: true },
   timeSlots: [timeSlotSchema],
   exercises: [
