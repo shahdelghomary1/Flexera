@@ -470,11 +470,16 @@ export const getUserLastPaidAppointment = async (req, res) => {
   try {
     const userId = req.user._id;
 
-    // 1) هات كل الـ schedules اللي فيها حجز مدفوع للمستخدم
+    // 1. استخدام populate لجلب بيانات الطبيب (الاسم والصورة) مباشرةً
     const schedules = await Schedule.find({
       "timeSlots.bookedBy": userId,
       "timeSlots.paymentStatus": "paid"
-    }).sort({ "timeSlots.bookingTime": -1 });
+    })
+      .populate({
+        path: "doctor",
+        select: "name image" // لجلب الاسم والصورة فقط من نموذج الطبيب
+      })
+      .sort({ "timeSlots.bookingTime": -1 });
 
     if (!schedules.length) {
       return res.json({
@@ -483,24 +488,31 @@ export const getUserLastPaidAppointment = async (req, res) => {
       });
     }
 
-    // 2) دور على آخر Slot مدفوع فعلياً
     let lastSlot = null;
 
+    // 2. البحث عن آخر حجز مدفوع بنجاح
     for (const schedule of schedules) {
+      // التأكد من أن حقل doctor تم تعبئته بنجاح
+      if (!schedule.doctor) {
+          console.warn(`Doctor data missing for schedule ID: ${schedule._id}`);
+          continue; // تخطي الجدول الذي لا يحتوي بيانات طبيب صالحة
+      }
+      
       const paidSlots = schedule.timeSlots
         .filter(
           (s) =>
             s.bookedBy?.toString() === userId.toString() &&
             s.paymentStatus === "paid"
         )
-        .sort((a, b) => new Date(b.bookingTime) - new Date(a.bookingTime));
+        // يجب أن يحتوي الـ timeSlot على حقل bookingTime ليتم الفرز بشكل صحيح
+        .sort((a, b) => new Date(b.bookingTime) - new Date(a.bookingTime)); 
 
       if (paidSlots.length) {
         lastSlot = {
           schedule,
           slot: paidSlots[0]
         };
-        break;
+        break; // وجدنا أحدث موعد، نوقف التكرار
       }
     }
 
@@ -513,14 +525,16 @@ export const getUserLastPaidAppointment = async (req, res) => {
 
     const { schedule, slot } = lastSlot;
 
-    // 3) استخدم الكود المخزن في الـ schedule مباشرة (من غير جلب object من Doctor)
-    const doctorCode = schedule.doctor;
+    // 3. استخدام بيانات الطبيب المعبأة
+    const doctorData = schedule.doctor; // الآن هو كائن يحتوي على { _id, name, image }
 
     return res.json({
       success: true,
       appointment: {
         doctor: {
-          code: doctorCode, // الكود اللي موجود في Schedule
+          code: doctorData._id, // المعرف (الكود)
+          name: doctorData.name, // الاسم المطلوب
+          image: doctorData.image // الصورة المطلوبة
         },
         date: schedule.date,
         time: `${slot.from} - ${slot.to}`,
@@ -536,4 +550,3 @@ export const getUserLastPaidAppointment = async (req, res) => {
     res.status(500).json({ message: "Server error", error: err.message });
   }
 };
-
