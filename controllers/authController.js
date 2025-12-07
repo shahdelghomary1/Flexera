@@ -463,7 +463,6 @@ export const logoutUser = async (req, res) => {
     });
   }
 };
-import Doctor from "../models/doctorModel.js";
 
 export const getUserLastPaidAppointment = async (req, res) => {
   try {
@@ -549,4 +548,3 @@ export const getUserLastPaidAppointment = async (req, res) => {
       .json({ message: "Server error", error: err.message });
   }
 };
-
