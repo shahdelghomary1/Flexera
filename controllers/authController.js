@@ -494,29 +494,23 @@ export const getUserLastPaidAppointment = async (req, res) => {
         (s) =>
           s.bookedBy?.toString() === userId.toString() &&
           s.paymentStatus === "paid"
-      );
-
-   
+      );   
       paidSlots.forEach(slot => {
         allPaidSlots.push({
           schedule,
           slot,
-         
           sortTime: slot.bookingTime ? new Date(slot.bookingTime) : new Date(schedule.date) 
         });
       });
     }
-    
+  
     if (!allPaidSlots.length) {
       return res.json({ success: false, message: "No valid paid appointment found" });
     }
-
     allPaidSlots.sort((a, b) => b.sortTime - a.sortTime);
-
     const lastSlot = allPaidSlots[0];
     const { schedule, slot } = lastSlot;
     const doctorData = schedule.doctor;
-
     return res.json({
       success: true,
       appointment: {
