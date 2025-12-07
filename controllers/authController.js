@@ -507,23 +507,31 @@ export const getUserLastPaidAppointment = async (req, res) => {
 
     const { schedule, slot } = lastSlot;
 
-    return res.json({
-      success: true,
-      appointment: {
-        doctor: {
-          id: schedule.doctor._id,
-          name: schedule.doctor.name,
-          photo: schedule.doctor.photo,
-          jobTitle: schedule.doctor.jobTitle || "Doctor"
-        },
-        date: schedule.date,
-        time: `${slot.from} - ${slot.to}`,
-        from: slot.from,
-        to: slot.to,
-        paymentStatus: slot.paymentStatus,
-        orderId: slot.orderId
-      }
-    });
+if (!schedule.doctor) {
+  return res.json({
+    success: false,
+    message: "Doctor profile not found for this appointment"
+  });
+}
+
+return res.json({
+  success: true,
+  appointment: {
+    doctor: {
+      id: schedule.doctor._id,
+      name: schedule.doctor.name,
+      photo: schedule.doctor.photo,
+      jobTitle: schedule.doctor.jobTitle || "Doctor"
+    },
+    date: schedule.date,
+    time: `${slot.from} - ${slot.to}`,
+    from: slot.from,
+    to: slot.to,
+    paymentStatus: slot.paymentStatus,
+    orderId: slot.orderId
+  }
+});
+
 
   } catch (err) {
     console.error("Error fetching last paid appointment:", err);
