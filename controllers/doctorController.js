@@ -648,7 +648,7 @@ export const getUpcomingPaidPatients = async (req, res) => {
 
     const schedules = await Schedule.find({ doctor: doctorId }).populate(
       "timeSlots.bookedBy",
-      "_id name email photo"
+      "_id name email image"
     );
 
     const patientsMap = new Map();
@@ -700,7 +700,7 @@ export const getPastPaidPatients = async (req, res) => {
 
     const schedules = await Schedule.find({ doctor: doctorId }).populate(
       "timeSlots.bookedBy",
-      "_id name email photo"
+      "_id name email image"
     );
 
     const patientsMap = new Map();
