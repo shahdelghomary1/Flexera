@@ -726,7 +726,7 @@ export const getPastPaidPatients = async (req, res) => {
             date: schedule.date,
             time: `${slot.from} - ${slot.to}`,
             orderId: slot.orderId,
-            status: "Confirmed",
+            status: "Completed",
           });
         }
       });
