@@ -412,12 +412,22 @@ export const getDoctorScheduleForUser = async (req, res) => {
       _id: schedule._id,
       date: schedule.date,
       timeSlots: schedule.timeSlots.map(slot => ({
+        _id: slot._id,
         from: slot.from,
         to: slot.to,
-        _id: slot._id
+        
+       
+        isBooked: slot.isBooked,
+        bookedBy: slot.bookedBy,
+        price: slot.price,
+        paymentStatus: slot.paymentStatus, 
+        orderId: slot.orderId,
+        transactionId: slot.transactionId,
+        bookingTime: slot.bookingTime
       })),
+
       doctor: {
-        _id: doctor._id, 
+        _id: doctor._id,
         name: doctor.name,
         image: doctor.image,
         price: doctor.price
@@ -434,6 +444,7 @@ export const getDoctorScheduleForUser = async (req, res) => {
     res.status(500).json({ message: "Server error", error: err.message });
   }
 };
+
 export const getUserExercises = async (req, res) => {
   try {
     const userId = req.user._id;
