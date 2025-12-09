@@ -6,6 +6,14 @@ import Pusher from "pusher"; // ✨ استيراد مكتبة Pusher
 
 export default class NotificationService {
   constructor() {
+    // ✨ اطبعي القيم هنا قبل إنشاء الـ Pusher
+    console.log("Pusher Config:", {
+      appId: process.env.PUSHER_APP_ID,
+      key: process.env.PUSHER_KEY,
+      secret: process.env.PUSHER_SECRET,
+      cluster: process.env.PUSHER_CLUSTER
+    });
+
     this.pusher = new Pusher({
       appId: process.env.PUSHER_APP_ID,
       key: process.env.PUSHER_KEY,
@@ -14,6 +22,10 @@ export default class NotificationService {
       useTLS: true,
     });
   }
+
+  // باقي الدوال زي ما هي...
+}
+
 
   // إشعار لمستخدم واحد
   async notifyUser(userId, event, payload, saveToDB = true) {
