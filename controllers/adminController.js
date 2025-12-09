@@ -23,9 +23,6 @@ export const getAllDoctors = async (req, res) => {
   }
 };
 
-import NotificationService from "../services/notificationService.js";
-const notificationService = new NotificationService();
-
 export const addDoctor = async (req, res) => {
   try {
     const { name, email, speciality, phone, bio } = req.body;
@@ -34,12 +31,18 @@ export const addDoctor = async (req, res) => {
 
     const doctor = await Doctor.create({ name, email, speciality, phone, bio });
 
-    await notificationService.notifyAllUsers("notification:newDoctor", {
-      message: `دكتور جديد انضم: ${doctor.name}`,
-      doctorId: doctor._id
-    });
+    // 👉 استخدم الـ instance الحقيقية من الـ app
+    const notificationService = req.app.get("notificationService");
+
+    if (notificationService) {
+      await notificationService.notifyAllUsers("notification:newDoctor", {
+        message: `دكتور جديد انضم: ${doctor.name}`,
+        doctorId: doctor._id
+      });
+    }
 
     res.status(201).json({ message: "Doctor added", doctor });
+
   } catch (err) {
     console.error(err);
     res.status(500).json({ message: "Server error" });
