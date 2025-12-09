@@ -40,24 +40,14 @@ export const addDoctor = async (req, res) => {
     console.log("✅ Doctor created:", doctor._id);
 
     // 3️⃣ جلب NotificationService
-    const notificationService = req.app.get("notificationService");
-    console.log("🔥 Notification Service instance:", !!notificationService);
-
+   const notificationService = req.app.get("notificationService"); 
+    
+    // تأكدي أن الخدمة موجودة قبل استدعائها
     if (notificationService) {
-      console.log("📢 Preparing to notify all users about new doctor");
-
-      try {
-        await notificationService.notifyAllUsers("notification:newDoctor", {
-          message: `دكتور جديد انضم: ${doctor.name}`,
-          doctorId: doctor._id
-        });
-        console.log("✅ Finished notifying all users");
-      } catch (notifyErr) {
-        console.error("❌ Failed to notify all users:", notifyErr);
-      }
-
+        console.log(`📢 Triggering doctorAdded notification for: ${doctor.name}`);
+        await notificationService.doctorAdded(doctor);
     } else {
-      console.log("⚠ NotificationService not found, skipping notifications");
+        console.error("❌ NotificationService not found in req.app");
     }
 
     // 4️⃣ إرسال الرد
