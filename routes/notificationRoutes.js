@@ -1,25 +1,38 @@
 import express from "express";
-import { protect } from "../middleware/authMiddleware.js";
 
 const router = express.Router();
 
-// مسار لتجربة إرسال إشعار جماعي لكل المستخدمين
-router.post("/broadcast", protect(["staff"]), async (req, res) => {
+router.get("/test-all", async (req, res) => {
   try {
-    const { message } = req.body;
-
     const notificationService = req.app.get("notificationService");
-    if (!notificationService) {
-      return res.status(500).json({ message: "NotificationService not initialized" });
-    }
 
-    await notificationService.notifyAllUsers("notification:broadcast", {
-      message: message || "إشعار جماعي تجريبي",
+    // 1️⃣ طباعة إعدادات Pusher
+    console.log("Pusher Config:", {
+      appId: process.env.PUSHER_APP_ID,
+      key: process.env.PUSHER_KEY,
+      secret: process.env.PUSHER_SECRET,
+      cluster: process.env.PUSHER_CLUSTER
     });
 
-    res.json({ success: true, message: "تم إرسال الإشعار الجماعي لكل المستخدمين" });
+    // 2️⃣ إرسال payload بسيط لكل المستخدمين
+    await notificationService.notifyAllUsers("notification:test", {
+      message: "Broadcast test"
+    });
+
+    // 3️⃣ تجربة إرسال مباشر على قناة عامة
+    const response = await notificationService.pusher.trigger(
+      "general",
+      "notification:test",
+      { message: "Hello from server" }
+    );
+    console.log("✅ Direct trigger response:", response);
+
+    res.json({
+      success: true,
+      message: "تم تنفيذ الثلاث اختبارات (config + payload بسيط + trigger مباشر)"
+    });
   } catch (err) {
-    console.error("Broadcast error:", err);
+    console.error("❌ Test-all error:", err);
     res.status(500).json({ success: false, message: err.message });
   }
 });
