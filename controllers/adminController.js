@@ -26,30 +26,41 @@ export const getAllDoctors = async (req, res) => {
 export const addDoctor = async (req, res) => {
   try {
     const { name, email, speciality, phone, bio } = req.body;
+    console.log("🚀 addDoctor called with:", { name, email, speciality, phone, bio });
 
     const exists = await Doctor.findOne({ email });
-    if (exists) return res.status(400).json({ message: "Doctor email already exists" });
+    if (exists) {
+      console.log(`❌ Doctor with email ${email} already exists`);
+      return res.status(400).json({ message: "Doctor email already exists" });
+    }
 
     const doctor = await Doctor.create({ name, email, speciality, phone, bio });
+    console.log("✅ Doctor created:", doctor._id);
 
-    // ❗ استخدمي الـ instance الحقيقية اللي شغالة مع Socket.io
-   const notificationService = req.app.get("notificationService");
-console.log("🔥 Notification Service instance:", !!notificationService);
+    // 🔥 جلب الـ instance الحقيقية لـ NotificationService
+    const notificationService = req.app.get("notificationService");
+    console.log("🔥 Notification Service instance:", !!notificationService);
 
-if (notificationService) {
-  await notificationService.notifyAllUsers("notification:newDoctor", {
-    message: `دكتور جديد انضم: ${doctor.name}`,
-    doctorId: doctor._id,
-  });
-}
+    if (notificationService) {
+      console.log("📢 Preparing to notify all users about new doctor");
+
+      await notificationService.notifyAllUsers("notification:newDoctor", {
+        message: `دكتور جديد انضم: ${doctor.name}`,
+        doctorId: doctor._id,
+      });
+
+      console.log("✅ Finished notifying all users");
+    } else {
+      console.log("⚠ NotificationService not found, skipping notifications");
+    }
 
     res.status(201).json({ message: "Doctor added", doctor });
-
   } catch (err) {
-    console.error(err);
+    console.error("❌ Error in addDoctor:", err);
     res.status(500).json({ message: "Server error" });
   }
 };
+
 
 
 
@@ -102,7 +113,7 @@ export const updateDoctor = async (req, res) => {
 };
 export const getAllUsers = async (req, res) => {
   try {
-    // استرجاع كل المستخدمين ما عدا هذا الإيميل
+ 
     const users = await User.find({ email: { $ne: "staffflexera@gmail.com" } })
       .select("name email phone dob image")
       .lean();

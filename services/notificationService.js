@@ -21,19 +21,46 @@ export default class NotificationService {
     });
   }
 
-  async notifyUser(userId, event, payload, saveToDB = true) {
-    let notification;
-    if (saveToDB) {
-      notification = await Notification.create({
-        user: userId,
-        type: event,
-        message: payload.message,
-        data: payload,
-      });
-      payload.notificationId = notification._id;
+ async notifyAllUsers(event, payload, saveToDB = true) {
+  try {
+    const users = await userModel.find({}, "_id email name");
+    console.log(`👥 Found ${users.length} users to notify`);
+
+    for (const user of users) {
+      console.log(`➡ Preparing notification for user: ${user._id} (${user.email})`);
+
+      let notification;
+      if (saveToDB) {
+        try {
+          notification = await Notification.create({
+            user: user._id,
+            type: event,
+            message: payload.message,
+            data: payload,
+          });
+          payload.notificationId = notification._id;
+          console.log(`✅ Saved notification to DB: ${notification._id}`);
+        } catch (dbErr) {
+          console.error(`❌ Failed to save notification for user ${user._id}:`, dbErr);
+          continue; // نكمل الباقيين
+        }
+      }
+
+      try {
+        await this.pusher.trigger(`user-${user._id}`, event, payload);
+        console.log(`📢 Sent event "${event}" to channel user-${user._id}`);
+      } catch (pusherErr) {
+        console.error(`❌ Failed to send event to user-${user._id}:`, pusherErr);
+      }
     }
-    return this.pusher.trigger(`user-${userId}`, event, payload);
+
+    console.log("✅ notifyAllUsers finished");
+
+  } catch (err) {
+    console.error("❌ notifyAllUsers general error:", err);
   }
+}
+
 
   async notifyDoctor(doctorId, event, payload, saveToDB = true) {
     let notification;
