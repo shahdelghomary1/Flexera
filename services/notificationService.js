@@ -23,10 +23,6 @@ export default class NotificationService {
     });
   }
 
-  // باقي الدوال زي ما هي...
-}
-
-
   // إشعار لمستخدم واحد
   async notifyUser(userId, event, payload, saveToDB = true) {
     let notification;
@@ -58,35 +54,33 @@ export default class NotificationService {
   }
 
   // إشعار جماعي لكل المستخدمين
-  // إشعار جماعي لكل المستخدمين
-async notifyAllUsers(event, payload, saveToDB = true) {
-  const users = await userModel.find({}, "_id");
+  async notifyAllUsers(event, payload, saveToDB = true) {
+    const users = await userModel.find({}, "_id");
 
-  for (const user of users) {
-    let notification;
-    if (saveToDB) {
-      notification = await Notification.create({
-        user: user._id,
-        type: event,
-        message: payload.message,
-        data: payload,
-      });
-      payload.notificationId = notification._id;
+    for (const user of users) {
+      let notification;
+      if (saveToDB) {
+        notification = await Notification.create({
+          user: user._id,
+          type: event,
+          message: payload.message,
+          data: payload,
+        });
+        payload.notificationId = notification._id;
+      }
+
+      // ✨ هنا هنطبع في الـ console علشان نتأكد
+      console.log(`📢 Sending event "${event}" to channel user-${user._id}`);
+
+      this.pusher.trigger(`user-${user._id}`, event, payload)
+        .then(response => {
+          console.log(`✅ Pusher Trigger Success for user-${user._id}:`, response);
+        })
+        .catch(error => {
+          console.error(`❌ Pusher Trigger Error for user-${user._id}:`, error);
+        });
     }
-
-    // ✨ هنا هنطبع في الـ console علشان نتأكد
-    console.log(`📢 Sending event "${event}" to channel user-${user._id}`);
-
-    this.pusher.trigger(`user-${user._id}`, event, payload)
-      .then(response => {
-        console.log(`✅ Pusher Trigger Success for user-${user._id}:`, response);
-      })
-      .catch(error => {
-        console.error(`❌ Pusher Trigger Error for user-${user._id}:`, error);
-      });
   }
-}
-
 
   // إشعار جماعي لكل الدكاترة
   async notifyAllDoctors(event, payload, saveToDB = true) {
