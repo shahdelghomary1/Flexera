@@ -105,16 +105,48 @@ export default class NotificationService {
       console.error("❌ Test trigger error:", error);
     }
   }
+// notificationService.js
+// notificationService.js
+
 async doctorAdded(doctor) {
-  console.log("📢 doctorAdded triggered for:", doctor.name);
+  console.log("📢 doctorAdded triggered for:", doctor.name); // 👈 (1) تأكد من ظهور هذا
 
-  // إشعار جماعي لكل المستخدمين
-  await this.notifyAllUsers("notification:newDoctor", {
-    message: `دكتور جديد انضم: ${doctor.name}`,
-    doctorId: doctor._id
-  });
+  // 1. استدعاء الدالة المساعدة notifyAllUsers للحفظ والإرسال
+  try {
+    // هذه الدالة ستقوم بالتكرار على جميع المستخدمين:
+    // - حفظ إشعار فردي لكل مستخدم في قاعدة البيانات.
+    // - إرسال إشعار لحظي لكل مستخدم عبر Pusher/Socket.io على قناته الخاصة (user-ID).
+    await this.notifyAllUsers("notification:newDoctor", {
+      message: `دكتور جديد انضم: ${doctor.name}`,
+      doctorId: doctor._id,
+      doctorName: doctor.name,
+    });
 
-  console.log("✅ doctorAdded broadcast sent to all users");
+    // لا يمكن تسجيل ID إشعار واحد هنا لأنها أصبحت عملية جماعية
+    console.log("✅ Bulk notification process initiated via notifyAllUsers."); // 👈 تأكيد بدء العملية بنجاح
+
+  } catch (error) {
+    // إذا ظهر هذا، فالمشكلة في دالة notifyAllUsers أو اتصال Pusher/قاعدة البيانات
+    console.error("❌ ERROR during notifyAllUsers for doctorAdded:", error.message, error.stack); // 👈 (3) إذا ظهر هذا، فراجع الـ Schema أو دالة notifyAllUsers
+  }
+}
+
+  // 2. إرسال الإشعار عبر Pusher (أو Socket.io) للقناة العامة
+  try {
+    const payload = {
+      message: `دكتور جديد انضم: ${doctor.name}`,
+      doctorId: doctor._id,
+      // نُضيف الـ ID للمساعدة في تعليمه كمقروء في الكلاينت
+      notificationId: generalNotification._id, 
+    };
+
+    // يجب أن يكون الكلاينت (مثل Flutter أو الويب) مشتركًا في قناة 'general' لاستقباله
+    await this.pusher.trigger('general', 'notification:newDoctor', payload); 
+    console.log("📡 Pusher trigger successful on channel 'general'");
+    
+  } catch (error) {
+    console.error("❌ ERROR triggering Pusher/Socket for general notification:", error.message, error);
+  }
 }
 
 }
