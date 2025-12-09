@@ -54,8 +54,8 @@ export default class NotificationService {
 
   // 1. إشعار عند إضافة دكتور جديد (لكل المستخدمين) - يتم البحث عنه في notificationController
  // ... الكود السابق في الدالة
+// ... الكود السابق
   async doctorAdded(doctor) {
-    // 1. إنشاء إشعار عام في قاعدة البيانات (user: null)
     const generalNotification = await Notification.create({
       user: null, 
       type: "notification:newDoctor",
@@ -64,21 +64,19 @@ export default class NotificationService {
     });
 
     // 2. ✨ إرسال لحظي عبر القناة العامة (general)
-    try { // ✨ أضفنا try
+    try { // 🚨 هذه هي الإضافة الحاسمة التي يجب أن تنشر
       const response = await this.pusher.trigger('general', 'notification:newDoctor', {
         message: `دكتور جديد انضم: ${doctor.name}`,
         doctorId: doctor._id,
         notificationId: generalNotification._id
       });
-      // ✨ سيُطبع هذا إذا نجح الإرسال
-      console.log("✅ Pusher Trigger Success: ", response.status); 
-    } catch (error) { // ✨ أضفنا catch
-      // 🚨 سيُطبع هذا إذا فشل الاتصال بمخدم Pusher
-      console.error("❌ Pusher Trigger Failed:", error.message || error); 
+      console.log("✅ Pusher Trigger Success: ", response); 
+    } catch (error) { 
+      // ❌ هذا السطر سيسجل الخطأ الحقيقي في Vercel Logs إذا كانت المفاتيح خاطئة
+      console.error("❌ PUSHER AUTHENTICATION ERROR:", error.message || error); 
     }
   }
 
-// ... باقي الدوال
 
 
   // 2. إشعار عند إضافة تمارين للمريض (يُستدعى من doctorController.js)
