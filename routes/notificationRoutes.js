@@ -27,45 +27,36 @@ router.delete("/:id", protect(["user"]), deleteNotification);
 // =====================
 // 🔥 Test Route with Env Check
 // =====================
-router.get("/test", async (req, res) => {
+router.post("/test", async (req, res) => {
   try {
-    const notificationService = req.app.get("notificationService");
+    const { type, userId, doctorId, message } = req.body;
 
-    if (!notificationService) {
-      return res.status(500).json({
-        success: false,
-        message: "NotificationService not found in app context"
-      });
+    const notificationService = req.app.get("notificationService");
+    if (!notificationService)
+      return res.status(500).json({ message: "NotificationService not initialized" });
+
+    if (type === "user" && userId) {
+      await notificationService.notifyUser(userId, "notification:test", { message });
+      return res.json({ success: true, message: "Test notification sent to user" });
     }
 
-    // ⚠️ طباعة قيم Pusher للتحقق
-    console.log("PUSHER_APP_ID:", process.env.PUSHER_APP_ID);
-    console.log("PUSHER_KEY:", process.env.PUSHER_KEY);
-    console.log("PUSHER_SECRET:", process.env.PUSHER_SECRET ? "DEFINED" : "UNDEFINED");
-    console.log("PUSHER_CLUSTER:", process.env.PUSHER_CLUSTER);
+    if (type === "doctor" && doctorId) {
+      await notificationService.notifyDoctor(doctorId, "notification:test", { message });
+      return res.json({ success: true, message: "Test notification sent to doctor" });
+    }
 
-  const testUserId = "6936cecbcd6b15450dd4a3f4";
+    if (type === "general") {
+      await notificationService.pusher.trigger("general", "notification:test", { message });
+      return res.json({ success: true, message: "Test notification sent to general channel" });
+    }
 
-    await notificationService.notifyUser(
-      testUserId,
-      "notification:test",
-      { message: "🚀 Test notification from Vercel backend with Env Check!" },
-      false // ما تحفظوش في DB
-    );
-
-    res.json({
-      success: true,
-      message: "Test notification sent! Check console for env values."
-    });
-
-  } catch (error) {
-    console.error("TEST ERROR:", error);
-    res.status(500).json({
-      success: false,
-      message: error.message
-    });
+    res.status(400).json({ success: false, message: "Invalid type or missing ID" });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ success: false, message: err.message });
   }
 });
+
 
 
 
