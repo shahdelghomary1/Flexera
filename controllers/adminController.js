@@ -28,26 +28,46 @@ export const addDoctor = async (req, res) => {
     const { name, email, speciality, phone, bio } = req.body;
     console.log("🚀 addDoctor called with:", { name, email, speciality, phone, bio });
 
+    // 1️⃣ التحقق من وجود الدكتور
     const exists = await Doctor.findOne({ email });
     if (exists) {
       console.log(`❌ Doctor with email ${email} already exists`);
       return res.status(400).json({ message: "Doctor email already exists" });
     }
 
+    // 2️⃣ إنشاء الدكتور
     const doctor = await Doctor.create({ name, email, speciality, phone, bio });
     console.log("✅ Doctor created:", doctor._id);
 
-    // 🔥 جلب الـ instance الحقيقية لـ NotificationService
+    // 3️⃣ جلب NotificationService
     const notificationService = req.app.get("notificationService");
     console.log("🔥 Notification Service instance:", !!notificationService);
 
     if (notificationService) {
       console.log("📢 Preparing to notify all users about new doctor");
 
-      await notificationService.notifyAllUsers("notification:newDoctor", {
-        message: `دكتور جديد انضم: ${doctor.name}`,
-        doctorId: doctor._id,
-      });
+      // 4️⃣ محاولة إرسال الإشعارات لكل user
+      try {
+        const users = await User.find({}, "_id email name");
+        console.log(`👥 Found ${users.length} users to notify`);
+
+        for (const user of users) {
+          console.log(`➡ Sending notification to user: ${user._id} (${user.email})`);
+          try {
+            const notification = await notificationService.notifyUser(
+              user._id,
+              "notification:newDoctor",
+              { message: `دكتور جديد انضم: ${doctor.name}`, doctorId: doctor._id }
+            );
+            console.log(`✅ Notification sent to user ${user._id}`);
+          } catch (userErr) {
+            console.error(`❌ Failed to send notification to user ${user._id}:`, userErr);
+          }
+        }
+
+      } catch (errUsers) {
+        console.error("❌ Error fetching users for notifications:", errUsers);
+      }
 
       console.log("✅ Finished notifying all users");
     } else {
@@ -55,11 +75,13 @@ export const addDoctor = async (req, res) => {
     }
 
     res.status(201).json({ message: "Doctor added", doctor });
+
   } catch (err) {
     console.error("❌ Error in addDoctor:", err);
     res.status(500).json({ message: "Server error" });
   }
 };
+
 
 
 

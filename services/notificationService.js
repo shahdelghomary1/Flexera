@@ -76,23 +76,7 @@ export default class NotificationService {
     return this.pusher.trigger(`doctor-${doctorId}`, event, payload);
   }
 
-  async notifyAllUsers(event, payload, saveToDB = true) {
-    const users = await userModel.find({}, "_id");
-    for (const user of users) {
-      let notification;
-      if (saveToDB) {
-        notification = await Notification.create({
-          user: user._id,
-          type: event,
-          message: payload.message,
-          data: payload,
-        });
-        payload.notificationId = notification._id;
-      }
-      console.log(`📢 Sending event "${event}" to channel user-${user._id}`);
-      await this.pusher.trigger(`user-${user._id}`, event, payload);
-    }
-  }
+ 
 
   async notifyAllDoctors(event, payload, saveToDB = true) {
     const doctors = await doctorModel.find({}, "_id");
