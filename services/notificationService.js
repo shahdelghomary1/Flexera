@@ -6,7 +6,7 @@ import Pusher from "pusher"; // ✨ استيراد مكتبة Pusher
 
 export default class NotificationService {
   constructor() {
-    // 💡 إعداد Pusher باستخدام متغيرات البيئة التي أدخلتها
+   
     this.pusher = new Pusher({
       appId: process.env.PUSHER_APP_ID, // "2088917"
       key: process.env.PUSHER_KEY,     // "6bb56cdacffa37ed5541"
@@ -52,9 +52,6 @@ export default class NotificationService {
   }
 
 
-  // 1. إشعار عند إضافة دكتور جديد (لكل المستخدمين) - يتم البحث عنه في notificationController
- // ... الكود السابق في الدالة
-// ... الكود السابق
   async doctorAdded(doctor) {
     const generalNotification = await Notification.create({
       user: null, 
@@ -63,8 +60,7 @@ export default class NotificationService {
       data: { doctorId: doctor._id, doctorName: doctor.name },
     });
 
-    // 2. ✨ إرسال لحظي عبر القناة العامة (general)
-    try { // 🚨 هذه هي الإضافة الحاسمة التي يجب أن تنشر
+    try { 
       const response = await this.pusher.trigger('general', 'notification:newDoctor', {
         message: `دكتور جديد انضم: ${doctor.name}`,
         doctorId: doctor._id,
@@ -72,14 +68,14 @@ export default class NotificationService {
       });
       console.log("✅ Pusher Trigger Success: ", response); 
     } catch (error) { 
-      // ❌ هذا السطر سيسجل الخطأ الحقيقي في Vercel Logs إذا كانت المفاتيح خاطئة
+    
       console.error("❌ PUSHER AUTHENTICATION ERROR:", error.message || error); 
     }
   }
 
 
 
-  // 2. إشعار عند إضافة تمارين للمريض (يُستدعى من doctorController.js)
+
   async exercisesAdded(userId, doctorId, exercises) {
     await this.notifyUser(userId, "notification:newExercises", {
       message: `تم إضافة تمارين جديدة من دكتورك`,
@@ -97,7 +93,7 @@ export default class NotificationService {
       slot,
     });
 
-    // إشعار للطبيب
+ 
     await this.notifyDoctor(doctorId, "notification:newAppointment", {
       message: `تم حجز موعد جديد بتاريخ ${slot.date} في ${slot.from} - ${slot.to}`,
       userId,
