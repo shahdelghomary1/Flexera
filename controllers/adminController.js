@@ -26,7 +26,6 @@ export const addDoctor = async (req, res) => {
     const { name, email, speciality, phone, bio } = req.body;
     const exists = await Doctor.findOne({ email });
     if (exists) return res.status(400).json({ message: "Doctor email already exists" });
-
     const doctor = await Doctor.create({ name, email, speciality, phone, bio });
     res.status(201).json({ message: "Doctor added", doctor });
   } catch (err) {
