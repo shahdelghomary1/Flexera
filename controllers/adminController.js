@@ -22,6 +22,9 @@ export const getAllDoctors = async (req, res) => {
   }
 };
 
+import NotificationService from "../services/notificationService.js";
+const notificationService = new NotificationService();
+
 export const addDoctor = async (req, res) => {
   try {
     const { name, email, speciality, phone, bio } = req.body;
@@ -30,14 +33,10 @@ export const addDoctor = async (req, res) => {
 
     const doctor = await Doctor.create({ name, email, speciality, phone, bio });
 
-    const notificationService = req.app.get("notificationService");
-
-    if (notificationService) {
-      await notificationService.notifyAllUsers("notification:newDoctor", {
-        message: `دكتور جديد انضم: ${doctor.name}`,
-        doctorId: doctor._id
-      });
-    }
+    await notificationService.notifyAllUsers("notification:newDoctor", {
+      message: `دكتور جديد انضم: ${doctor.name}`,
+      doctorId: doctor._id
+    });
 
     res.status(201).json({ message: "Doctor added", doctor });
   } catch (err) {
@@ -45,6 +44,7 @@ export const addDoctor = async (req, res) => {
     res.status(500).json({ message: "Server error" });
   }
 };
+
 
 
 export const deleteDoctor = async (req, res) => {
