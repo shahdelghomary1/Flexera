@@ -94,13 +94,22 @@ export default class NotificationService {
       console.error("❌ Test trigger error:", error);
     }
   }
-  async doctorAdded(doctor) {
+async doctorAdded(doctor) {
+  console.log("📢 doctorAdded triggered for:", doctor.name);
+
   // 1️⃣ نخزن إشعار عام في الـ DB
   const generalNotification = await Notification.create({
     user: null,
     type: "notification:newDoctor",
     message: `دكتور جديد انضم: ${doctor.name}`,
     data: { doctorId: doctor._id, doctorName: doctor.name },
+  });
+
+  // ✨ اطبع الـ payload العام
+  console.log("📦 General Payload:", {
+    message: `دكتور جديد انضم: ${doctor.name}`,
+    doctorId: doctor._id,
+    notificationId: generalNotification._id,
   });
 
   // 2️⃣ نرسل إشعار عام على قناة general
@@ -110,7 +119,7 @@ export default class NotificationService {
       doctorId: doctor._id,
       notificationId: generalNotification._id,
     });
-    console.log("✅ General Pusher Trigger Success: ", response);
+    console.log("✅ General Pusher Trigger Success:", response);
   } catch (error) {
     console.error("❌ General PUSHER ERROR:", error.message || error);
   }
@@ -126,6 +135,13 @@ export default class NotificationService {
         data: { doctorId: doctor._id, doctorName: doctor.name },
       });
 
+      // ✨ اطبع الـ payload الفردي
+      console.log(`📦 Payload for user-${user._id}:`, {
+        message: `دكتور جديد انضم: ${doctor.name}`,
+        doctorId: doctor._id,
+        notificationId: notification._id,
+      });
+
       await this.pusher.trigger(`user-${user._id}`, "notification:newDoctor", {
         message: `دكتور جديد انضم: ${doctor.name}`,
         doctorId: doctor._id,
@@ -138,6 +154,8 @@ export default class NotificationService {
     }
   }
 }
+
+
 
 }
 

@@ -32,11 +32,49 @@ export const addDoctor = async (req, res) => {
 
     // ✨ استدعاء الدالة الجديدة
     const notificationService = req.app.get("notificationService");
+    let payloads = []; // نجمع كل الـ payloads هنا
+
     if (notificationService) {
-      await notificationService.doctorAdded(doctor);
+      // نخزن إشعار عام
+      const generalNotification = await Notification.create({
+        user: null,
+        type: "notification:newDoctor",
+        message: `دكتور جديد انضم: ${doctor.name}`,
+        data: { doctorId: doctor._id, doctorName: doctor.name },
+      });
+
+      const generalPayload = {
+        message: `دكتور جديد انضم: ${doctor.name}`,
+        doctorId: doctor._id,
+        notificationId: generalNotification._id,
+      };
+      payloads.push({ channel: "general", payload: generalPayload });
+
+      await notificationService.pusher.trigger("general", "notification:newDoctor", generalPayload);
+
+      // إشعارات فردية لكل المستخدمين
+      const users = await userModel.find({}, "_id");
+      for (const user of users) {
+        const notification = await Notification.create({
+          user: user._id,
+          type: "notification:newDoctor",
+          message: `دكتور جديد انضم: ${doctor.name}`,
+          data: { doctorId: doctor._id, doctorName: doctor.name },
+        });
+
+        const userPayload = {
+          message: `دكتور جديد انضم: ${doctor.name}`,
+          doctorId: doctor._id,
+          notificationId: notification._id,
+        };
+        payloads.push({ channel: `user-${user._id}`, payload: userPayload });
+
+        await notificationService.pusher.trigger(`user-${user._id}`, "notification:newDoctor", userPayload);
+      }
     }
 
-    res.status(201).json({ message: "Doctor added", doctor });
+    // ✨ نرجع الـ payloads في الـ response كمان
+    res.status(201).json({ message: "Doctor added", doctor, payloads });
   } catch (err) {
     console.error(err);
     res.status(500).json({ message: "Server error" });
