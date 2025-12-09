@@ -129,25 +129,9 @@ async doctorAdded(doctor) {
     // إذا ظهر هذا، فالمشكلة في دالة notifyAllUsers أو اتصال Pusher/قاعدة البيانات
     console.error("❌ ERROR during notifyAllUsers for doctorAdded:", error.message, error.stack); // 👈 (3) إذا ظهر هذا، فراجع الـ Schema أو دالة notifyAllUsers
   }
-}
 
-  // 2. إرسال الإشعار عبر Pusher (أو Socket.io) للقناة العامة
-  try {
-    const payload = {
-      message: `دكتور جديد انضم: ${doctor.name}`,
-      doctorId: doctor._id,
-      // نُضيف الـ ID للمساعدة في تعليمه كمقروء في الكلاينت
-      notificationId: generalNotification._id, 
-    };
 
-    // يجب أن يكون الكلاينت (مثل Flutter أو الويب) مشتركًا في قناة 'general' لاستقباله
-    await this.pusher.trigger('general', 'notification:newDoctor', payload); 
-    console.log("📡 Pusher trigger successful on channel 'general'");
-    
-  } catch (error) {
-    console.error("❌ ERROR triggering Pusher/Socket for general notification:", error.message, error);
-  }
-}
 
 }
 
+}
