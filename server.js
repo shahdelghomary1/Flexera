@@ -30,7 +30,7 @@ app.use("/api/admin", adminRoutes);
 app.use("/api/doctors", doctorRoutes);
 app.use("/api/schedule", scheduleRoutes);
 app.use("/api/paymob", paymobRoutes);
-
+app.use("/api/notifications", notificationRoutes);
 
 
 const PORT = process.env.PORT || 5000;
