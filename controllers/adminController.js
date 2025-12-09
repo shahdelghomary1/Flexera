@@ -26,20 +26,22 @@ export const getAllDoctors = async (req, res) => {
 export const addDoctor = async (req, res) => {
   try {
     const { name, email, speciality, phone, bio } = req.body;
+
     const exists = await Doctor.findOne({ email });
     if (exists) return res.status(400).json({ message: "Doctor email already exists" });
 
     const doctor = await Doctor.create({ name, email, speciality, phone, bio });
 
-    // 👉 استخدم الـ instance الحقيقية من الـ app
-    const notificationService = req.app.get("notificationService");
+    // ❗ استخدمي الـ instance الحقيقية اللي شغالة مع Socket.io
+   const notificationService = req.app.get("notificationService");
+console.log("🔥 Notification Service instance:", !!notificationService);
 
-    if (notificationService) {
-      await notificationService.notifyAllUsers("notification:newDoctor", {
-        message: `دكتور جديد انضم: ${doctor.name}`,
-        doctorId: doctor._id
-      });
-    }
+if (notificationService) {
+  await notificationService.notifyAllUsers("notification:newDoctor", {
+    message: `دكتور جديد انضم: ${doctor.name}`,
+    doctorId: doctor._id,
+  });
+}
 
     res.status(201).json({ message: "Doctor added", doctor });
 
