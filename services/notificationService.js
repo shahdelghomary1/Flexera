@@ -106,8 +106,5 @@ async doctorAdded(doctor) {
   console.log("✅ doctorAdded broadcast sent to all users");
 }
 
-
-
-
 }
 
