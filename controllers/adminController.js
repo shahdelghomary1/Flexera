@@ -26,7 +26,17 @@ export const addDoctor = async (req, res) => {
     const { name, email, speciality, phone, bio } = req.body;
     const exists = await Doctor.findOne({ email });
     if (exists) return res.status(400).json({ message: "Doctor email already exists" });
+    
+    // إنشاء الدكتور
     const doctor = await Doctor.create({ name, email, speciality, phone, bio });
+
+    // ✨ كود الإشعارات الجديد:
+    const notificationService = req.app.get("notificationService");
+    if (notificationService) {
+        await notificationService.doctorAdded(doctor); 
+    }
+    // ----------------------------------------------------
+
     res.status(201).json({ message: "Doctor added", doctor });
   } catch (err) {
     console.error(err);

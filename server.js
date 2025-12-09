@@ -8,7 +8,8 @@ import adminRoutes from "./routes/adminRoutes.js";
 import doctorRoutes from "./routes/doctorRoutes.js";
 import scheduleRoutes from "./routes/scheduleRoutes.js";
 import paymobRoutes from "./routes/paymobRoutes.js";
-
+import notificationRoutes from "./routes/notificationRoutes.js";
+import NotificationService from "./services/notificationService.js";
 dotenv.config();
 const app = express();
 
@@ -22,7 +23,8 @@ app.use(cors({
 
 connectDB();
 
-
+const notificationService = new NotificationService();
+app.set("notificationService", notificationService);
 app.use("/api/auth", authRoutes);
 app.use("/api/admin", adminRoutes);
 app.use("/api/doctors", doctorRoutes);
