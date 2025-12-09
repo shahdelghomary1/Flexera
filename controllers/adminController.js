@@ -46,34 +46,21 @@ export const addDoctor = async (req, res) => {
     if (notificationService) {
       console.log("📢 Preparing to notify all users about new doctor");
 
-      // 4️⃣ محاولة إرسال الإشعارات لكل user
       try {
-        const users = await User.find({}, "_id email name");
-        console.log(`👥 Found ${users.length} users to notify`);
-
-        for (const user of users) {
-          console.log(`➡ Sending notification to user: ${user._id} (${user.email})`);
-          try {
-            const notification = await notificationService.notifyUser(
-              user._id,
-              "notification:newDoctor",
-              { message: `دكتور جديد انضم: ${doctor.name}`, doctorId: doctor._id }
-            );
-            console.log(`✅ Notification sent to user ${user._id}`);
-          } catch (userErr) {
-            console.error(`❌ Failed to send notification to user ${user._id}:`, userErr);
-          }
-        }
-
-      } catch (errUsers) {
-        console.error("❌ Error fetching users for notifications:", errUsers);
+        await notificationService.notifyAllUsers("notification:newDoctor", {
+          message: `دكتور جديد انضم: ${doctor.name}`,
+          doctorId: doctor._id
+        });
+        console.log("✅ Finished notifying all users");
+      } catch (notifyErr) {
+        console.error("❌ Failed to notify all users:", notifyErr);
       }
 
-      console.log("✅ Finished notifying all users");
     } else {
       console.log("⚠ NotificationService not found, skipping notifications");
     }
 
+    // 4️⃣ إرسال الرد
     res.status(201).json({ message: "Doctor added", doctor });
 
   } catch (err) {
@@ -81,6 +68,7 @@ export const addDoctor = async (req, res) => {
     res.status(500).json({ message: "Server error" });
   }
 };
+
 
 
 
