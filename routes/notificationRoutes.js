@@ -1,18 +1,34 @@
 import express from "express";
+import { protect } from "../middleware/authMiddleware.js";
+
 const router = express.Router();
+
+router.post("/broadcast", protect(["staff"]), async (req, res) => {
+  try {
+    const { message } = req.body;
+    const notificationService = req.app.get("notificationService");
+
+    await notificationService.notifyAllUsers("notification:broadcast", {
+      message: message || "إشعار جماعي تجريبي",
+    });
+
+    res.json({ success: true, message: "تم إرسال الإشعار الجماعي لكل المستخدمين" });
+  } catch (err) {
+    console.error("Broadcast error:", err);
+    res.status(500).json({ success: false, message: err.message });
+  }
+});
+
 router.get("/test-trigger", async (req, res) => {
   try {
     const notificationService = req.app.get("notificationService");
-    const response = await notificationService.pusher.trigger(
-      "general",
-      "notification:test",
-      { message: "Hello from server" }
-    );
-    res.json({ success: true, response });
+    await notificationService.testTrigger();
+    res.json({ success: true, message: "تم إرسال إشعار تجريبي مباشر" });
   } catch (err) {
-    console.error("❌ Trigger error:", err);
+    console.error("Test trigger error:", err);
     res.status(500).json({ success: false, message: err.message });
   }
 });
 
 export default router;
+
