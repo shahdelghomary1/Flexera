@@ -123,7 +123,7 @@ export const updateNotificationSettings = async (req, res) => {
   }
 };
 
-// حفظ/تحديث FCM token للمستخدم
+
 export const updateFCMToken = async (req, res) => {
   try {
     const userId = req.user._id;
@@ -162,7 +162,7 @@ export const updateFCMToken = async (req, res) => {
   }
 };
 
-// إرسال نتائج المختبر مع إشعار Pusher داخلي
+
 export const sendLabResult = async (req, res) => {
   try {
     const { userId, labName, resultUrl, testType, date } = req.body;
@@ -193,7 +193,7 @@ export const sendLabResult = async (req, res) => {
   }
 };
 
-// اختبار إرسال إشعار Firebase خارجي
+
 export const testFirebaseNotification = async (req, res) => {
   try {
     const { userId, title, body } = req.body;
@@ -216,8 +216,8 @@ export const testFirebaseNotification = async (req, res) => {
 
     const result = await notificationService.sendFirebaseNotification(
       userId,
-      title || "اختبار إشعار",
-      body || "هذا إشعار تجريبي من السيرفر",
+      title || "Test Notification",
+      body || "This is a test notification from the server",
       { test: true, timestamp: new Date().toISOString() }
     );
 

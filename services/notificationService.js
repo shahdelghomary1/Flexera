@@ -4,7 +4,6 @@ import doctorModel from "../models/doctorModel.js";
 import Pusher from "pusher";
 import admin from "firebase-admin";
 
-// تهيئة Firebase Admin
 if (!admin.apps.length) {
   admin.initializeApp({
     credential: admin.credential.cert({
@@ -15,10 +14,9 @@ if (!admin.apps.length) {
   });
 }
 
-// Export باسم للـ admin
+
 export const firebaseAdmin = admin;
 
-// Default export للـ NotificationService
 export default class NotificationService {
   constructor() {
     console.log("Pusher Config:", {
