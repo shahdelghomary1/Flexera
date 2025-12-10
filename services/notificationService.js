@@ -230,18 +230,7 @@ async notifyAllUsers(event, payload, saveToDB = true, sendFirebase = true) {
     }
   }
 
-async doctorAdded(doctor) {
-  try {
-    await this.notifyAllUsers("notification:newDoctor", {
-      message: `new doctor add ${doctor.name}`,
-      doctorId: doctor._id,
-      doctorName: doctor.name,
-      title: "New Doctor Added"
-    }, true, true); 
-  } catch (error) {
-    console.error("ERROR during notifyAllUsers for doctorAdded:", error.message, error.stack);
-  }
-}
+
 
 async appointmentReminder(userId, appointmentData) {
   try {
@@ -261,23 +250,37 @@ async appointmentReminder(userId, appointmentData) {
   }
 }
 
+async doctorAdded(doctor) {
+  try {
+    await this.notifyAllUsers("notification:newDoctor", {
+      message: `new doctor add ${doctor.name}`,
+      doctorId: doctor._id.toString(),   // ✅ حولنا الـ ObjectId لString
+      doctorName: doctor.name,
+      title: "New Doctor Added"
+    }, true, true); 
+  } catch (error) {
+    console.error("ERROR during notifyAllUsers for doctorAdded:", error.message, error.stack);
+  }
+}
+
 async newScheduleAvailable(doctor, date, timeSlots) {
   try {
     const slotsCount = timeSlots.length;
     const message = `new schedule available with ${doctor.name} on ${date} (${slotsCount} slots available)`;
     await this.notifyAllUsers("notification:newScheduleAvailable", {
       message,
-      doctorId: doctor._id,
+      doctorId: doctor._id.toString(),   // ✅ حولنا الـ ObjectId لString
       doctorName: doctor.name,
-      date,
-      slotsCount,
-      timeSlots,
+      date: date.toString(),             // ✅ التاريخ كString
+      slotsCount: slotsCount.toString(), // ✅ العدد كString
+      timeSlots: JSON.stringify(timeSlots), // ✅ الـ Array كString
       title: "New Schedule Available"
     }, true, true);
   } catch (error) {
     console.error(`Failed to send new schedule notification:`, error);
   }
 }
+
 
 
  
