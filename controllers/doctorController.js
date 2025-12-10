@@ -364,16 +364,15 @@ export const addExercisesToUser = async (req, res) => {
     schedule.exercises.push(...exercises);
     await schedule.save();
 
-    // إرسال إشعار للمستخدم عند إضافة تمارين جديدة
     const notificationService = req.app.get("notificationService");
     if (notificationService) {
-      // جلب اسم الدكتور لإضافته في رسالة الإشعار
-      const doctor = await Doctor.findById(req.user._id);
-      const doctorName = doctor ? doctor.name : "الدكتور";
       
-      console.log(`📢 Triggering exercisesAdded notification for user: ${userId}`);
+      const doctor = await Doctor.findById(req.user._id);
+      const doctorName = doctor ? doctor.name : "doctor";
+      
+      console.log(` Triggering exercisesAdded notification for user: ${userId}`);
       await notificationService.notifyUser(userId, "notification:newExercises", {
-        message: `تم إضافة تمارين جديدة من ${doctorName}`,
+        message: `add a new exercisce${doctorName}`,
         doctorId: req.user._id,
         doctorName: doctorName,
         exercisesCount: exercises.length,
@@ -555,13 +554,13 @@ export const addDoctor = async (req, res) => {
       price,
     });
 
-    // إرسال إشعار لجميع المستخدمين عند إضافة دكتور جديد
+ 
     const notificationService = req.app.get("notificationService");
     if (notificationService) {
-      console.log(`📢 Triggering doctorAdded notification for: ${doctor.name}`);
+      console.log(` Triggering doctorAdded notification for: ${doctor.name}`);
       await notificationService.doctorAdded(doctor);
     } else {
-      console.error("❌ NotificationService not found in req.app");
+      console.error(" NotificationService not found in req.app");
     }
 
     res.status(201).json({ success: true, message: "Doctor added", doctor });
@@ -595,7 +594,7 @@ export const deleteTimeSlot = async (req, res) => {
       return res.status(404).json({ message: "Schedule not found" });
     }
 
-    // تأكيد وجود الوقت
+  
     const exists = schedule.timeSlots.some(
       slot => slot._id.toString() === slotId
     );
@@ -603,7 +602,7 @@ export const deleteTimeSlot = async (req, res) => {
       return res.status(404).json({ message: "Time slot not found" });
     }
 
-    // حذف الوقت
+   
     schedule.timeSlots = schedule.timeSlots.filter(
       slot => slot._id.toString() !== slotId
     );

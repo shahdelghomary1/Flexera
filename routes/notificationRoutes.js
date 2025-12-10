@@ -36,16 +36,15 @@ router.get("/test-trigger", async (req, res) => {
   }
 });
 
-// جلب إشعارات المستخدم
+
 router.get("/", protect(["user"]), getUserNotifications);
 
-// تعليم إشعار كمقروء
+
 router.put("/:id/read", protect(["user"]), markNotificationRead);
 
-// تحديث إعدادات الإشعارات للمستخدم
+
 router.put("/settings", protect(["user"]), updateNotificationSettings);
 
-// حذف إشعار واحد
 router.delete("/:id", protect(["user"]), deleteNotification);
 
 export default router;

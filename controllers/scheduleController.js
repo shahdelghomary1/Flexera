@@ -93,7 +93,7 @@ export const addSchedule = async (req, res) => {
       existingSchedule.timeSlots.push(...slotsWithBooking);
       await existingSchedule.save();
 
-      // إرسال إشعار لجميع المستخدمين عند إضافة معاد جديد
+    
       const notificationService = req.app.get("notificationService");
       if (notificationService) {
         const doctor = await Doctor.findById(doctorId);
@@ -118,7 +118,7 @@ export const addSchedule = async (req, res) => {
       timeSlots: slotsWithBooking
     });
 
-    // إرسال إشعار لجميع المستخدمين عند إضافة معاد جديد
+   
     const notificationService = req.app.get("notificationService");
     if (notificationService) {
       const doctor = await Doctor.findById(doctorId);

@@ -26,12 +26,12 @@ export const getAllDoctors = async (req, res) => {
 export const addDoctor = async (req, res) => {
   try {
     const { name, email, speciality, phone, bio } = req.body;
-    console.log("🚀 addDoctor called with:", { name, email, speciality, phone, bio });
+    console.log(" addDoctor called with:", { name, email, speciality, phone, bio });
 
   
     const exists = await Doctor.findOne({ email });
     if (exists) {
-      console.log(`❌ Doctor with email ${email} already exists`);
+      console.log(` Doctor with email ${email} already exists`);
       return res.status(400).json({ message: "Doctor email already exists" });
     }
 
@@ -46,13 +46,13 @@ export const addDoctor = async (req, res) => {
         console.log(`📢 Triggering doctorAdded notification for: ${doctor.name}`);
         await notificationService.doctorAdded(doctor);
     } else {
-        console.error("❌ NotificationService not found in req.app");
+        console.error(" NotificationService not found in req.app");
     }
 
     res.status(201).json({ message: "Doctor added", doctor });
 
   } catch (err) {
-    console.error("❌ Error in addDoctor:", err);
+    console.error(" Error in addDoctor:", err);
     res.status(500).json({ message: "Server error" });
   }
 };

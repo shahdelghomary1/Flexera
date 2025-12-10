@@ -27,7 +27,7 @@ export default class NotificationService {
     console.log(`👥 Found ${users.length} users to notify`);
 
     for (const user of users) {
-      // التحقق من إعدادات الإشعارات للمستخدم
+    
       if (user.notificationsEnabled === false) {
         console.log(`⏭ Skipping notification for user ${user._id} (notifications disabled)`);
         continue;
@@ -47,8 +47,8 @@ export default class NotificationService {
           payload.notificationId = notification._id;
           console.log(`✅ Saved notification to DB: ${notification._id}`);
         } catch (dbErr) {
-          console.error(`❌ Failed to save notification for user ${user._id}:`, dbErr);
-          continue; // نكمل الباقيين
+          console.error(` Failed to save notification for user ${user._id}:`, dbErr);
+          continue; 
         }
       }
 
@@ -60,10 +60,10 @@ export default class NotificationService {
       }
     }
 
-    console.log("✅ notifyAllUsers finished");
+    console.log(" notifyAllUsers finished");
 
   } catch (err) {
-    console.error("❌ notifyAllUsers general error:", err);
+    console.error(" notifyAllUsers general error:", err);
   }
 }
 
@@ -84,16 +84,16 @@ export default class NotificationService {
 
   async notifyUser(userId, event, payload, saveToDB = true) {
     try {
-      // التحقق من إعدادات الإشعارات للمستخدم
+      
       const user = await userModel.findById(userId, "notificationsEnabled");
       if (!user) {
-        console.error(`❌ User ${userId} not found`);
+        console.error(` User ${userId} not found`);
         return;
       }
 
       if (user.notificationsEnabled === false) {
         console.log(`⏭ Skipping notification for user ${userId} (notifications disabled)`);
-        // لا يتم حفظ الإشعار في DB ولا إرساله عبر Pusher
+      
         return;
       }
 
@@ -106,12 +106,12 @@ export default class NotificationService {
           data: payload,
         });
         payload.notificationId = notification._id;
-        console.log(`✅ Saved notification to DB for user ${userId}: ${notification._id}`);
+        console.log(` Saved notification to DB for user ${userId}: ${notification._id}`);
       }
       await this.pusher.trigger(`user-${userId}`, event, payload);
-      console.log(`📢 Sent event "${event}" to channel user-${userId}`);
+      console.log(`Sent event "${event}" to channel user-${userId}`);
     } catch (error) {
-      console.error(`❌ Failed to notify user ${userId}:`, error);
+      console.error(` Failed to notify user ${userId}:`, error);
       throw error;
     }
   }
@@ -140,36 +140,35 @@ export default class NotificationService {
       const response = await this.pusher.trigger("general", "notification:test", {
         message: "Hello from server"
       });
-      console.log("✅ Test trigger success:", response);
+      console.log(" Test trigger success:", response);
     } catch (error) {
-      console.error("❌ Test trigger error:", error);
+      console.error(" Test trigger error:", error);
     }
   }
-// notificationService.js
-// notificationService.js
+
 
 async doctorAdded(doctor) {
   console.log("📢 doctorAdded triggered for:", doctor.name);
 
   try {
     await this.notifyAllUsers("notification:newDoctor", {
-      message: `دكتور جديد انضم: ${doctor.name}`,
+      message: `new doctor add ${doctor.name}`,
       doctorId: doctor._id,
       doctorName: doctor.name,
     });
 
-    console.log("✅ Bulk notification process initiated via notifyAllUsers.");
+    console.log(" Bulk notification process initiated via notifyAllUsers.");
 
   } catch (error) {
-    console.error("❌ ERROR during notifyAllUsers for doctorAdded:", error.message, error.stack);
+    console.error(" ERROR during notifyAllUsers for doctorAdded:", error.message, error.stack);
   }
 }
 
-// إشعار تذكير قبل الموعد
+
 async appointmentReminder(userId, appointmentData) {
   try {
     const { doctorName, date, time, from, to } = appointmentData;
-    const message = `تذكير: لديك موعد مع ${doctorName} في ${date} من ${from} إلى ${to}`;
+    const message = `Reminder: You have an appointment with ${doctorName} on ${date} from ${from} to ${to}`;
     
     await this.notifyUser(userId, "notification:appointmentReminder", {
       message: message,
@@ -180,17 +179,17 @@ async appointmentReminder(userId, appointmentData) {
       to: to
     });
 
-    console.log(`✅ Appointment reminder sent to user ${userId}`);
+    console.log(` Appointment reminder sent to user ${userId}`);
   } catch (error) {
-    console.error(`❌ Failed to send appointment reminder to user ${userId}:`, error);
+    console.error(` Failed to send appointment reminder to user ${userId}:`, error);
   }
 }
 
-// إشعار عند إضافة معاد جديد
+
 async newScheduleAvailable(doctor, date, timeSlots) {
   try {
     const slotsCount = timeSlots.length;
-    const message = `معاد جديد متاح مع ${doctor.name} في ${date} (${slotsCount} معاد متاح)`;
+    const message = `new schedule available with ${doctor.name} on ${date} (${slotsCount} slots available)`;
     
     await this.notifyAllUsers("notification:newScheduleAvailable", {
       message: message,
@@ -201,9 +200,9 @@ async newScheduleAvailable(doctor, date, timeSlots) {
       timeSlots: timeSlots
     });
 
-    console.log(`✅ New schedule notification sent for doctor ${doctor.name} on ${date}`);
+    console.log(` New schedule notification sent for doctor ${doctor.name} on ${date}`);
   } catch (error) {
-    console.error(`❌ Failed to send new schedule notification:`, error);
+    console.error(` Failed to send new schedule notification:`, error);
   }
 }
 

@@ -168,21 +168,21 @@ export const paymobCallback = async (req, res) => {
     slot.paymentStatus = "paid";
     slot.transactionId = data.id;
     slot.bookedBy = schedule.user;
-    slot.bookingTime = new Date(); // حفظ وقت الحجز
+    slot.bookingTime = new Date(); 
     await schedule.save();
 
-    // إرسال إشعار تذكير قبل الموعد
+  
     const notificationService = req.app.get("notificationService");
     if (notificationService && schedule.user) {
       const doctor = await Doctor.findById(schedule.doctor);
       if (doctor) {
-        // حساب الوقت قبل الموعد (مثلاً قبل ساعة واحدة)
+       
         const appointmentDate = new Date(schedule.date);
         const [hours, minutes] = slot.from.split(":").map(Number);
         appointmentDate.setHours(hours, minutes, 0, 0);
         
-        // إرسال إشعار قبل الموعد بساعة واحدة
-        const reminderTime = appointmentDate.getTime() - (60 * 60 * 1000); // قبل ساعة
+      
+        const reminderTime = appointmentDate.getTime() - (60 * 60 * 1000); 
         const now = Date.now();
         const delay = reminderTime - now;
 
@@ -203,7 +203,7 @@ export const paymobCallback = async (req, res) => {
           
           console.log(`📅 Appointment reminder scheduled for ${schedule.date} at ${slot.from}`);
         } else {
-          // إذا كان الموعد قريب جداً، أرسل الإشعار فوراً
+          
           await notificationService.appointmentReminder(schedule.user.toString(), {
             doctorName: doctor.name,
             date: schedule.date,
