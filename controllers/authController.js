@@ -51,7 +51,7 @@ export const updateAccount = async (req, res) => {
       weight: req.body.weight,
     };
 
-    // إضافة إعدادات الإشعارات إذا تم إرسالها
+ 
     if (req.body.notificationsEnabled !== undefined) {
       updateData.notificationsEnabled = req.body.notificationsEnabled;
     }
