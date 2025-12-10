@@ -1,6 +1,11 @@
 import express from "express";
 import { protect } from "../middleware/authMiddleware.js";
-import { updateNotificationSettings, deleteNotification } from "../controllers/notificationController.js";
+import { 
+  getUserNotifications, 
+  markNotificationRead, 
+  deleteNotification, 
+  updateNotificationSettings 
+} from "../controllers/notificationController.js";
 
 const router = express.Router();
 
@@ -31,10 +36,16 @@ router.get("/test-trigger", async (req, res) => {
   }
 });
 
+// جلب إشعارات المستخدم
+router.get("/", protect(["user"]), getUserNotifications);
 
+// تعليم إشعار كمقروء
+router.put("/:id/read", protect(["user"]), markNotificationRead);
+
+// تحديث إعدادات الإشعارات للمستخدم
 router.put("/settings", protect(["user"]), updateNotificationSettings);
 
-
+// حذف إشعار واحد
 router.delete("/:id", protect(["user"]), deleteNotification);
 
 export default router;

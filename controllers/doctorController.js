@@ -343,7 +343,7 @@ export const addExercisesToUser = async (req, res) => {
     const { exercises } = req.body;
 
     if (!exercises || !Array.isArray(exercises)) {
-      return res.status(400).json({ message: "Exercises must be an array" });
+      return res.status(400).json({ success: false, message: "Exercises must be an array" });
     }
 
     let schedule = await Schedule.findOne({ 
@@ -364,10 +364,30 @@ export const addExercisesToUser = async (req, res) => {
     schedule.exercises.push(...exercises);
     await schedule.save();
 
-    res.status(200).json({ message: "Exercises added successfully", schedule });
+    // إرسال إشعار للمستخدم عند إضافة تمارين جديدة
+    const notificationService = req.app.get("notificationService");
+    if (notificationService) {
+      // جلب اسم الدكتور لإضافته في رسالة الإشعار
+      const doctor = await Doctor.findById(req.user._id);
+      const doctorName = doctor ? doctor.name : "الدكتور";
+      
+      console.log(`📢 Triggering exercisesAdded notification for user: ${userId}`);
+      await notificationService.notifyUser(userId, "notification:newExercises", {
+        message: `تم إضافة تمارين جديدة من ${doctorName}`,
+        doctorId: req.user._id,
+        doctorName: doctorName,
+        exercisesCount: exercises.length,
+        exercises: exercises
+      });
+    } else {
+      console.error("❌ NotificationService not found in req.app");
+    }
+
+    res.status(200).json({ success: true, message: "Exercises added successfully", schedule });
+
   } catch (err) {
-    console.error(err);
-    res.status(500).json({ message: "Server error", error: err.message });
+    console.error("Add exercises error:", err);
+    res.status(500).json({ success: false, message: err.message });
   }
 };
 
@@ -496,19 +516,19 @@ export const addDoctor = async (req, res) => {
   try {
     const { _id, name, email, phone, price } = req.body;
 
-  
     if (!_id || !name || !email || !phone || price == null) {
-      return res.status(400).json({ message: "All fields including price are required" });
+      return res.status(400).json({ success: false, message: "All fields including price are required" });
     }
 
- 
     const idExists = await Doctor.findById(_id);
-    if (idExists) return res.status(400).json({ message: "Doctor ID already exists" });
+    if (idExists) {
+      return res.status(400).json({ success: false, message: "Doctor ID already exists" });
+    }
 
-   
     const emailExists = await Doctor.findOne({ email });
-    if (emailExists) return res.status(400).json({ message: "Doctor email already exists" });
-
+    if (emailExists) {
+      return res.status(400).json({ success: false, message: "Doctor email already exists" });
+    }
 
     let imageUrl = null;
 
@@ -526,7 +546,6 @@ export const addDoctor = async (req, res) => {
       imageUrl = result.secure_url;
     }
 
-   
     const doctor = await Doctor.create({
       _id,
       name,
@@ -536,11 +555,20 @@ export const addDoctor = async (req, res) => {
       price,
     });
 
-    res.status(201).json({ message: "Doctor added", doctor });
+    // إرسال إشعار لجميع المستخدمين عند إضافة دكتور جديد
+    const notificationService = req.app.get("notificationService");
+    if (notificationService) {
+      console.log(`📢 Triggering doctorAdded notification for: ${doctor.name}`);
+      await notificationService.doctorAdded(doctor);
+    } else {
+      console.error("❌ NotificationService not found in req.app");
+    }
+
+    res.status(201).json({ success: true, message: "Doctor added", doctor });
 
   } catch (err) {
-    console.error("ADD DOCTOR ERROR:", err);
-    res.status(500).json({ message: "Server error" });
+    console.error("Add doctor error:", err);
+    res.status(500).json({ success: false, message: err.message });
   }
 };
 export const getAllDoctors = async (req, res) => {
