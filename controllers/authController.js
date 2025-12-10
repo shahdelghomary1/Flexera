@@ -96,7 +96,6 @@ export const updateAccount = async (req, res) => {
   }
 };
 
-
 export const getAccount = async (req, res) => {
   try {
     const user = await User.findById(req.user._id).select("-password");
@@ -145,7 +144,7 @@ export const loginUser = async (req, res) => {
 
 const client = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
 
-// ================= GOOGLE AUTH =====================
+// ================= GOOGLE AUTH ===================== 
 
 export const googleOAuth = async (req, res) => {
   try {
@@ -277,7 +276,6 @@ export const forgotPassword = async (req, res) => {
     return res.status(500).json({ message: "Server error" });
   }
 };
-
 export const verifyOTP = async (req, res) => {
   const { otp } = req.body;
   const tempToken = req.headers.authorization?.split(" ")[1]; 
@@ -308,7 +306,6 @@ export const verifyOTP = async (req, res) => {
     return res.status(500).json({ message: "Server error" });
   }
 };
-
 export const resetPassword = async (req, res) => {
   console.log("RESET BODY:", req.body);
   console.log("RESET HEADERS:", req.headers);
@@ -347,8 +344,6 @@ export const resetPassword = async (req, res) => {
     return res.status(500).json({ message: "Server error" });
   }
 };
-
-
 export const registerUser = async (req, res) => {
   const { name, email, password, confirmPassword, role } = req.body;
 
@@ -385,7 +380,6 @@ export const registerUser = async (req, res) => {
     res.status(500).json({ message: err.message });
   }
 };
-
 export const getDoctorsForUser = async (req, res) => {
   try {
     
@@ -399,7 +393,6 @@ export const getDoctorsForUser = async (req, res) => {
     res.status(500).json({ message: "Server error" });
   }
 };
-
 export const getDoctorScheduleForUser = async (req, res) => {
   try {
     const doctorId = req.query.doctorId;
@@ -448,7 +441,6 @@ export const getDoctorScheduleForUser = async (req, res) => {
     res.status(500).json({ message: "Server error", error: err.message });
   }
 };
-
 export const getUserExercises = async (req, res) => {
   try {
     const userId = req.user._id;
@@ -479,7 +471,6 @@ export const logoutUser = async (req, res) => {
     });
   }
 };
-
 export const getUserLastPaidAppointment = async (req, res) => {
   try {
     const userId = req.user._id;

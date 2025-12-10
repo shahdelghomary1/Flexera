@@ -15,14 +15,10 @@ import { validate } from "../middleware/validate.js";
 const router = express.Router();
 // appointments for doctor not working aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
 router.get("/appointments", protect(["doctor"]), getAppointmentsForDoctor);
-
-
-
 // deshboard for staff to manage doctors
 router.get("/", protect(), authorize("staff"), getAllDoctors);
 router.post("/", protect(["staff"]), authorize("staff"), upload.single("image"), validate(addDoctorSchema), addDoctor);
 router.put("/:id", protect(["staff"]), authorize("staff"), upload.single("image"), updateDoctor);
-
 // for doctor auth and account management
 router.post("/signup",validate(doctorSignupSchema ), doctorSignup);
 router.post("/login", doctorLogin);
@@ -32,12 +28,10 @@ router.post("/reset-password", validate(doctorResetPasswordSchema), doctorResetP
 router.put("/account", protect(["doctor"]), upload.single("image"), validate(updateDoctorSchema), updateDoctorAccount);
 router.get("/account", protect(["doctor"]), getDoctorAccount);
 router.delete( "/schedule/:scheduleId/slot/:slotId", protect(["doctor"]), deleteTimeSlot);
-
 // paid patients and their appointments
 router.get("/all-paid-patients", protect(["doctor"]), getAllPaidPatients);
 router.get("/past-paid-appointments", protect(["doctor"]), getPastPaidPatients  );
 router.get("/upcoming-paid-appointments", protect(["doctor"]),  getUpcomingPaidPatients);
-
 //exercises to user
 router.post("/users/:userId/exercises", protect(["doctor"]), addExercisesToUser);
 router.put("/users/:userId/exercises/:exerciseId",protect(["doctor"]),updateUserExercise);

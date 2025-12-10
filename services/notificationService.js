@@ -35,14 +35,14 @@ export default class NotificationService {
     });
   }
 
-  async notifyAllUsers(event, payload, saveToDB = true, sendFirebase = true) {
+async notifyAllUsers(event, payload, saveToDB = true, sendFirebase = true) {
   try {
     const users = await userModel.find({}, "_id email name notificationsEnabled fcmToken");
     console.log(`Found ${users.length} users to notify`);
 
     for (const user of users) {
       if (user.notificationsEnabled === false) {
-        console.log(`⏭ Skipping notification for user ${user._id} (notifications disabled)`);
+        console.log(`⏭ Skipping user ${user._id} (notifications disabled)`);
         continue;
       }
 
@@ -55,42 +55,45 @@ export default class NotificationService {
             message: payload.message,
             data: payload,
           });
-          payload.notificationId = notification._id;
         } catch (dbErr) {
-          console.error(`Failed to save notification for user ${user._id}:`, dbErr);
+          console.error(`DB save failed for user ${user._id}:`, dbErr);
           continue;
         }
       }
 
-      
+      // Pusher
       try {
-        await this.pusher.trigger(`user-${user._id}`, event, payload);
-        console.log(`📡 Pusher notification sent to user-${user._id}`);
+        await this.pusher.trigger(`user-${user._id}`, event, { ...payload, notificationId: notification?._id });
+        console.log(`📡 Pusher sent → user-${user._id}`);
       } catch (pusherErr) {
-        console.error(`Failed to send event to user-${user._id}:`, pusherErr);
+        console.error(`Pusher error (user-${user._id}):`, pusherErr);
       }
 
-
+      // Firebase
       if (sendFirebase && user.fcmToken) {
         try {
+          const data = toStringData({
+            ...payload,
+            event,
+            notificationId: notification?._id?.toString(),
+          });
           await this.sendFirebaseNotification(
             user._id,
             payload.title || "Notification",
             payload.message,
-            { ...payload, event, notificationId: notification?._id?.toString() }
+            data
           );
-          console.log(`✅ Firebase notification sent to user ${user._id}`);
+          console.log(`✅ Firebase sent → user ${user._id}`);
         } catch (firebaseErr) {
-          console.error(`Failed to send Firebase notification to user ${user._id}:`, firebaseErr);
+          console.error(`Firebase error (user ${user._id}):`, firebaseErr);
         }
       }
     }
     console.log("notifyAllUsers finished");
   } catch (err) {
-    console.error("notifyAllUsers general error:", err);
+    console.error("notifyAllUsers error:", err);
   }
 }
-
 
   async notifyDoctor(doctorId, event, payload, saveToDB = true) {
     let notification;
@@ -105,7 +108,6 @@ export default class NotificationService {
     }
     return this.pusher.trigger(`doctor-${doctorId}`, event, payload);
   }
-
 
   async sendFirebaseNotification(userId, title, body, data = {}) {
     try {
@@ -128,7 +130,7 @@ export default class NotificationService {
         throw error;
       }
 
-      console.log(`📤 Sending Firebase notification to user ${userId} (${user.name || user.email})`);
+      console.log(` Sending Firebase notification to user ${userId} (${user.name || user.email})`);
       console.log(`   Token: ${user.fcmToken.substring(0, 30)}...`);
 
       const message = {
@@ -144,12 +146,12 @@ export default class NotificationService {
       };
 
       const response = await admin.messaging().send(message);
-      console.log(`✅ Firebase notification sent successfully!`);
+      console.log(` Firebase notification sent successfully!`);
       console.log(`   Message ID: ${response}`);
       console.log(`   User: ${user.name || user.email} (${userId})`);
       return response;
     } catch (error) {
-      console.error(`❌ Failed to send Firebase notification to user ${userId}:`);
+      console.error(`Failed to send Firebase notification to user ${userId}:`);
       console.error(`   Error Code: ${error.code || 'UNKNOWN'}`);
       console.error(`   Error Message: ${error.message}`);
       if (error.errorInfo) {
@@ -159,46 +161,47 @@ export default class NotificationService {
       if (error.code === 'messaging/invalid-registration-token' || 
           error.code === 'messaging/registration-token-not-registered') {
         await userModel.findByIdAndUpdate(userId, { fcmToken: null });
-        console.log(`🗑 Removed invalid FCM token for user ${userId}`);
+        console.log(` Removed invalid FCM token for user ${userId}`);
       }
       throw error;
     }
   }
+ async notifyUser(userId, event, payload, saveToDB = true, sendFirebase = true) {
+  try {
+    const user = await userModel.findById(userId, "notificationsEnabled fcmToken");
+    if (!user || user.notificationsEnabled === false) return;
 
-  async notifyUser(userId, event, payload, saveToDB = true, sendFirebase = false) {
-    try {
-      const user = await userModel.findById(userId, "notificationsEnabled fcmToken");
-      if (!user) return;
-
-      if (user.notificationsEnabled === false) return;
-
-      let notification;
-      if (saveToDB) {
-        notification = await Notification.create({
+    const notification = saveToDB
+      ? await Notification.create({
           user: userId,
           type: event,
           message: payload.message,
           data: payload,
-        });
-        payload.notificationId = notification._id;
-      }
-    
-      await this.pusher.trigger(`user-${userId}`, event, payload);
-      
+        })
+      : null;
 
-      if (sendFirebase && user.fcmToken) {
-        await this.sendFirebaseNotification(
-          userId,
-          payload.title || " new notification",
-          payload.message,
-          { ...payload, event, notificationId: notification?._id?.toString() }
-        );
-      }
-    } catch (error) {
-      console.error(`Failed to notify user ${userId}:`, error);
-      throw error;
+    // Pusher
+    await this.pusher.trigger(`user-${userId}`, event, { ...payload, notificationId: notification?._id });
+
+    // Firebase
+    if (sendFirebase && user.fcmToken) {
+      const data = toStringData({
+        ...payload,
+        event,
+        notificationId: notification?._id?.toString(),
+      });
+      await this.sendFirebaseNotification(
+        userId,
+        payload.title || "Notification",
+        payload.message,
+        data
+      );
     }
+  } catch (error) {
+    console.error(`notifyUser error (${userId}):`, error);
+    throw error;
   }
+}
 
   async notifyAllDoctors(event, payload, saveToDB = true) {
     const doctors = await doctorModel.find({}, "_id");
@@ -216,7 +219,6 @@ export default class NotificationService {
       await this.pusher.trigger(`doctor-${doctor._id}`, event, payload);
     }
   }
-
   async testTrigger() {
     try {
       const response = await this.pusher.trigger("general", "notification:test", {
@@ -235,7 +237,7 @@ async doctorAdded(doctor) {
       doctorId: doctor._id,
       doctorName: doctor.name,
       title: "New Doctor Added"
-    }, true, true); // ✅ هنا فعلنا Firebase
+    }, true, true); 
   } catch (error) {
     console.error("ERROR during notifyAllUsers for doctorAdded:", error.message, error.stack);
   }
@@ -253,7 +255,7 @@ async appointmentReminder(userId, appointmentData) {
       from,
       to,
       title: "Appointment Reminder"
-    }, true, true); // ✅ هنا فعلنا Firebase
+    }, true, true); 
   } catch (error) {
     console.error(`Failed to send appointment reminder to user ${userId}:`, error);
   }
@@ -271,7 +273,7 @@ async newScheduleAvailable(doctor, date, timeSlots) {
       slotsCount,
       timeSlots,
       title: "New Schedule Available"
-    }, true, true); // ✅ هنا فعلنا Firebase
+    }, true, true);
   } catch (error) {
     console.error(`Failed to send new schedule notification:`, error);
   }

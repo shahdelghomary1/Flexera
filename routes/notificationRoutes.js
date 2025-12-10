@@ -44,8 +44,8 @@ router.get("/test-trigger", async (req, res) => {
 router.get("/", protect(["user"]), getUserNotifications);
 
 router.put("/:id/read", protect(["user"]), markNotificationRead);
-router.put("/settings", protect(["user"]), updateNotificationSettings);
 
+router.put("/settings", protect(["user"]), updateNotificationSettings);
 router.post("/fcm-token", protect(["user"]), updateFCMToken);
 
 router.post("/lab-result", protect(["staff"]), sendLabResult);
