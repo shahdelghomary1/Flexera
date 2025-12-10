@@ -6,7 +6,8 @@ import {
   deleteNotification, 
   updateNotificationSettings,
   updateFCMToken,
-  sendLabResult
+  sendLabResult,
+  testFirebaseNotification
 } from "../controllers/notificationController.js";
 
 const router = express.Router();
@@ -50,6 +51,9 @@ router.post("/fcm-token", protect(["user"]), updateFCMToken);
 
 // إرسال نتائج المختبر مع إشعار Pusher داخلي (يمكن استخدامه من السيرفر/المختبر)
 router.post("/lab-result", protect(["staff"]), sendLabResult);
+
+// اختبار إرسال إشعار Firebase خارجي (للتجربة)
+router.post("/test-firebase", protect(["staff"]), testFirebaseNotification);
 
 router.delete("/:id", protect(["user"]), deleteNotification);
 

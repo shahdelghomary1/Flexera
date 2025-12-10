@@ -192,3 +192,46 @@ export const sendLabResult = async (req, res) => {
     res.status(500).json({ success: false, message: err.message });
   }
 };
+
+// اختبار إرسال إشعار Firebase خارجي
+export const testFirebaseNotification = async (req, res) => {
+  try {
+    const { userId, title, body } = req.body;
+
+    if (!userId) {
+      return res.status(400).json({
+        success: false,
+        message: "User ID is required",
+      });
+    }
+
+    const notificationService = req.app.get("notificationService");
+    
+    if (!notificationService) {
+      return res.status(500).json({
+        success: false,
+        message: "Notification service not available",
+      });
+    }
+
+    const result = await notificationService.sendFirebaseNotification(
+      userId,
+      title || "اختبار إشعار",
+      body || "هذا إشعار تجريبي من السيرفر",
+      { test: true, timestamp: new Date().toISOString() }
+    );
+
+    res.status(200).json({
+      success: true,
+      message: "Firebase notification sent successfully",
+      result,
+    });
+  } catch (err) {
+    console.error("Test Firebase notification error:", err);
+    res.status(500).json({ 
+      success: false, 
+      message: err.message,
+      error: err.code || "Unknown error"
+    });
+  }
+};
