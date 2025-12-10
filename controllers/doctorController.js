@@ -340,61 +340,97 @@ export const addExercisesToUser = async (req, res) => {
     const { userId } = req.params;
     const { exercises } = req.body;
 
+    // Validate array
     if (!exercises || !Array.isArray(exercises)) {
-  return res.status(400).json({ success: false, message: "Exercises must be an array" });
-}
+      return res.status(400).json({ 
+        success: false, 
+        message: "Exercises must be an array" 
+      });
+    }
 
+    // Validate incoming exercises
+    for (const ex of exercises) {
+      if (!ex.category) {
+        return res.status(400).json({
+          success: false,
+          message: "Category is required for each exercise"
+        });
+      }
+      if (!ex.name) {
+        return res.status(400).json({
+          success: false,
+          message: "Name is required for each exercise"
+        });
+      }
+    }
 
-for (const ex of exercises) {
-  if (!ex.category) {
-    return res.status(400).json({ success: false, message: "Category is required for each exercise" });
-  }
-}
-
-
-    let schedule = await Schedule.findOne({ 
-      user: userId, 
-      doctor: req.user._id 
+    // Get or create schedule
+    let schedule = await Schedule.findOne({
+      user: userId,
+      doctor: req.user._id
     });
 
     if (!schedule) {
       schedule = await Schedule.create({
         user: userId,
         doctor: req.user._id,
-        date: new Date().toISOString().split('T')[0], 
+        date: new Date().toISOString().split("T")[0],
         timeSlots: [],
         exercises: []
       });
     }
 
+    // Fix OLD exercises that don't have category
+    schedule.exercises = schedule.exercises.map((ex) => ({
+      ...ex.toObject(),
+      category: ex.category || "general"  // default for old records
+    }));
+
+    // Add new exercises
     schedule.exercises.push(...exercises);
+
+    // Save
     await schedule.save();
 
+    // ⛔ Notification Service
     const notificationService = req.app.get("notificationService");
+
     if (notificationService) {
-      
       const doctor = await Doctor.findById(req.user._id);
       const doctorName = doctor ? doctor.name : "doctor";
-      
+
       console.log(` Triggering exercisesAdded notification for user: ${userId}`);
-      await notificationService.notifyUser(userId, "notification:newExercises", {
-        message: `add a new exercisce${doctorName}`,
-        doctorId: req.user._id,
-        doctorName: doctorName,
-        exercisesCount: exercises.length,
-        exercises: exercises
-      });
+
+      await notificationService.notifyUser(
+        userId,
+        "notification:newExercises",
+        {
+          message: `Doctor ${doctorName} added new exercises`,
+          doctorId: req.user._id,
+          doctorName: doctorName,
+          exercisesCount: exercises.length,
+          exercises: exercises
+        }
+      );
     } else {
-      console.error(" NotificationService not found in req.app");
+      console.error("❌ NotificationService not found in req.app");
     }
 
-    res.status(200).json({ success: true, message: "Exercises added successfully", schedule });
+    res.status(200).json({
+      success: true,
+      message: "Exercises added successfully",
+      schedule
+    });
 
   } catch (err) {
     console.error("Add exercises error:", err);
-    res.status(500).json({ success: false, message: err.message });
+    res.status(500).json({
+      success: false,
+      message: err.message
+    });
   }
 };
+
 
 export const updateUserExercise = async (req, res) => {
   try {
