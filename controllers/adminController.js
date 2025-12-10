@@ -43,7 +43,7 @@ export const addDoctor = async (req, res) => {
    const notificationService = req.app.get("notificationService"); 
     
     if (notificationService) {
-        console.log(`📢 Triggering doctorAdded notification for: ${doctor.name}`);
+        console.log(` Triggering doctorAdded notification for: ${doctor.name}`);
         await notificationService.doctorAdded(doctor);
     } else {
         console.error(" NotificationService not found in req.app");

@@ -24,7 +24,7 @@ export default class NotificationService {
  async notifyAllUsers(event, payload, saveToDB = true) {
   try {
     const users = await userModel.find({}, "_id email name notificationsEnabled");
-    console.log(`👥 Found ${users.length} users to notify`);
+    console.log(` Found ${users.length} users to notify`);
 
     for (const user of users) {
     
@@ -45,7 +45,7 @@ export default class NotificationService {
             data: payload,
           });
           payload.notificationId = notification._id;
-          console.log(`✅ Saved notification to DB: ${notification._id}`);
+          console.log(` Saved notification to DB: ${notification._id}`);
         } catch (dbErr) {
           console.error(` Failed to save notification for user ${user._id}:`, dbErr);
           continue; 
@@ -54,9 +54,9 @@ export default class NotificationService {
 
       try {
         await this.pusher.trigger(`user-${user._id}`, event, payload);
-        console.log(`📢 Sent event "${event}" to channel user-${user._id}`);
+        console.log(` Sent event "${event}" to channel user-${user._id}`);
       } catch (pusherErr) {
-        console.error(`❌ Failed to send event to user-${user._id}:`, pusherErr);
+        console.error(` Failed to send event to user-${user._id}:`, pusherErr);
       }
     }
 
@@ -148,7 +148,7 @@ export default class NotificationService {
 
 
 async doctorAdded(doctor) {
-  console.log("📢 doctorAdded triggered for:", doctor.name);
+  console.log(" doctorAdded triggered for:", doctor.name);
 
   try {
     await this.notifyAllUsers("notification:newDoctor", {

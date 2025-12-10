@@ -15,10 +15,10 @@ router.post("/broadcast", protect(["staff"]), async (req, res) => {
     const notificationService = req.app.get("notificationService");
 
     await notificationService.notifyAllUsers("notification:broadcast", {
-      message: message || "إشعار جماعي تجريبي",
+      message: message || "new broadcast message",
     });
 
-    res.json({ success: true, message: "تم إرسال الإشعار الجماعي لكل المستخدمين" });
+    res.json({ success: true, message: "Broadcast sent to all users" });
   } catch (err) {
     console.error("Broadcast error:", err);
     res.status(500).json({ success: false, message: err.message });
@@ -29,7 +29,7 @@ router.get("/test-trigger", async (req, res) => {
   try {
     const notificationService = req.app.get("notificationService");
     await notificationService.testTrigger();
-    res.json({ success: true, message: "تم إرسال إشعار تجريبي مباشر" });
+    res.json({ success: true, message: "Test notification sent successfully" });
   } catch (err) {
     console.error("Test trigger error:", err);
     res.status(500).json({ success: false, message: err.message });
