@@ -8,14 +8,12 @@ const notificationSchema = new mongoose.Schema({
     default: null,
   },
   
- 
   doctor: {
     type: String, 
     ref: "Doctor",
     default: null,
   },
   
- 
   type: {
     type: String,
     required: true,
@@ -26,12 +24,10 @@ const notificationSchema = new mongoose.Schema({
     required: true,
   },
   
- 
   data: {
     type: Object, 
     default: {},
   },
-  
 
   isRead: {
     type: Boolean,

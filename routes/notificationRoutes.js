@@ -40,9 +40,7 @@ router.get("/test-trigger", async (req, res) => {
 router.get("/", protect(["user"]), getUserNotifications);
 
 
-router.put("/:id/read", protect(["user"]), markNotificationRead);
-
-
+router.put("/:id/read", protect(["user"]), markNotificationRead)
 router.put("/settings", protect(["user"]), updateNotificationSettings);
 
 router.delete("/:id", protect(["user"]), deleteNotification);

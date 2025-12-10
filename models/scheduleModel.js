@@ -38,7 +38,8 @@ const doctorScheduleSchema = new mongoose.Schema({
       name: { type: String, required: true },
       sets: { type: Number },
       reps: { type: Number },
-      notes: { type: String }
+      notes: { type: String },
+      category: { type: String , required: true}
     }]
 }, { timestamps: true });
 

@@ -335,16 +335,22 @@ export const getDoctorAccount = async (req, res) => {
   }
 };
 
-// add exercises to user from doctor --------------------------------------------------------------------------------------
-
 export const addExercisesToUser = async (req, res) => {
   try {
     const { userId } = req.params;
     const { exercises } = req.body;
 
     if (!exercises || !Array.isArray(exercises)) {
-      return res.status(400).json({ success: false, message: "Exercises must be an array" });
-    }
+  return res.status(400).json({ success: false, message: "Exercises must be an array" });
+}
+
+
+for (const ex of exercises) {
+  if (!ex.category) {
+    return res.status(400).json({ success: false, message: "Category is required for each exercise" });
+  }
+}
+
 
     let schedule = await Schedule.findOne({ 
       user: userId, 
@@ -379,7 +385,7 @@ export const addExercisesToUser = async (req, res) => {
         exercises: exercises
       });
     } else {
-      console.error("❌ NotificationService not found in req.app");
+      console.error(" NotificationService not found in req.app");
     }
 
     res.status(200).json({ success: true, message: "Exercises added successfully", schedule });
@@ -395,13 +401,17 @@ export const updateUserExercise = async (req, res) => {
     const { userId, exerciseId } = req.params;
     const doctorId = req.user._id;
 
-    
     let schedule = await Schedule.findOne({ user: userId, doctor: doctorId });
     if (!schedule) return res.status(404).json({ message: "Schedule not found for this doctor" });
 
     const exerciseIndex = schedule.exercises.findIndex(ex => ex._id.toString() === exerciseId);
     if (exerciseIndex === -1) {
       return res.status(404).json({ message: "Exercise not found" });
+    }
+
+    // لازم category لو الدكتور هيعدّلها
+    if (req.body.category !== undefined && !req.body.category) {
+      return res.status(400).json({ message: "Category cannot be empty" });
     }
 
     schedule.exercises[exerciseIndex] = {
@@ -417,6 +427,7 @@ export const updateUserExercise = async (req, res) => {
     res.status(500).json({ message: "Server error", error: err.message });
   }
 };
+
 
  
 export const deleteUserExercise = async (req, res) => {
