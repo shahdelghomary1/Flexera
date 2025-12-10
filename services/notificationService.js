@@ -76,6 +76,27 @@ export default class NotificationService {
     return this.pusher.trigger(`doctor-${doctorId}`, event, payload);
   }
 
+  async notifyUser(userId, event, payload, saveToDB = true) {
+    try {
+      let notification;
+      if (saveToDB) {
+        notification = await Notification.create({
+          user: userId,
+          type: event,
+          message: payload.message,
+          data: payload,
+        });
+        payload.notificationId = notification._id;
+        console.log(`✅ Saved notification to DB for user ${userId}: ${notification._id}`);
+      }
+      await this.pusher.trigger(`user-${userId}`, event, payload);
+      console.log(`📢 Sent event "${event}" to channel user-${userId}`);
+    } catch (error) {
+      console.error(`❌ Failed to notify user ${userId}:`, error);
+      throw error;
+    }
+  }
+
  
 
   async notifyAllDoctors(event, payload, saveToDB = true) {

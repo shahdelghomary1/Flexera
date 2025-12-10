@@ -2,7 +2,7 @@ import express from "express";
 import { protect, authorize } from "../middleware/authMiddleware.js";
 import { upload } from "../middleware/multer.js";
 import { updateDoctorAccount, getAllDoctors, doctorSignup, doctorForgotPassword, doctorVerifyOTP,
-  doctorResetPassword,doctorLogin,logoutDoctor , addExercisesToUser ,getDoctorAccount,updateUserExercise,deleteUserExercise , getUserMedicalFileWithExercises,
+  doctorResetPassword,doctorLogin,logoutDoctor , getDoctorAccount,updateUserExercise,deleteUserExercise , getUserMedicalFileWithExercises,
  deleteTimeSlot} from "../controllers/doctorController.js";
 import { addDoctorSchema, updateDoctorSchema, doctorSignupSchema, doctorResetPasswordSchema } from "../validators/doctorValidation.js";
 import { getAppointmentsForDoctor} from "../controllers/scheduleController.js";
@@ -13,6 +13,7 @@ import {
 } from "../controllers/doctorController.js";
 import { validate } from "../middleware/validate.js";
 import Doctor from "../models/doctorModel.js";
+import Schedule from "../models/scheduleModel.js";
 import { v2 as cloudinary } from "cloudinary";
 import streamifier from "streamifier";
 
@@ -36,7 +37,6 @@ router.post("/", protect(["staff"]), authorize("staff"), upload.single("image"),
     if (!_id || !name || !email || !phone || price == null) {
       return res.status(400).json({ success: false, message: "All fields including price are required" });
     }
-
     const idExists = await Doctor.findById(_id);
     if (idExists) {
       return res.status(400).json({ success: false, message: "Doctor ID already exists" });
@@ -72,7 +72,7 @@ router.post("/", protect(["staff"]), authorize("staff"), upload.single("image"),
       price,
     });
 
-    // إرسال إشعار لجميع المستخدمين عند إضافة دكتور جديد
+    
     const notificationService = req.app.get("notificationService");
     if (notificationService) {
       console.log(`📢 Triggering doctorAdded notification for: ${doctor.name}`);
@@ -106,7 +106,59 @@ router.get("/past-paid-appointments", protect(["doctor"]), getPastPaidPatients  
 router.get("/upcoming-paid-appointments", protect(["doctor"]),  getUpcomingPaidPatients);
 
 //exercises to user
-router.post("/users/:userId/exercises", protect(["doctor"]), addExercisesToUser);
+router.post("/users/:userId/exercises", protect(["doctor"]), async (req, res) => {
+  try {
+    const { userId } = req.params;
+    const { exercises } = req.body;
+
+    if (!exercises || !Array.isArray(exercises)) {
+      return res.status(400).json({ success: false, message: "Exercises must be an array" });
+    }
+
+    let schedule = await Schedule.findOne({ 
+      user: userId, 
+      doctor: req.user._id 
+    });
+
+    if (!schedule) {
+      schedule = await Schedule.create({
+        user: userId,
+        doctor: req.user._id,
+        date: new Date().toISOString().split('T')[0], 
+        timeSlots: [],
+        exercises: []
+      });
+    }
+
+    schedule.exercises.push(...exercises);
+    await schedule.save();
+
+    // إرسال إشعار للمستخدم عند إضافة تمارين جديدة
+    const notificationService = req.app.get("notificationService");
+    if (notificationService) {
+      // جلب اسم الدكتور لإضافته في رسالة الإشعار
+      const doctor = await Doctor.findById(req.user._id);
+      const doctorName = doctor ? doctor.name : "الدكتور";
+      
+      console.log(`📢 Triggering exercisesAdded notification for user: ${userId}`);
+      await notificationService.notifyUser(userId, "notification:newExercises", {
+        message: `تم إضافة تمارين جديدة من ${doctorName}`,
+        doctorId: req.user._id,
+        doctorName: doctorName,
+        exercisesCount: exercises.length,
+        exercises: exercises
+      });
+    } else {
+      console.error("❌ NotificationService not found in req.app");
+    }
+
+    res.status(200).json({ success: true, message: "Exercises added successfully", schedule });
+
+  } catch (err) {
+    console.error("Add exercises error:", err);
+    res.status(500).json({ success: false, message: err.message });
+  }
+});
 router.put("/users/:userId/exercises/:exerciseId",protect(["doctor"]),updateUserExercise);
 router.delete("/users/:userId/exercises/:exerciseId",protect(["doctor"]),deleteUserExercise);
 router.get("/user/:userId/full", protect(["doctor"]), getUserMedicalFileWithExercises);
