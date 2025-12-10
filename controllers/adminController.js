@@ -42,12 +42,24 @@ export const addDoctor = async (req, res) => {
 
    const notificationService = req.app.get("notificationService"); 
     
-    if (notificationService) {
-        console.log(` Triggering doctorAdded notification for: ${doctor.name}`);
-        await notificationService.doctorAdded(doctor);
-    } else {
-        console.error(" NotificationService not found in req.app");
+   if (notificationService) {
+    console.log(` Triggering doctorAdded notification for: ${doctor.name}`);
+    await notificationService.doctorAdded(doctor);
+
+    // إضافة إرسال Firebase notification لكل المستخدمين المسجلين
+    const usersWithFCM = await User.find({ notificationsEnabled: true, fcmToken: { $exists: true } });
+    for (const user of usersWithFCM) {
+      await notificationService.sendFirebaseNotification(
+        user._id,
+        "New Doctor Added",
+        `New doctor added: ${doctor.name}`,
+        { doctorId: doctor._id, doctorName: doctor.name }
+      );
     }
+} else {
+    console.error(" NotificationService not found in req.app");
+}
+
 
     res.status(201).json({ message: "Doctor added", doctor });
 
