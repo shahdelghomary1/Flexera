@@ -214,6 +214,45 @@ export const testFirebaseNotification = async (req, res) => {
       });
     }
 
+    // التحقق من حالة المستخدم قبل الإرسال
+    const user = await User.findById(userId, "fcmToken notificationsEnabled name email");
+    
+    if (!user) {
+      return res.status(404).json({
+        success: false,
+        message: "User not found",
+      });
+    }
+
+    const userInfo = {
+      userId: user._id.toString(),
+      userName: user.name,
+      hasFCMToken: !!user.fcmToken,
+      fcmTokenLength: user.fcmToken ? user.fcmToken.length : 0,
+      notificationsEnabled: user.notificationsEnabled,
+    };
+
+    if (!user.fcmToken) {
+      return res.status(400).json({
+        success: false,
+        message: "User does not have FCM token. Please save FCM token first using /api/notifications/fcm-token",
+        userInfo,
+      });
+    }
+
+    if (user.notificationsEnabled === false) {
+      return res.status(400).json({
+        success: false,
+        message: "User has notifications disabled",
+        userInfo,
+      });
+    }
+
+    console.log(`📤 Attempting to send Firebase notification to user ${userId} (${user.name})`);
+    console.log(`   FCM Token: ${user.fcmToken.substring(0, 20)}...`);
+    console.log(`   Title: ${title || "Test Notification"}`);
+    console.log(`   Body: ${body || "This is a test notification from the server"}`);
+
     const result = await notificationService.sendFirebaseNotification(
       userId,
       title || "Test Notification",
@@ -221,17 +260,42 @@ export const testFirebaseNotification = async (req, res) => {
       { test: true, timestamp: new Date().toISOString() }
     );
 
+    console.log(`✅ Firebase notification sent successfully!`);
+    console.log(`   Message ID: ${result}`);
+
     res.status(200).json({
       success: true,
       message: "Firebase notification sent successfully",
-      result,
+      userInfo,
+      firebaseResponse: {
+        messageId: result,
+        sentAt: new Date().toISOString(),
+      },
+      notification: {
+        title: title || "Test Notification",
+        body: body || "This is a test notification from the server",
+      },
+      note: "Check the device to see if notification was received. Also check server logs for more details."
     });
   } catch (err) {
-    console.error("Test Firebase notification error:", err);
+    console.error("❌ Test Firebase notification error:", err);
+    console.error("   Error code:", err.code);
+    console.error("   Error message:", err.message);
+    
     res.status(500).json({ 
       success: false, 
       message: err.message,
-      error: err.code || "Unknown error"
+      error: {
+        code: err.code || "Unknown error",
+        message: err.message,
+        details: err.errorInfo || null,
+      },
+      troubleshooting: {
+        "messaging/invalid-registration-token": "FCM token is invalid. User needs to get a new token from the app.",
+        "messaging/registration-token-not-registered": "FCM token is not registered. User needs to register again.",
+        "messaging/authentication-error": "Firebase credentials are invalid. Check FIREBASE_PROJECT_ID, FIREBASE_CLIENT_EMAIL, FIREBASE_PRIVATE_KEY in .env",
+        "messaging/invalid-argument": "Invalid arguments in the notification payload.",
+      }
     });
   }
 };

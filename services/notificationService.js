@@ -91,16 +91,27 @@ export default class NotificationService {
 
   async sendFirebaseNotification(userId, title, body, data = {}) {
     try {
-      const user = await userModel.findById(userId, "fcmToken notificationsEnabled");
-      if (!user || !user.fcmToken) {
-        console.log(`No FCM token found for user ${userId}`);
-        return;
+      const user = await userModel.findById(userId, "fcmToken notificationsEnabled name email");
+      if (!user) {
+        const error = new Error(`User ${userId} not found`);
+        error.code = 'USER_NOT_FOUND';
+        throw error;
+      }
+
+      if (!user.fcmToken) {
+        const error = new Error(`No FCM token found for user ${userId}`);
+        error.code = 'NO_FCM_TOKEN';
+        throw error;
       }
 
       if (user.notificationsEnabled === false) {
-        console.log(`Notifications disabled for user ${userId}`);
-        return;
+        const error = new Error(`Notifications disabled for user ${userId}`);
+        error.code = 'NOTIFICATIONS_DISABLED';
+        throw error;
       }
+
+      console.log(`📤 Sending Firebase notification to user ${userId} (${user.name || user.email})`);
+      console.log(`   Token: ${user.fcmToken.substring(0, 30)}...`);
 
       const message = {
         notification: {
@@ -115,10 +126,17 @@ export default class NotificationService {
       };
 
       const response = await admin.messaging().send(message);
-      console.log(`✅ Firebase notification sent successfully to user ${userId}:`, response);
+      console.log(`✅ Firebase notification sent successfully!`);
+      console.log(`   Message ID: ${response}`);
+      console.log(`   User: ${user.name || user.email} (${userId})`);
       return response;
     } catch (error) {
-      console.error(`❌ Failed to send Firebase notification to user ${userId}:`, error);
+      console.error(`❌ Failed to send Firebase notification to user ${userId}:`);
+      console.error(`   Error Code: ${error.code || 'UNKNOWN'}`);
+      console.error(`   Error Message: ${error.message}`);
+      if (error.errorInfo) {
+        console.error(`   Error Details:`, error.errorInfo);
+      }
     
       if (error.code === 'messaging/invalid-registration-token' || 
           error.code === 'messaging/registration-token-not-registered') {
