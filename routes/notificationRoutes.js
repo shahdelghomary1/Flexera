@@ -7,7 +7,8 @@ import {
   updateNotificationSettings,
   updateFCMToken,
   sendLabResult,
-  testFirebaseNotification
+  testFirebaseNotification,
+  getUserFCMInfo
 } from "../controllers/notificationController.js";
 
 const router = express.Router();
@@ -50,6 +51,9 @@ router.post("/fcm-token", protect(["user"]), updateFCMToken);
 router.post("/lab-result", protect(["staff"]), sendLabResult);
 
 router.post("/test-firebase", protect(["staff"]), testFirebaseNotification);
+
+// الحصول على معلومات FCM Token للمستخدم (للتجربة)
+router.get("/user/:userId/fcm-info", protect(["staff"]), getUserFCMInfo);
 
 router.delete("/:id", protect(["user"]), deleteNotification);
 

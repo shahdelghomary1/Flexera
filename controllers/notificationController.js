@@ -194,6 +194,48 @@ export const sendLabResult = async (req, res) => {
 };
 
 
+
+export const getUserFCMInfo = async (req, res) => {
+  try {
+    const { userId } = req.params;
+    
+    if (!userId) {
+      return res.status(400).json({
+        success: false,
+        message: "User ID is required",
+      });
+    }
+
+    const user = await User.findById(userId, "fcmToken notificationsEnabled name email");
+    
+    if (!user) {
+      return res.status(404).json({
+        success: false,
+        message: "User not found",
+      });
+    }
+
+    res.status(200).json({
+      success: true,
+      userInfo: {
+        userId: user._id.toString(),
+        userName: user.name,
+        userEmail: user.email,
+        hasFCMToken: !!user.fcmToken,
+        fcmToken: user.fcmToken ? `${user.fcmToken.substring(0, 30)}...` : null,
+        fcmTokenLength: user.fcmToken ? user.fcmToken.length : 0,
+        notificationsEnabled: user.notificationsEnabled,
+      },
+      instructions: {
+        ifNoToken: "To get FCM token: 1) From mobile app (Flutter/React Native), 2) From Firebase Console test message, 3) Use a test token from Firebase documentation",
+        saveToken: "POST /api/notifications/fcm-token with Authorization header and body: { 'fcmToken': 'YOUR_TOKEN' }"
+      }
+    });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+};
+
 export const testFirebaseNotification = async (req, res) => {
   try {
     const { userId, title, body } = req.body;

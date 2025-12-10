@@ -412,8 +412,8 @@ export const addExercisesToUser = async (req, res) => {
           exercisesCount: exercises.length,
           exercises: exercises
         },
-        true, // saveToDB
-        true  // sendFirebase
+        true, 
+        true  
       );
     } else {
       console.error(" NotificationService not found in req.app");
