@@ -179,14 +179,14 @@ export const paymobCallback = async (req, res) => {
       const user = await User.findById(schedule.user);
       
       if (doctor) {
-        // إرسال إشعار للدكتور بأن شخص جديد دفع
+      
         if (user) {
           await notificationService.notifyDoctor(
             schedule.doctor.toString(),
             "notification:newPayment",
             {
-              message: `دفع ${user.name} مبلغ ${slot.price} جنيه لحجز موعد`,
-              title: "دفعة جديدة",
+              message: `Payment ${user.name} Amount ${slot.price} EGP for booking an appointment on ${schedule.date} at ${slot.from}`,
+              title: "new Payment Received",
               userId: user._id.toString(),
               userName: user.name,
               userEmail: user.email,
@@ -200,9 +200,9 @@ export const paymobCallback = async (req, res) => {
               transactionId: slot.transactionId,
               paymentStatus: "paid"
             },
-            true // saveToDB
+            true 
           );
-          console.log(`✅ Payment notification sent to doctor ${doctor.name} for user ${user.name}`);
+          console.log(` Payment notification sent to doctor ${doctor.name} for user ${user.name}`);
         }
        
         const appointmentDate = new Date(schedule.date);
@@ -229,7 +229,7 @@ export const paymobCallback = async (req, res) => {
             }
           }, delay);
           
-          console.log(`📅 Appointment reminder scheduled for ${schedule.date} at ${slot.from}`);
+          console.log(` Appointment reminder scheduled for ${schedule.date} at ${slot.from}`);
         } else {
           
           await notificationService.appointmentReminder(schedule.user.toString(), {

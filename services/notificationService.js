@@ -16,14 +16,11 @@ if (!admin.apps.length) {
 
 export const firebaseAdmin = admin;
 
-/**
- * دالة مساعدة لضمان تحويل جميع قيم كائن البيانات إلى سلاسل نصية (Strings).
- * Firebase FCM تتطلب أن تكون جميع الحقول في كائن "data" من نوع string.
- */
+
 const toStringData = (obj) => {
   const data = {};
   for (const key in obj) {
-    // التحقق من أن المفتاح موجود في الكائن وليس null/undefined
+   
     if (obj.hasOwnProperty(key) && obj[key] !== null && obj[key] !== undefined) {
       data[key] = String(obj[key]);
     }
@@ -76,7 +73,7 @@ async notifyAllUsers(event, payload, saveToDB = true, sendFirebase = true) {
         }
       }
 
-      // Pusher
+   
       try {
         await this.pusher.trigger(`user-${user._id}`, event, { ...payload, notificationId: notification?._id });
         console.log(`📡 Pusher sent → user-${user._id}`);
@@ -84,10 +81,10 @@ async notifyAllUsers(event, payload, saveToDB = true, sendFirebase = true) {
         console.error(`Pusher error (user-${user._id}):`, pusherErr);
       }
 
-      // Firebase
+     
       if (sendFirebase && user.fcmToken) {
         try {
-          // 🚀 تم إصلاح هذا الجزء باستخدام الدالة toStringData المُعرفة أعلاه
+         
           const data = toStringData({
             ...payload,
             event,
@@ -99,7 +96,7 @@ async notifyAllUsers(event, payload, saveToDB = true, sendFirebase = true) {
             payload.message,
             data
           );
-          console.log(`✅ Firebase sent → user ${user._id}`);
+          console.log(`\ Firebase sent → user ${user._id}`);
         } catch (firebaseErr) {
           console.error(`Firebase error (user ${user._id}):`, firebaseErr);
         }
@@ -204,7 +201,7 @@ async notifyAllUsers(event, payload, saveToDB = true, sendFirebase = true) {
       
 
       if (sendFirebase && user.fcmToken) {
-        // يجب استخدام toStringData هنا أيضاً لضمان التوافق
+       
         const data = toStringData({
             ...payload, 
             event, 
@@ -284,7 +281,7 @@ async appointmentReminder(userId, appointmentData) {
 async newScheduleAvailable(doctor, date, timeSlots) {
   try {
     const slotsCount = timeSlots.length;
-    const message = `new schedule available with ${doctor.name} on ${date} (${slotsCount} slots available)`;
+    const message = `new schedule available with ${doctor.name} on ${date}  slots available)`;
     await this.notifyAllUsers("notification:newScheduleAvailable", {
       message,
       doctorId: doctor._id,
@@ -319,7 +316,7 @@ async newScheduleAvailable(doctor, date, timeSlots) {
     
       await this.notifyUser(userId, "notification:labResult", payload, true, false);
       
-      // 🚀 تم إصلاح هذا الجزء باستخدام الدالة toStringData أيضاً
+     
       const data = toStringData({ ...payload, event: "notification:labResult" });
       
       await this.sendFirebaseNotification(
