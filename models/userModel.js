@@ -14,7 +14,8 @@ const userSchema = new mongoose.Schema({
   medicalFile: { type: String }, 
   resetOTP: { type: String },
   resetOTPExpires: { type: Date },
-  notificationsEnabled: { type: Boolean, default: true }
+  notificationsEnabled: { type: Boolean, default: true },
+   fcmToken: { type: String, default: null }
 }, { timestamps: true });
 userSchema.pre("save", async function (next) {
   if (!this.isModified("password")) return next();

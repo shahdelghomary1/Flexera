@@ -413,7 +413,7 @@ export const addExercisesToUser = async (req, res) => {
         }
       );
     } else {
-      console.error("❌ NotificationService not found in req.app");
+      console.error(" NotificationService not found in req.app");
     }
 
     res.status(200).json({
