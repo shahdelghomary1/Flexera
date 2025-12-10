@@ -295,11 +295,12 @@ export const testFirebaseNotification = async (req, res) => {
     console.log(`   Title: ${title || "Test Notification"}`);
     console.log(`   Body: ${body || "This is a test notification from the server"}`);
 
+    // هنا خليت كل القيم Strings
     const result = await notificationService.sendFirebaseNotification(
       userId,
       title || "Test Notification",
       body || "This is a test notification from the server",
-      { test: true, timestamp: new Date().toISOString() }
+      { test: "true", timestamp: new Date().toISOString() }
     );
 
     console.log(`✅ Firebase notification sent successfully!`);
