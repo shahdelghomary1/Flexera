@@ -35,44 +35,62 @@ export default class NotificationService {
     });
   }
 
-  async notifyAllUsers(event, payload, saveToDB = true) {
-    try {
-      const users = await userModel.find({}, "_id email name notificationsEnabled");
-      console.log(`Found ${users.length} users to notify`);
+  async notifyAllUsers(event, payload, saveToDB = true, sendFirebase = true) {
+  try {
+    const users = await userModel.find({}, "_id email name notificationsEnabled fcmToken");
+    console.log(`Found ${users.length} users to notify`);
 
-      for (const user of users) {
-        if (user.notificationsEnabled === false) {
-          console.log(`⏭ Skipping notification for user ${user._id} (notifications disabled)`);
+    for (const user of users) {
+      if (user.notificationsEnabled === false) {
+        console.log(`⏭ Skipping notification for user ${user._id} (notifications disabled)`);
+        continue;
+      }
+
+      let notification;
+      if (saveToDB) {
+        try {
+          notification = await Notification.create({
+            user: user._id,
+            type: event,
+            message: payload.message,
+            data: payload,
+          });
+          payload.notificationId = notification._id;
+        } catch (dbErr) {
+          console.error(`Failed to save notification for user ${user._id}:`, dbErr);
           continue;
         }
+      }
 
-        let notification;
-        if (saveToDB) {
-          try {
-            notification = await Notification.create({
-              user: user._id,
-              type: event,
-              message: payload.message,
-              data: payload,
-            });
-            payload.notificationId = notification._id;
-          } catch (dbErr) {
-            console.error(`Failed to save notification for user ${user._id}:`, dbErr);
-            continue;
-          }
-        }
+      // 🔔 إرسال عبر Pusher
+      try {
+        await this.pusher.trigger(`user-${user._id}`, event, payload);
+        console.log(`📡 Pusher notification sent to user-${user._id}`);
+      } catch (pusherErr) {
+        console.error(`Failed to send event to user-${user._id}:`, pusherErr);
+      }
 
+      // 📲 إرسال عبر Firebase
+      if (sendFirebase && user.fcmToken) {
         try {
-          await this.pusher.trigger(`user-${user._id}`, event, payload);
-        } catch (pusherErr) {
-          console.error(`Failed to send event to user-${user._id}:`, pusherErr);
+          await this.sendFirebaseNotification(
+            user._id,
+            payload.title || "Notification",
+            payload.message,
+            { ...payload, event, notificationId: notification?._id?.toString() }
+          );
+          console.log(`✅ Firebase notification sent to user ${user._id}`);
+        } catch (firebaseErr) {
+          console.error(`Failed to send Firebase notification to user ${user._id}:`, firebaseErr);
         }
       }
-      console.log("notifyAllUsers finished");
-    } catch (err) {
-      console.error("notifyAllUsers general error:", err);
     }
+    console.log("notifyAllUsers finished");
+  } catch (err) {
+    console.error("notifyAllUsers general error:", err);
   }
+}
+
 
   async notifyDoctor(doctorId, event, payload, saveToDB = true) {
     let notification;
