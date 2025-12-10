@@ -28,21 +28,20 @@ export const addDoctor = async (req, res) => {
     const { name, email, speciality, phone, bio } = req.body;
     console.log("🚀 addDoctor called with:", { name, email, speciality, phone, bio });
 
-    // 1️⃣ التحقق من وجود الدكتور
+  
     const exists = await Doctor.findOne({ email });
     if (exists) {
       console.log(`❌ Doctor with email ${email} already exists`);
       return res.status(400).json({ message: "Doctor email already exists" });
     }
 
-    // 2️⃣ إنشاء الدكتور
+ 
     const doctor = await Doctor.create({ name, email, speciality, phone, bio });
     console.log("✅ Doctor created:", doctor._id);
 
-    // 3️⃣ جلب NotificationService
+
    const notificationService = req.app.get("notificationService"); 
     
-    // تأكدي أن الخدمة موجودة قبل استدعائها
     if (notificationService) {
         console.log(`📢 Triggering doctorAdded notification for: ${doctor.name}`);
         await notificationService.doctorAdded(doctor);
@@ -50,7 +49,6 @@ export const addDoctor = async (req, res) => {
         console.error("❌ NotificationService not found in req.app");
     }
 
-    // 4️⃣ إرسال الرد
     res.status(201).json({ message: "Doctor added", doctor });
 
   } catch (err) {

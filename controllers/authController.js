@@ -51,6 +51,11 @@ export const updateAccount = async (req, res) => {
       weight: req.body.weight,
     };
 
+    // إضافة إعدادات الإشعارات إذا تم إرسالها
+    if (req.body.notificationsEnabled !== undefined) {
+      updateData.notificationsEnabled = req.body.notificationsEnabled;
+    }
+
     
     if (req.files?.image) {
       const imageUrl = await uploadToCloudinary(req.files.image[0].buffer);
@@ -275,7 +280,7 @@ export const forgotPassword = async (req, res) => {
 
 export const verifyOTP = async (req, res) => {
   const { otp } = req.body;
-  const tempToken = req.headers.authorization?.split(" ")[1]; // إرسال token في الهيدر
+  const tempToken = req.headers.authorization?.split(" ")[1]; 
 
   if (!tempToken) return res.status(400).json({ message: "Temp token required" });
 
@@ -296,7 +301,6 @@ export const verifyOTP = async (req, res) => {
 
     if (hashOTP(otp) !== user.resetOTP) return res.status(400).json({ message: "Invalid OTP" });
 
-    // توليد resetToken النهائي لصفحة تغيير كلمة المرور
     const resetToken = jwt.sign({ id: user._id }, process.env.JWT_SECRET, { expiresIn: "10m" });
     return res.status(200).json({ message: "OTP verified", resetToken });
   } catch (err) {

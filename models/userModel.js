@@ -1,6 +1,5 @@
 import mongoose from "mongoose";
 import bcrypt from "bcryptjs";
-
 const userSchema = new mongoose.Schema({
   name: { type: String, required: true },
   email: { type: String, required: true, unique: true },
@@ -14,7 +13,8 @@ const userSchema = new mongoose.Schema({
   image: { type: String }, 
   medicalFile: { type: String }, 
   resetOTP: { type: String },
-  resetOTPExpires: { type: Date }
+  resetOTPExpires: { type: Date },
+  notificationsEnabled: { type: Boolean, default: true }
 }, { timestamps: true });
 userSchema.pre("save", async function (next) {
   if (!this.isModified("password")) return next();
@@ -22,7 +22,6 @@ userSchema.pre("save", async function (next) {
   this.password = await bcrypt.hash(this.password, salt);
   next();
 });
-
 userSchema.methods.comparePassword = async function (candidatePassword) {
   return bcrypt.compare(candidatePassword, this.password);
 };

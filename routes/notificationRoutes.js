@@ -1,5 +1,6 @@
 import express from "express";
 import { protect } from "../middleware/authMiddleware.js";
+import { updateNotificationSettings, deleteNotification } from "../controllers/notificationController.js";
 
 const router = express.Router();
 
@@ -29,6 +30,12 @@ router.get("/test-trigger", async (req, res) => {
     res.status(500).json({ success: false, message: err.message });
   }
 });
+
+
+router.put("/settings", protect(["user"]), updateNotificationSettings);
+
+
+router.delete("/:id", protect(["user"]), deleteNotification);
 
 export default router;
 

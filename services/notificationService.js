@@ -23,10 +23,16 @@ export default class NotificationService {
 
  async notifyAllUsers(event, payload, saveToDB = true) {
   try {
-    const users = await userModel.find({}, "_id email name");
+    const users = await userModel.find({}, "_id email name notificationsEnabled");
     console.log(`👥 Found ${users.length} users to notify`);
 
     for (const user of users) {
+      // التحقق من إعدادات الإشعارات للمستخدم
+      if (user.notificationsEnabled === false) {
+        console.log(`⏭ Skipping notification for user ${user._id} (notifications disabled)`);
+        continue;
+      }
+
       console.log(`➡ Preparing notification for user: ${user._id} (${user.email})`);
 
       let notification;
@@ -78,6 +84,19 @@ export default class NotificationService {
 
   async notifyUser(userId, event, payload, saveToDB = true) {
     try {
+      // التحقق من إعدادات الإشعارات للمستخدم
+      const user = await userModel.findById(userId, "notificationsEnabled");
+      if (!user) {
+        console.error(`❌ User ${userId} not found`);
+        return;
+      }
+
+      if (user.notificationsEnabled === false) {
+        console.log(`⏭ Skipping notification for user ${userId} (notifications disabled)`);
+        // لا يتم حفظ الإشعار في DB ولا إرساله عبر Pusher
+        return;
+      }
+
       let notification;
       if (saveToDB) {
         notification = await Notification.create({
