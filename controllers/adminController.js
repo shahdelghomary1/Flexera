@@ -37,7 +37,7 @@ export const addDoctor = async (req, res) => {
 
  
     const doctor = await Doctor.create({ name, email, speciality, phone, bio });
-    console.log("✅ Doctor created:", doctor._id);
+    console.log(" Doctor created:", doctor._id);
 
 
    const notificationService = req.app.get("notificationService"); 
