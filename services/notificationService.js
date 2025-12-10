@@ -90,7 +90,7 @@ export default class NotificationService {
     return this.pusher.trigger(`doctor-${doctorId}`, event, payload);
   }
 
-  // إرسال إشعار Firebase خارجي باستخدام FCM token
+
   async sendFirebaseNotification(userId, title, body, data = {}) {
     try {
       const user = await userModel.findById(userId, "fcmToken notificationsEnabled");
@@ -121,7 +121,7 @@ export default class NotificationService {
       return response;
     } catch (error) {
       console.error(`❌ Failed to send Firebase notification to user ${userId}:`, error);
-      // إذا كان الـ token غير صالح، احذفه من قاعدة البيانات
+    
       if (error.code === 'messaging/invalid-registration-token' || 
           error.code === 'messaging/registration-token-not-registered') {
         await userModel.findByIdAndUpdate(userId, { fcmToken: null });
@@ -148,15 +148,14 @@ export default class NotificationService {
         });
         payload.notificationId = notification._id;
       }
-      
-      // إرسال إشعار Pusher داخلي
+    
       await this.pusher.trigger(`user-${userId}`, event, payload);
       
-      // إرسال إشعار Firebase خارجي إذا طُلب
+
       if (sendFirebase && user.fcmToken) {
         await this.sendFirebaseNotification(
           userId,
-          payload.title || "إشعار جديد",
+          payload.title || " new notification",
           payload.message,
           { ...payload, event, notificationId: notification?._id?.toString() }
         );
@@ -241,34 +240,34 @@ export default class NotificationService {
     }
   }
 
-  // إشعار داخلي عبر Pusher عند وصول نتائج المختبر
+ 
   async notifyLabResult(userId, labResultData) {
     try {
       const { labName, resultUrl, testType, date } = labResultData;
-      const message = `تم استلام نتائج المختبر من ${labName || 'المختبر'}`;
+      const message = `result ${labName || 'lab'}`;
       
       const payload = {
         message,
-        title: "نتائج المختبر",
-        labName: labName || "المختبر",
+        title: "Laboratory results",
+        labName: labName || "lab",
         resultUrl,
         testType,
         date,
         type: "lab_result",
       };
 
-      // إرسال إشعار Pusher داخلي
+    
       await this.notifyUser(userId, "notification:labResult", payload, true, false);
       
-      // إرسال إشعار Firebase خارجي
+     
       await this.sendFirebaseNotification(
         userId,
-        "نتائج المختبر",
+        "Laboratory results",
         message,
         { ...payload, event: "notification:labResult" }
       );
 
-      console.log(`✅ Lab result notification sent to user ${userId}`);
+      console.log(` Lab result notification sent to user ${userId}`);
     } catch (error) {
       console.error(`Failed to send lab result notification to user ${userId}:`, error);
       throw error;

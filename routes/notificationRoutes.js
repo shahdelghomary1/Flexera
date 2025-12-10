@@ -46,13 +46,12 @@ router.get("/", protect(["user"]), getUserNotifications);
 router.put("/:id/read", protect(["user"]), markNotificationRead);
 router.put("/settings", protect(["user"]), updateNotificationSettings);
 
-// حفظ/تحديث FCM token لإرسال إشعارات Firebase خارجية
+
 router.post("/fcm-token", protect(["user"]), updateFCMToken);
 
-// إرسال نتائج المختبر مع إشعار Pusher داخلي (يمكن استخدامه من السيرفر/المختبر)
 router.post("/lab-result", protect(["staff"]), sendLabResult);
 
-// اختبار إرسال إشعار Firebase خارجي (للتجربة)
+
 router.post("/test-firebase", protect(["staff"]), testFirebaseNotification);
 
 router.delete("/:id", protect(["user"]), deleteNotification);
