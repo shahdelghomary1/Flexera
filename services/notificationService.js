@@ -62,7 +62,7 @@ export default class NotificationService {
         }
       }
 
-      // 🔔 إرسال عبر Pusher
+      
       try {
         await this.pusher.trigger(`user-${user._id}`, event, payload);
         console.log(`📡 Pusher notification sent to user-${user._id}`);
@@ -70,7 +70,7 @@ export default class NotificationService {
         console.error(`Failed to send event to user-${user._id}:`, pusherErr);
       }
 
-      // 📲 إرسال عبر Firebase
+
       if (sendFirebase && user.fcmToken) {
         try {
           await this.sendFirebaseNotification(
@@ -228,51 +228,55 @@ export default class NotificationService {
     }
   }
 
-  async doctorAdded(doctor) {
-    try {
-      await this.notifyAllUsers("notification:newDoctor", {
-        message: `new doctor add ${doctor.name}`,
-        doctorId: doctor._id,
-        doctorName: doctor.name,
-      });
-    } catch (error) {
-      console.error("ERROR during notifyAllUsers for doctorAdded:", error.message, error.stack);
-    }
+async doctorAdded(doctor) {
+  try {
+    await this.notifyAllUsers("notification:newDoctor", {
+      message: `new doctor add ${doctor.name}`,
+      doctorId: doctor._id,
+      doctorName: doctor.name,
+      title: "New Doctor Added"
+    }, true, true); // ✅ هنا فعلنا Firebase
+  } catch (error) {
+    console.error("ERROR during notifyAllUsers for doctorAdded:", error.message, error.stack);
   }
+}
 
-  async appointmentReminder(userId, appointmentData) {
-    try {
-      const { doctorName, date, time, from, to } = appointmentData;
-      const message = `Reminder: You have an appointment with ${doctorName} on ${date} from ${from} to ${to}`;
-      await this.notifyUser(userId, "notification:appointmentReminder", {
-        message,
-        doctorName,
-        date,
-        time,
-        from,
-        to,
-      });
-    } catch (error) {
-      console.error(`Failed to send appointment reminder to user ${userId}:`, error);
-    }
+async appointmentReminder(userId, appointmentData) {
+  try {
+    const { doctorName, date, time, from, to } = appointmentData;
+    const message = `Reminder: You have an appointment with ${doctorName} on ${date} from ${from} to ${to}`;
+    await this.notifyUser(userId, "notification:appointmentReminder", {
+      message,
+      doctorName,
+      date,
+      time,
+      from,
+      to,
+      title: "Appointment Reminder"
+    }, true, true); // ✅ هنا فعلنا Firebase
+  } catch (error) {
+    console.error(`Failed to send appointment reminder to user ${userId}:`, error);
   }
+}
 
-  async newScheduleAvailable(doctor, date, timeSlots) {
-    try {
-      const slotsCount = timeSlots.length;
-      const message = `new schedule available with ${doctor.name} on ${date} (${slotsCount} slots available)`;
-      await this.notifyAllUsers("notification:newScheduleAvailable", {
-        message,
-        doctorId: doctor._id,
-        doctorName: doctor.name,
-        date,
-        slotsCount,
-        timeSlots,
-      });
-    } catch (error) {
-      console.error(`Failed to send new schedule notification:`, error);
-    }
+async newScheduleAvailable(doctor, date, timeSlots) {
+  try {
+    const slotsCount = timeSlots.length;
+    const message = `new schedule available with ${doctor.name} on ${date} (${slotsCount} slots available)`;
+    await this.notifyAllUsers("notification:newScheduleAvailable", {
+      message,
+      doctorId: doctor._id,
+      doctorName: doctor.name,
+      date,
+      slotsCount,
+      timeSlots,
+      title: "New Schedule Available"
+    }, true, true); // ✅ هنا فعلنا Firebase
+  } catch (error) {
+    console.error(`Failed to send new schedule notification:`, error);
   }
+}
+
 
  
   async notifyLabResult(userId, labResultData) {
