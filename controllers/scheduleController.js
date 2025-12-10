@@ -93,6 +93,19 @@ export const addSchedule = async (req, res) => {
       existingSchedule.timeSlots.push(...slotsWithBooking);
       await existingSchedule.save();
 
+      // إرسال إشعار لجميع المستخدمين عند إضافة معاد جديد
+      const notificationService = req.app.get("notificationService");
+      if (notificationService) {
+        const doctor = await Doctor.findById(doctorId);
+        if (doctor) {
+          await notificationService.newScheduleAvailable(
+            doctor,
+            requestDate,
+            slotsWithBooking
+          );
+        }
+      }
+
       return res.json({
         message: "Schedule updated successfully",
         schedule: existingSchedule
@@ -104,6 +117,19 @@ export const addSchedule = async (req, res) => {
       date: requestDate,
       timeSlots: slotsWithBooking
     });
+
+    // إرسال إشعار لجميع المستخدمين عند إضافة معاد جديد
+    const notificationService = req.app.get("notificationService");
+    if (notificationService) {
+      const doctor = await Doctor.findById(doctorId);
+      if (doctor) {
+        await notificationService.newScheduleAvailable(
+          doctor,
+          requestDate,
+          slotsWithBooking
+        );
+      }
+    }
 
     res.json({
       message: "Schedule added successfully",

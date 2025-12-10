@@ -149,29 +149,62 @@ export default class NotificationService {
 // notificationService.js
 
 async doctorAdded(doctor) {
-  console.log("📢 doctorAdded triggered for:", doctor.name); // 👈 (1) تأكد من ظهور هذا
+  console.log("📢 doctorAdded triggered for:", doctor.name);
 
-  // 1. استدعاء الدالة المساعدة notifyAllUsers للحفظ والإرسال
   try {
-    // هذه الدالة ستقوم بالتكرار على جميع المستخدمين:
-    // - حفظ إشعار فردي لكل مستخدم في قاعدة البيانات.
-    // - إرسال إشعار لحظي لكل مستخدم عبر Pusher/Socket.io على قناته الخاصة (user-ID).
     await this.notifyAllUsers("notification:newDoctor", {
       message: `دكتور جديد انضم: ${doctor.name}`,
       doctorId: doctor._id,
       doctorName: doctor.name,
     });
 
-    // لا يمكن تسجيل ID إشعار واحد هنا لأنها أصبحت عملية جماعية
-    console.log("✅ Bulk notification process initiated via notifyAllUsers."); // 👈 تأكيد بدء العملية بنجاح
+    console.log("✅ Bulk notification process initiated via notifyAllUsers.");
 
   } catch (error) {
-    // إذا ظهر هذا، فالمشكلة في دالة notifyAllUsers أو اتصال Pusher/قاعدة البيانات
-    console.error("❌ ERROR during notifyAllUsers for doctorAdded:", error.message, error.stack); // 👈 (3) إذا ظهر هذا، فراجع الـ Schema أو دالة notifyAllUsers
+    console.error("❌ ERROR during notifyAllUsers for doctorAdded:", error.message, error.stack);
   }
+}
 
+// إشعار تذكير قبل الموعد
+async appointmentReminder(userId, appointmentData) {
+  try {
+    const { doctorName, date, time, from, to } = appointmentData;
+    const message = `تذكير: لديك موعد مع ${doctorName} في ${date} من ${from} إلى ${to}`;
+    
+    await this.notifyUser(userId, "notification:appointmentReminder", {
+      message: message,
+      doctorName: doctorName,
+      date: date,
+      time: time,
+      from: from,
+      to: to
+    });
 
+    console.log(`✅ Appointment reminder sent to user ${userId}`);
+  } catch (error) {
+    console.error(`❌ Failed to send appointment reminder to user ${userId}:`, error);
+  }
+}
 
+// إشعار عند إضافة معاد جديد
+async newScheduleAvailable(doctor, date, timeSlots) {
+  try {
+    const slotsCount = timeSlots.length;
+    const message = `معاد جديد متاح مع ${doctor.name} في ${date} (${slotsCount} معاد متاح)`;
+    
+    await this.notifyAllUsers("notification:newScheduleAvailable", {
+      message: message,
+      doctorId: doctor._id,
+      doctorName: doctor.name,
+      date: date,
+      slotsCount: slotsCount,
+      timeSlots: timeSlots
+    });
+
+    console.log(`✅ New schedule notification sent for doctor ${doctor.name} on ${date}`);
+  } catch (error) {
+    console.error(`❌ Failed to send new schedule notification:`, error);
+  }
 }
 
 }
