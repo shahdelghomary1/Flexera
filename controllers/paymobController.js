@@ -3,6 +3,7 @@ import axios from "axios";
 import crypto from "crypto";
 import Schedule from "../models/scheduleModel.js";
 import Doctor from "../models/doctorModel.js";
+import User from "../models/userModel.js";
 import { PAYMOB } from "../utils/paymobConfig.js";
 
 
@@ -175,7 +176,34 @@ export const paymobCallback = async (req, res) => {
     const notificationService = req.app.get("notificationService");
     if (notificationService && schedule.user) {
       const doctor = await Doctor.findById(schedule.doctor);
+      const user = await User.findById(schedule.user);
+      
       if (doctor) {
+        // إرسال إشعار للدكتور بأن شخص جديد دفع
+        if (user) {
+          await notificationService.notifyDoctor(
+            schedule.doctor.toString(),
+            "notification:newPayment",
+            {
+              message: `دفع ${user.name} مبلغ ${slot.price} جنيه لحجز موعد`,
+              title: "دفعة جديدة",
+              userId: user._id.toString(),
+              userName: user.name,
+              userEmail: user.email,
+              userImage: user.image,
+              amount: slot.price,
+              date: schedule.date,
+              time: `${slot.from} - ${slot.to}`,
+              from: slot.from,
+              to: slot.to,
+              orderId: slot.orderId,
+              transactionId: slot.transactionId,
+              paymentStatus: "paid"
+            },
+            true // saveToDB
+          );
+          console.log(`✅ Payment notification sent to doctor ${doctor.name} for user ${user.name}`);
+        }
        
         const appointmentDate = new Date(schedule.date);
         const [hours, minutes] = slot.from.split(":").map(Number);

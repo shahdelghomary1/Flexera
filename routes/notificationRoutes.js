@@ -4,7 +4,9 @@ import {
   getUserNotifications, 
   markNotificationRead, 
   deleteNotification, 
-  updateNotificationSettings 
+  updateNotificationSettings,
+  updateFCMToken,
+  sendLabResult
 } from "../controllers/notificationController.js";
 
 const router = express.Router();
@@ -40,8 +42,14 @@ router.get("/test-trigger", async (req, res) => {
 router.get("/", protect(["user"]), getUserNotifications);
 
 
-router.put("/:id/read", protect(["user"]), markNotificationRead)
+router.put("/:id/read", protect(["user"]), markNotificationRead);
 router.put("/settings", protect(["user"]), updateNotificationSettings);
+
+// حفظ/تحديث FCM token لإرسال إشعارات Firebase خارجية
+router.post("/fcm-token", protect(["user"]), updateFCMToken);
+
+// إرسال نتائج المختبر مع إشعار Pusher داخلي (يمكن استخدامه من السيرفر/المختبر)
+router.post("/lab-result", protect(["staff"]), sendLabResult);
 
 router.delete("/:id", protect(["user"]), deleteNotification);
 

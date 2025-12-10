@@ -405,12 +405,15 @@ export const addExercisesToUser = async (req, res) => {
         userId,
         "notification:newExercises",
         {
-          message: `Doctor ${doctorName} added new exercises`,
+          message: `أضاف د. ${doctorName} تمارين جديدة لك`,
+          title: "تمارين جديدة",
           doctorId: req.user._id,
           doctorName: doctorName,
           exercisesCount: exercises.length,
           exercises: exercises
-        }
+        },
+        true, // saveToDB
+        true  // sendFirebase
       );
     } else {
       console.error(" NotificationService not found in req.app");
@@ -445,6 +448,9 @@ export const updateUserExercise = async (req, res) => {
       return res.status(404).json({ message: "Exercise not found" });
     }
 
+    // حفظ معلومات التمرين قبل التحديث
+    const oldExercise = schedule.exercises[exerciseIndex].toObject();
+
     // لازم category لو الدكتور هيعدّلها
     if (req.body.category !== undefined && !req.body.category) {
       return res.status(400).json({ message: "Category cannot be empty" });
@@ -456,6 +462,32 @@ export const updateUserExercise = async (req, res) => {
     };
 
     await schedule.save();
+
+    // إرسال إشعار للمستخدم
+    const notificationService = req.app.get("notificationService");
+    if (notificationService) {
+      const doctor = await Doctor.findById(doctorId);
+      const doctorName = doctor ? doctor.name : "doctor";
+      const updatedExercise = schedule.exercises[exerciseIndex];
+
+      await notificationService.notifyUser(
+        userId,
+        "notification:exerciseUpdated",
+        {
+          message: `تم تحديث تمرين "${updatedExercise.name || oldExercise.name}" من قبل د. ${doctorName}`,
+          title: "تم تحديث التمرين",
+          doctorId: doctorId,
+          doctorName: doctorName,
+          exerciseId: exerciseId,
+          exerciseName: updatedExercise.name || oldExercise.name,
+          exerciseCategory: updatedExercise.category || oldExercise.category,
+          oldExercise: oldExercise,
+          updatedExercise: updatedExercise
+        },
+        true, // saveToDB
+        true  // sendFirebase
+      );
+    }
 
     res.status(200).json({ message: "Exercise updated", schedule });
   } catch (err) {
@@ -476,6 +508,11 @@ export const deleteUserExercise = async (req, res) => {
 
     const initialLength = schedule.exercises.length;
 
+    // حفظ معلومات التمرين قبل الحذف
+    const deletedExercise = schedule.exercises.find(
+      ex => ex._id.toString() === exerciseId
+    );
+
     schedule.exercises = schedule.exercises.filter(
       ex => ex._id.toString() !== exerciseId
     );
@@ -485,6 +522,30 @@ export const deleteUserExercise = async (req, res) => {
     }
 
     await schedule.save();
+
+    // إرسال إشعار للمستخدم
+    const notificationService = req.app.get("notificationService");
+    if (notificationService && deletedExercise) {
+      const doctor = await Doctor.findById(doctorId);
+      const doctorName = doctor ? doctor.name : "doctor";
+
+      await notificationService.notifyUser(
+        userId,
+        "notification:exerciseDeleted",
+        {
+          message: `تم حذف تمرين "${deletedExercise.name || 'تمرين'}" من قبل د. ${doctorName}`,
+          title: "تم حذف التمرين",
+          doctorId: doctorId,
+          doctorName: doctorName,
+          exerciseId: exerciseId,
+          exerciseName: deletedExercise.name || "تمرين",
+          exerciseCategory: deletedExercise.category || "general",
+          deletedExercise: deletedExercise
+        },
+        true, // saveToDB
+        true  // sendFirebase
+      );
+    }
 
     res.status(200).json({ message: "Exercise deleted", schedule });
   } catch (err) {

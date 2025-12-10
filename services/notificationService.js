@@ -90,9 +90,50 @@ export default class NotificationService {
     return this.pusher.trigger(`doctor-${doctorId}`, event, payload);
   }
 
-  async notifyUser(userId, event, payload, saveToDB = true) {
+  // إرسال إشعار Firebase خارجي باستخدام FCM token
+  async sendFirebaseNotification(userId, title, body, data = {}) {
     try {
-      const user = await userModel.findById(userId, "notificationsEnabled");
+      const user = await userModel.findById(userId, "fcmToken notificationsEnabled");
+      if (!user || !user.fcmToken) {
+        console.log(`No FCM token found for user ${userId}`);
+        return;
+      }
+
+      if (user.notificationsEnabled === false) {
+        console.log(`Notifications disabled for user ${userId}`);
+        return;
+      }
+
+      const message = {
+        notification: {
+          title: title,
+          body: body,
+        },
+        data: {
+          ...data,
+          click_action: "FLUTTER_NOTIFICATION_CLICK",
+        },
+        token: user.fcmToken,
+      };
+
+      const response = await admin.messaging().send(message);
+      console.log(`✅ Firebase notification sent successfully to user ${userId}:`, response);
+      return response;
+    } catch (error) {
+      console.error(`❌ Failed to send Firebase notification to user ${userId}:`, error);
+      // إذا كان الـ token غير صالح، احذفه من قاعدة البيانات
+      if (error.code === 'messaging/invalid-registration-token' || 
+          error.code === 'messaging/registration-token-not-registered') {
+        await userModel.findByIdAndUpdate(userId, { fcmToken: null });
+        console.log(`🗑 Removed invalid FCM token for user ${userId}`);
+      }
+      throw error;
+    }
+  }
+
+  async notifyUser(userId, event, payload, saveToDB = true, sendFirebase = false) {
+    try {
+      const user = await userModel.findById(userId, "notificationsEnabled fcmToken");
       if (!user) return;
 
       if (user.notificationsEnabled === false) return;
@@ -107,7 +148,19 @@ export default class NotificationService {
         });
         payload.notificationId = notification._id;
       }
+      
+      // إرسال إشعار Pusher داخلي
       await this.pusher.trigger(`user-${userId}`, event, payload);
+      
+      // إرسال إشعار Firebase خارجي إذا طُلب
+      if (sendFirebase && user.fcmToken) {
+        await this.sendFirebaseNotification(
+          userId,
+          payload.title || "إشعار جديد",
+          payload.message,
+          { ...payload, event, notificationId: notification?._id?.toString() }
+        );
+      }
     } catch (error) {
       console.error(`Failed to notify user ${userId}:`, error);
       throw error;
@@ -185,6 +238,40 @@ export default class NotificationService {
       });
     } catch (error) {
       console.error(`Failed to send new schedule notification:`, error);
+    }
+  }
+
+  // إشعار داخلي عبر Pusher عند وصول نتائج المختبر
+  async notifyLabResult(userId, labResultData) {
+    try {
+      const { labName, resultUrl, testType, date } = labResultData;
+      const message = `تم استلام نتائج المختبر من ${labName || 'المختبر'}`;
+      
+      const payload = {
+        message,
+        title: "نتائج المختبر",
+        labName: labName || "المختبر",
+        resultUrl,
+        testType,
+        date,
+        type: "lab_result",
+      };
+
+      // إرسال إشعار Pusher داخلي
+      await this.notifyUser(userId, "notification:labResult", payload, true, false);
+      
+      // إرسال إشعار Firebase خارجي
+      await this.sendFirebaseNotification(
+        userId,
+        "نتائج المختبر",
+        message,
+        { ...payload, event: "notification:labResult" }
+      );
+
+      console.log(`✅ Lab result notification sent to user ${userId}`);
+    } catch (error) {
+      console.error(`Failed to send lab result notification to user ${userId}:`, error);
+      throw error;
     }
   }
 }
