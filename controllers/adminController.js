@@ -28,39 +28,32 @@ export const addDoctor = async (req, res) => {
     const { name, email, speciality, phone, bio } = req.body;
     console.log(" addDoctor called with:", { name, email, speciality, phone, bio });
 
-  
+    // 1. التحقق من وجود الطبيب
     const exists = await Doctor.findOne({ email });
     if (exists) {
       console.log(` Doctor with email ${email} already exists`);
       return res.status(400).json({ message: "Doctor email already exists" });
     }
 
- 
+    // 2. إنشاء الطبيب
     const doctor = await Doctor.create({ name, email, speciality, phone, bio });
     console.log(" Doctor created:", doctor._id);
 
+    // 3. إرسال الإشعار (Pusher و Firebase)
+    const notificationService = req.app.get("notificationService"); 
 
-   const notificationService = req.app.get("notificationService"); 
-    
-   if (notificationService) {
-    console.log(` Triggering doctorAdded notification for: ${doctor.name}`);
-    await notificationService.doctorAdded(doctor);
+    if (notificationService) {
+      console.log(` Triggering doctorAdded notification for: ${doctor.name}`);
+      
+      // هذا الاستدعاء (doctorAdded) يقوم بإرسال الإشعار لجميع المستخدمين عبر Pusher و Firebase
+      // (عن طريق استدعاء notifyAllUsers(..., true, true)).
+      await notificationService.doctorAdded(doctor);
 
-    // إضافة إرسال Firebase notification لكل المستخدمين المسجلين
-    const usersWithFCM = await User.find({ notificationsEnabled: true, fcmToken: { $exists: true } });
-    for (const user of usersWithFCM) {
-      await notificationService.sendFirebaseNotification(
-        user._id,
-        "New Doctor Added",
-        `New doctor added: ${doctor.name}`,
-        { doctorId: doctor._id, doctorName: doctor.name }
-      );
+    } else {
+      console.error(" NotificationService not found in req.app");
     }
-} else {
-    console.error(" NotificationService not found in req.app");
-}
 
-
+    // 4. الرد بنجاح
     res.status(201).json({ message: "Doctor added", doctor });
 
   } catch (err) {

@@ -166,43 +166,40 @@ async notifyAllUsers(event, payload, saveToDB = true, sendFirebase = true) {
       throw error;
     }
   }
- async notifyUser(userId, event, payload, saveToDB = true, sendFirebase = true) {
-  try {
-    const user = await userModel.findById(userId, "notificationsEnabled fcmToken");
-    if (!user || user.notificationsEnabled === false) return;
+  async notifyUser(userId, event, payload, saveToDB = true, sendFirebase = false) {
+    try {
+      const user = await userModel.findById(userId, "notificationsEnabled fcmToken");
+      if (!user) return;
 
-    const notification = saveToDB
-      ? await Notification.create({
+      if (user.notificationsEnabled === false) return;
+
+      let notification;
+      if (saveToDB) {
+        notification = await Notification.create({
           user: userId,
           type: event,
           message: payload.message,
           data: payload,
-        })
-      : null;
+        });
+        payload.notificationId = notification._id;
+      }
+    
+      await this.pusher.trigger(`user-${userId}`, event, payload);
+      
 
-    // Pusher
-    await this.pusher.trigger(`user-${userId}`, event, { ...payload, notificationId: notification?._id });
-
-    // Firebase
-    if (sendFirebase && user.fcmToken) {
-      const data = toStringData({
-        ...payload,
-        event,
-        notificationId: notification?._id?.toString(),
-      });
-      await this.sendFirebaseNotification(
-        userId,
-        payload.title || "Notification",
-        payload.message,
-        data
-      );
+      if (sendFirebase && user.fcmToken) {
+        await this.sendFirebaseNotification(
+          userId,
+          payload.title || " new notification",
+          payload.message,
+          { ...payload, event, notificationId: notification?._id?.toString() }
+        );
+      }
+    } catch (error) {
+      console.error(`Failed to notify user ${userId}:`, error);
+      throw error;
     }
-  } catch (error) {
-    console.error(`notifyUser error (${userId}):`, error);
-    throw error;
   }
-}
-
   async notifyAllDoctors(event, payload, saveToDB = true) {
     const doctors = await doctorModel.find({}, "_id");
     for (const doctor of doctors) {
@@ -230,7 +227,18 @@ async notifyAllUsers(event, payload, saveToDB = true, sendFirebase = true) {
     }
   }
 
-
+async doctorAdded(doctor) {
+  try {
+    await this.notifyAllUsers("notification:newDoctor", {
+      message: `new doctor add ${doctor.name}`,
+      doctorId: doctor._id,
+      doctorName: doctor.name,
+      title: "New Doctor Added"
+    }, true, true); 
+  } catch (error) {
+    console.error("ERROR during notifyAllUsers for doctorAdded:", error.message, error.stack);
+  }
+}
 
 async appointmentReminder(userId, appointmentData) {
   try {
@@ -250,37 +258,23 @@ async appointmentReminder(userId, appointmentData) {
   }
 }
 
-async doctorAdded(doctor) {
-  try {
-    await this.notifyAllUsers("notification:newDoctor", {
-      message: `new doctor add ${doctor.name}`,
-      doctorId: doctor._id.toString(),   // ✅ حولنا الـ ObjectId لString
-      doctorName: doctor.name,
-      title: "New Doctor Added"
-    }, true, true); 
-  } catch (error) {
-    console.error("ERROR during notifyAllUsers for doctorAdded:", error.message, error.stack);
-  }
-}
-
 async newScheduleAvailable(doctor, date, timeSlots) {
   try {
     const slotsCount = timeSlots.length;
     const message = `new schedule available with ${doctor.name} on ${date} (${slotsCount} slots available)`;
     await this.notifyAllUsers("notification:newScheduleAvailable", {
       message,
-      doctorId: doctor._id.toString(),   // ✅ حولنا الـ ObjectId لString
+      doctorId: doctor._id,
       doctorName: doctor.name,
-      date: date.toString(),             // ✅ التاريخ كString
-      slotsCount: slotsCount.toString(), // ✅ العدد كString
-      timeSlots: JSON.stringify(timeSlots), // ✅ الـ Array كString
+      date,
+      slotsCount,
+      timeSlots,
       title: "New Schedule Available"
     }, true, true);
   } catch (error) {
     console.error(`Failed to send new schedule notification:`, error);
   }
 }
-
 
 
  
