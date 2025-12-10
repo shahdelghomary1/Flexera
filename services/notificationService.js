@@ -14,8 +14,23 @@ if (!admin.apps.length) {
   });
 }
 
-
 export const firebaseAdmin = admin;
+
+/**
+ * دالة مساعدة لضمان تحويل جميع قيم كائن البيانات إلى سلاسل نصية (Strings).
+ * Firebase FCM تتطلب أن تكون جميع الحقول في كائن "data" من نوع string.
+ */
+const toStringData = (obj) => {
+  const data = {};
+  for (const key in obj) {
+    // التحقق من أن المفتاح موجود في الكائن وليس null/undefined
+    if (obj.hasOwnProperty(key) && obj[key] !== null && obj[key] !== undefined) {
+      data[key] = String(obj[key]);
+    }
+  }
+  return data;
+};
+
 
 export default class NotificationService {
   constructor() {
@@ -72,6 +87,7 @@ async notifyAllUsers(event, payload, saveToDB = true, sendFirebase = true) {
       // Firebase
       if (sendFirebase && user.fcmToken) {
         try {
+          // 🚀 تم إصلاح هذا الجزء باستخدام الدالة toStringData المُعرفة أعلاه
           const data = toStringData({
             ...payload,
             event,
@@ -188,11 +204,18 @@ async notifyAllUsers(event, payload, saveToDB = true, sendFirebase = true) {
       
 
       if (sendFirebase && user.fcmToken) {
+        // يجب استخدام toStringData هنا أيضاً لضمان التوافق
+        const data = toStringData({
+            ...payload, 
+            event, 
+            notificationId: notification?._id?.toString() 
+        });
+
         await this.sendFirebaseNotification(
           userId,
           payload.title || " new notification",
           payload.message,
-          { ...payload, event, notificationId: notification?._id?.toString() }
+          data
         );
       }
     } catch (error) {
@@ -296,12 +319,14 @@ async newScheduleAvailable(doctor, date, timeSlots) {
     
       await this.notifyUser(userId, "notification:labResult", payload, true, false);
       
-     
+      // 🚀 تم إصلاح هذا الجزء باستخدام الدالة toStringData أيضاً
+      const data = toStringData({ ...payload, event: "notification:labResult" });
+      
       await this.sendFirebaseNotification(
         userId,
         "Laboratory results",
         message,
-        { ...payload, event: "notification:labResult" }
+        data
       );
 
       console.log(` Lab result notification sent to user ${userId}`);
