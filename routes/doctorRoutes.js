@@ -13,6 +13,7 @@ import {
 } from "../controllers/doctorController.js";
 import { validate } from "../middleware/validate.js";
 const router = express.Router();
+router.put("/account", protect(["doctor"]), upload.single("image"), updateDoctorAccount);
 // appointments for doctor not working aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
 router.get("/appointments", protect(["doctor"]), getAppointmentsForDoctor);
 // deshboard for staff to manage doctors
@@ -25,7 +26,7 @@ router.post("/login", doctorLogin);
 router.post("/forgot-password", doctorForgotPassword);
 router.post("/verify-otp", doctorVerifyOTP);
 router.post("/reset-password", validate(doctorResetPasswordSchema), doctorResetPassword);
-router.put("/account", protect(["doctor"]), upload.single("image"), updateDoctorAccount);
+
 
 router.get("/account", protect(["doctor"]), getDoctorAccount);
 router.delete( "/schedule/:scheduleId/slot/:slotId", protect(["doctor"]), deleteTimeSlot);
