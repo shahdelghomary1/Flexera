@@ -27,8 +27,8 @@ if (!decoded.id) {
 
    
       if (decoded.role === "doctor") {
-        currentUser = await Doctor.findById(decoded.id).select("-password");
-        if (!currentUser) return res.status(401).json({ message: "Doctor not found" });
+  currentUser = await Doctor.findOne({ _id: decoded.id }).select("-password");
+  if (!currentUser) return res.status(401).json({ message: "Doctor not found" });
       } else {
         currentUser = await User.findById(decoded.id).select("-password -resetOTP -resetOTPExpires");
         if (!currentUser) return res.status(401).json({ message: "User not found" });
