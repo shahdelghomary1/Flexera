@@ -146,6 +146,7 @@ const client = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
 
 // ================= GOOGLE AUTH ===================== 
 
+
 export const googleOAuth = async (req, res) => {
   try {
     const { credential } = req.body;
@@ -155,16 +156,12 @@ export const googleOAuth = async (req, res) => {
     }
 
     const ticket = await client.verifyIdToken({
-  idToken,
-  audience,
-});
+      idToken: credential,
+      audience: process.env.GOOGLE_CLIENT_ID,
+    });
 
-// 👇 هنا بتحطي السطرين
-const payload = ticket.getPayload();
-console.log("Token audience:", payload.aud, "Expected:", audience);
-
-const { email, name, picture, sub } = payload;
-
+    const payload = ticket.getPayload();
+    const { email, name, picture, sub } = payload;
 
     let user = await User.findOne({ email });
 
@@ -257,6 +254,7 @@ export const googleOAuthFlutter = async (req, res) => {
     });
   }
 };
+
 
 export const forgotPassword = async (req, res) => {
   const { email } = req.body;
