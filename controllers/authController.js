@@ -206,10 +206,15 @@ export const googleOAuthFlutter = async (req, res) => {
       return res.status(400).json({ message: "No idToken provided" });
     }
 
- 
-    let audience = platform === "ios"
-      ? process.env.GOOGLE_CLIENT_ID_IOS
-      : process.env.GOOGLE_CLIENT_ID_ANDROID;
+    // 👇 هنا نضيف الـ Web Client ID
+    let audience;
+    if (platform === "ios") {
+      audience = process.env.GOOGLE_CLIENT_ID_IOS;
+    } else if (platform === "android") {
+      audience = process.env.GOOGLE_CLIENT_ID_ANDROID;
+    } else {
+      audience = process.env.GOOGLE_CLIENT_ID; // ✨ ده اللي لازم تحطيه في الـ env
+    }
 
     const ticket = await client.verifyIdToken({
       idToken,
@@ -217,6 +222,8 @@ export const googleOAuthFlutter = async (req, res) => {
     });
 
     const payload = ticket.getPayload();
+    console.log("Token audience:", payload.aud, "Expected:", audience); // Debug
+
     const { email, name, picture, sub } = payload;
 
     let user = await User.findOne({ email });
@@ -253,6 +260,7 @@ export const googleOAuthFlutter = async (req, res) => {
     });
   }
 };
+
 
 export const forgotPassword = async (req, res) => {
   const { email } = req.body;
