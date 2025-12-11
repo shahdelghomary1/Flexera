@@ -208,9 +208,8 @@ export const googleOAuthFlutter = async (req, res) => {
     }
 
  
-    let audience = platform === "ios"
-      ? process.env.GOOGLE_CLIENT_ID_IOS
-      : process.env.GOOGLE_CLIENT_ID_ANDROID;
+   let audience = process.env.GOOGLE_CLIENT_ID;
+
 
     const ticket = await client.verifyIdToken({
       idToken,
