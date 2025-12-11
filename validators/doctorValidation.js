@@ -91,12 +91,8 @@ export const updateDoctorSchema = Joi.object({
       "any.only": "Gender must be either male or female"
     }),
 
-  image: Joi.string()
-    .uri()
-    .optional()
-    .messages({
-      "string.uri": "Image must be a valid URL"
-    }),
+ image: Joi.string().uri().optional()
+
 });
 
 
