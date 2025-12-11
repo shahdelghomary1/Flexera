@@ -53,46 +53,12 @@ export const addDoctorSchema = Joi.object({
 
 
 export const updateDoctorSchema = Joi.object({
-  name: Joi.string()
-    .pattern(/^[A-Za-z0-9\s\/\.]+$/)
-    .optional()
-    .messages({
-      "string.pattern.base": "Name can only contain letters, numbers, spaces, / and ."
-    }),
-  
-  email: Joi.string()
-    .email()
-    .pattern(/@gmail\.com$/)
-    .optional()
-    .messages({
-      "string.email": "Email must be valid",
-      "string.pattern.base": "Email must be a Gmail address (must end with @gmail.com)"
-    }),
-  
-  phone: Joi.string()
-    .pattern(/^01[0-2,5]\d{8}$/)
-    .optional()
-    .messages({
-      "string.pattern.base": "Phone number must be a valid Egyptian number (11 digits)"
-    }),
-  
-  
-
-  dateOfBirth: Joi.date()
-    .optional()
-    .messages({
-      "date.base": "Date of birth must be a valid date"
-    }),
-  
-  gender: Joi.string()
-    .valid("Female", "Male")
-    .optional()
-    .messages({
-      "any.only": "Gender must be either male or female"
-    }),
-
- image: Joi.string().uri().optional()
-
+  name: Joi.string().pattern(/^[A-Za-z0-9\s\/\.]+$/).optional(),
+  email: Joi.string().email().pattern(/@gmail\.com$/).optional(),
+  phone: Joi.string().pattern(/^01[0-2,5]\d{8}$/).optional(),
+  dateOfBirth: Joi.date().optional(),
+  gender: Joi.string().valid("Female", "Male").optional(),
+  image: Joi.any().optional(), // بدل string().uri()
 });
 
 
