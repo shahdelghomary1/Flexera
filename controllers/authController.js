@@ -155,12 +155,16 @@ export const googleOAuth = async (req, res) => {
     }
 
     const ticket = await client.verifyIdToken({
-      idToken: credential,
-      audience: process.env.GOOGLE_CLIENT_ID,
-    });
+  idToken,
+  audience,
+});
 
-    const payload = ticket.getPayload();
-    const { email, name, picture, sub } = payload;
+// 👇 هنا بتحطي السطرين
+const payload = ticket.getPayload();
+console.log("Token audience:", payload.aud, "Expected:", audience);
+
+const { email, name, picture, sub } = payload;
+
 
     let user = await User.findOne({ email });
 
