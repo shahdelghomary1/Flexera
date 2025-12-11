@@ -25,9 +25,8 @@ router.post("/login", doctorLogin);
 router.post("/forgot-password", doctorForgotPassword);
 router.post("/verify-otp", doctorVerifyOTP);
 router.post("/reset-password", validate(doctorResetPasswordSchema), doctorResetPassword);
-router.put(
-  "/account",
-  protect(["doctor"]),
+router.put
+  ("/account", protect(["doctor"]),
   upload.single("image"),
   validate(updateDoctorSchema),
   updateDoctorAccount
