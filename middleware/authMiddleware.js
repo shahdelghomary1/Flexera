@@ -43,6 +43,12 @@ if (!decoded.id) {
         id: currentUser._id.toString(),
         role: decoded.role
       };
+ console.log("========= PROTECT LOG =========");
+console.log("Allowed roles:", roles);
+console.log("Token role:", decoded.role);
+console.log("User ID from token:", decoded.id);
+console.log("Role match:", roles.includes(decoded.role));
+console.log("================================");
 
       if (!roles.includes(decoded.role)) {
         return res.status(403).json({ message: "Access denied" });
