@@ -28,7 +28,6 @@ router.post("/reset-password", validate(doctorResetPasswordSchema), doctorResetP
 router.put
   ("/account", protect(["doctor"]),
   upload.single("image"),
-  validate(updateDoctorSchema),
   updateDoctorAccount
 );
 
