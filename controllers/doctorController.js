@@ -430,7 +430,7 @@ export const addExercisesToUser = async (req, res) => {
     const { userId } = req.params;
     const { exercises } = req.body;
 
-    // Validate array
+ 
     if (!exercises || !Array.isArray(exercises)) {
       return res.status(400).json({ 
         success: false, 
@@ -438,7 +438,7 @@ export const addExercisesToUser = async (req, res) => {
       });
     }
 
-    // Validate incoming exercises
+  
     for (const ex of exercises) {
       if (!ex.category) {
         return res.status(400).json({
@@ -454,7 +454,7 @@ export const addExercisesToUser = async (req, res) => {
       }
     }
 
-    // Get or create schedule
+
     let schedule = await Schedule.findOne({
       user: userId,
       doctor: req.user._id
@@ -470,19 +470,18 @@ export const addExercisesToUser = async (req, res) => {
       });
     }
 
-    // Fix OLD exercises that don't have category
+
     schedule.exercises = schedule.exercises.map((ex) => ({
       ...ex.toObject(),
-      category: ex.category || "general"  // default for old records
+      category: ex.category || "general"  
     }));
 
-    // Add new exercises
+ 
     schedule.exercises.push(...exercises);
 
-    // Save
+
     await schedule.save();
 
-    // ⛔ Notification Service
     const notificationService = req.app.get("notificationService");
 
     if (notificationService) {
@@ -495,8 +494,8 @@ export const addExercisesToUser = async (req, res) => {
         userId,
         "notification:newExercises",
         {
-          message: `أضاف د. ${doctorName} تمارين جديدة لك`,
-          title: "تمارين جديدة",
+          message: ` add D${doctorName} new exercises to your schedule`,
+          title: " new exerice ",
           doctorId: req.user._id,
           doctorName: doctorName,
           exercisesCount: exercises.length,
