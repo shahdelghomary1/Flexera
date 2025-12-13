@@ -264,44 +264,131 @@ export const updateDoctorAccount = async (req, res) => {
   try {
     const doctorId = req.user.id;
     let doctor = await Doctor.findById(doctorId);
-    if (!doctor) return res.status(404).json({ message: "Doctor not found" });
+
+    if (!doctor) {
+      return res.status(404).json({ message: "Doctor not found" });
+    }
+
+    // ====== PREVENT UPDATE ======
     if (req.body.price !== undefined) {
       delete req.body.price;
     }
 
-    
-    const updatableFields = ['name','email','phone','dateOfBirth','gender'];
-    updatableFields.forEach(field => {
-      if (req.body[field] !== undefined) {
-        doctor[field] = field === 'dateOfBirth' ? new Date(req.body[field]) : req.body[field];
-      }
-    });
+    const {
+      name,
+      email,
+      phone,
+      dateOfBirth,
+      gender,
+      oldPassword,
+      newPassword,
+    } = req.body;
 
-    const { oldPassword, newPassword } = req.body;
-    if (newPassword) {
-      if (!oldPassword) return res.status(400).json({ message: "Old password is required" });
+    // ====== VALIDATION ======
+
+    if (name !== undefined) {
+      if (typeof name !== "string" || name.trim().length < 3) {
+        return res.status(400).json({
+          message: "Name must be at least 3 characters",
+        });
+      }
+    }
+
+    if (email !== undefined) {
+      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+      if (!emailRegex.test(email)) {
+        return res.status(400).json({
+          message: "Invalid email format",
+        });
+      }
+    }
+
+    if (phone !== undefined) {
+      const phoneRegex = /^[0-9]{10,15}$/;
+      if (!phoneRegex.test(phone)) {
+        return res.status(400).json({
+          message: "Phone number must be 10 to 15 digits",
+        });
+      }
+    }
+
+    if (gender !== undefined) {
+      if (!["male", "female"].includes(gender)) {
+        return res.status(400).json({
+          message: "Gender must be male or female",
+        });
+      }
+    }
+
+    if (dateOfBirth !== undefined) {
+      const dob = new Date(dateOfBirth);
+      if (isNaN(dob.getTime())) {
+        return res.status(400).json({
+          message: "Invalid date of birth",
+        });
+      }
+    }
+
+    if (newPassword !== undefined) {
+      if (!oldPassword) {
+        return res.status(400).json({
+          message: "Old password is required",
+        });
+      }
+
+      if (typeof newPassword !== "string" || newPassword.length < 8) {
+        return res.status(400).json({
+          message: "New password must be at least 8 characters",
+        });
+      }
+
       const isMatch = await bcrypt.compare(oldPassword, doctor.password);
-      if (!isMatch) return res.status(400).json({ message: "Old password is incorrect" });
+      if (!isMatch) {
+        return res.status(400).json({
+          message: "Old password is incorrect",
+        });
+      }
+
       doctor.password = newPassword;
     }
 
-  if (req.file) {
-  const uploadToCloudinary = (buffer, folder) => {
-    return new Promise((resolve, reject) => {
-      const stream = cloudinary.uploader.upload_stream(
-        { folder },
-        (error, result) => (result ? resolve(result.secure_url) : reject(error))
-      );
-      streamifier.createReadStream(buffer).pipe(stream);
+    // ====== UPDATE FIELDS ======
+
+    const updatableFields = ["name", "email", "phone", "gender"];
+    updatableFields.forEach((field) => {
+      if (req.body[field] !== undefined) {
+        doctor[field] = req.body[field];
+      }
     });
-  };
 
-  const uploadedUrl = await uploadToCloudinary(req.file.buffer, "uploads/doctors");
-  doctor.image = uploadedUrl; 
-}
+    if (dateOfBirth !== undefined) {
+      doctor.dateOfBirth = new Date(dateOfBirth);
+    }
 
+    // ====== IMAGE UPLOAD ======
+
+    if (req.file) {
+      const uploadToCloudinary = (buffer, folder) => {
+        return new Promise((resolve, reject) => {
+          const stream = cloudinary.uploader.upload_stream(
+            { folder },
+            (error, result) =>
+              result ? resolve(result.secure_url) : reject(error)
+          );
+          streamifier.createReadStream(buffer).pipe(stream);
+        });
+      };
+
+      const uploadedUrl = await uploadToCloudinary(
+        req.file.buffer,
+        "uploads/doctors"
+      );
+
+      doctor.image = uploadedUrl;
+    }
 
     await doctor.save();
+
     doctor = doctor.toObject();
     delete doctor.price;
     delete doctor.password;
@@ -310,12 +397,15 @@ export const updateDoctorAccount = async (req, res) => {
       message: "Doctor account updated successfully",
       doctor,
     });
-
   } catch (err) {
     console.error("UPDATE DOCTOR ACCOUNT ERROR:", err);
-    res.status(500).json({ message: "Server error", error: err.message });
+    res.status(500).json({
+      message: "Server error",
+      error: err.message,
+    });
   }
 };
+
 
 export const getDoctorAccount = async (req, res) => {
   try {
