@@ -115,9 +115,9 @@ export const updateDoctor = async (req, res) => {
 };
 export const getAllUsers = async (req, res) => {
   try {
- 
     const users = await User.find({ email: { $ne: "staffflexera@gmail.com" } })
-      .select("name email phone dob image")
+      .select("name email phone dob image createdAt")
+      .sort({ createdAt: -1 }) 
       .lean();
 
     const usersWithAge = users.map(user => {
@@ -141,6 +141,7 @@ export const getAllUsers = async (req, res) => {
     res.status(500).json({ message: "Server error" });
   }
 };
+
 
 export const logoutStaff = (req, res) => {
   res.cookie("token", "", { httpOnly: true, expires: new Date(0), sameSite: "strict" });
