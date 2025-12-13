@@ -39,41 +39,129 @@ export const uploadToCloudinary = (buffer) => {
 export const updateAccount = async (req, res) => {
   try {
     const userId = req.user._id;
+    const {
+      name,
+      email,
+      phone,
+      gender,
+      dob,
+      height,
+      weight,
+      notificationsEnabled,
+    } = req.body;
 
-    
-    let updateData = {
-      name: req.body.name,
-      email: req.body.email,
-      phone: req.body.phone,
-      gender: req.body.gender,
-      dob: req.body.dob,
-      height: req.body.height,
-      weight: req.body.weight,
-    };
+   
 
- 
-    if (req.body.notificationsEnabled !== undefined) {
-      updateData.notificationsEnabled = req.body.notificationsEnabled;
+    if (name !== undefined) {
+      if (typeof name !== "string" || name.trim().length < 3) {
+        return res.status(400).json({
+          success: false,
+          message: "Name must be at least 3 characters",
+        });
+      }
     }
 
-    
+    if (email !== undefined) {
+      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+      if (!emailRegex.test(email)) {
+        return res.status(400).json({
+          success: false,
+          message: "Invalid email format",
+        });
+      }
+    }
+
+    if (phone !== undefined) {
+      const phoneRegex = /^[0-9]{10,15}$/;
+      if (!phoneRegex.test(phone)) {
+        return res.status(400).json({
+          success: false,
+          message: "Phone number must be 10 to 15 digits",
+        });
+      }
+    }
+
+    if (gender !== undefined) {
+      if (!["male", "female"].includes(gender)) {
+        return res.status(400).json({
+          success: false,
+          message: "Gender must be male or female",
+        });
+      }
+    }
+
+    if (dob !== undefined) {
+      if (isNaN(Date.parse(dob))) {
+        return res.status(400).json({
+          success: false,
+          message: "Invalid date of birth",
+        });
+      }
+    }
+
+    if (height !== undefined) {
+      if (isNaN(height) || height <= 0 || height > 300) {
+        return res.status(400).json({
+          success: false,
+          message: "Height must be a valid number",
+        });
+      }
+    }
+
+    if (weight !== undefined) {
+      if (isNaN(weight) || weight <= 0 || weight > 500) {
+        return res.status(400).json({
+          success: false,
+          message: "Weight must be a valid number",
+        });
+      }
+    }
+
+    if (
+      notificationsEnabled !== undefined &&
+      typeof notificationsEnabled !== "boolean"
+    ) {
+      return res.status(400).json({
+        success: false,
+        message: "notificationsEnabled must be boolean",
+      });
+    }
+
+    // ===== UPDATE DATA =====
+
+    let updateData = {
+      name,
+      email,
+      phone,
+      gender,
+      dob,
+      height,
+      weight,
+    };
+
+    if (notificationsEnabled !== undefined) {
+      updateData.notificationsEnabled = notificationsEnabled;
+    }
+
     if (req.files?.image) {
-      const imageUrl = await uploadToCloudinary(req.files.image[0].buffer);
+      const imageUrl = await uploadToCloudinary(
+        req.files.image[0].buffer
+      );
       updateData.image = imageUrl;
     }
 
-    
     if (req.files?.medicalFile) {
-      const medicalFileUrl = await uploadToCloudinary(req.files.medicalFile[0].buffer);
+      const medicalFileUrl = await uploadToCloudinary(
+        req.files.medicalFile[0].buffer
+      );
       updateData.medicalFile = medicalFileUrl;
     }
-
 
     const updatedUser = await User.findByIdAndUpdate(
       userId,
       updateData,
       { new: true }
-    ).select("-password"); 
+    ).select("-password");
 
     if (!updatedUser) {
       return res.status(404).json({
@@ -87,7 +175,6 @@ export const updateAccount = async (req, res) => {
       message: "Account updated successfully",
       user: updatedUser,
     });
-
   } catch (error) {
     res.status(500).json({
       success: false,
@@ -95,6 +182,7 @@ export const updateAccount = async (req, res) => {
     });
   }
 };
+
 
 export const getAccount = async (req, res) => {
   try {
