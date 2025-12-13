@@ -315,7 +315,7 @@ export const updateDoctorAccount = async (req, res) => {
     if (gender !== undefined) {
       if (!["Male", "Female"].includes(gender)) {
         return res.status(400).json({
-          message: "Gender must be male or female",
+          message: "Gender must be Male or Female",
         });
       }
     }
