@@ -284,7 +284,7 @@ export const updateDoctorAccount = async (req, res) => {
       newPassword,
     } = req.body;
 
-    // ====== VALIDATION ======
+  
 
     if (name !== undefined) {
       if (typeof name !== "string" || name.trim().length < 3) {
@@ -313,7 +313,7 @@ export const updateDoctorAccount = async (req, res) => {
     }
 
     if (gender !== undefined) {
-      if (!["male", "female"].includes(gender)) {
+      if (!["Male", "Female"].includes(gender)) {
         return res.status(400).json({
           message: "Gender must be male or female",
         });
