@@ -162,8 +162,14 @@ export const getAllPaidAppointmentsForStaff = async (req, res) => {
     const appointments = [];
 
     schedules.forEach((schedule) => {
+     
+      if (!schedule.doctor) return;
+
       schedule.timeSlots.forEach((slot) => {
-        if (slot.paymentStatus === "paid" && slot.bookedBy) {
+        if (
+          slot.paymentStatus === "paid" &&
+          slot.bookedBy
+        ) {
           appointments.push({
             patient: {
               id: slot.bookedBy._id,
@@ -171,9 +177,9 @@ export const getAllPaidAppointmentsForStaff = async (req, res) => {
               image: slot.bookedBy.image || null,
             },
             doctor: {
-              id: schedule.doctor?._id || null,
-              name: schedule.doctor?.name || null,
-              image: schedule.doctor?.image || null,
+              id: schedule.doctor._id,
+              name: schedule.doctor.name,
+              image: schedule.doctor.image || null,
             },
             date: schedule.date,
             time: `${slot.from} - ${slot.to}`,
@@ -193,4 +199,3 @@ export const getAllPaidAppointmentsForStaff = async (req, res) => {
     res.status(500).json({ message: "Server error", error: err.message });
   }
 };
-
