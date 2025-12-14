@@ -491,51 +491,39 @@ export const getDoctorScheduleForUser = async (req, res) => {
     if (!doctor) return res.status(404).json({ message: "Doctor not found" });
 
     const now = new Date();
-    const today = new Date(now);
-    today.setHours(0, 0, 0, 0);
 
-    const schedules = await Schedule.find({
-      doctor: doctorId,
-      date: { $gte: today } 
-    })
+    const schedules = await Schedule.find({ doctor: doctorId })
       .select("date timeSlots")
       .sort({ date: 1 });
 
     const formattedSchedules = schedules
       .map(schedule => {
-        const scheduleDate = new Date(schedule.date);
+        const scheduleDate = new Date(schedule.date); 
+        scheduleDate.setHours(0, 0, 0, 0);
 
-    
+     
+        if (scheduleDate < new Date(now.setHours(0, 0, 0, 0))) {
+          return null;
+        }
+
         const validTimeSlots = schedule.timeSlots.filter(slot => {
           const slotTime = new Date(scheduleDate);
-          const [hours, minutes] = slot.from.split(":");
+          const [hours, minutes] = slot.from.split(":").map(Number); 
           slotTime.setHours(hours, minutes, 0, 0);
 
-          if (scheduleDate.toDateString() === now.toDateString()) {
-            return slotTime > now;
+          if (scheduleDate.toDateString() === new Date().toDateString()) {
+            return slotTime > new Date();
           }
 
           return true;
         });
 
-       
         if (validTimeSlots.length === 0) return null;
 
         return {
           _id: schedule._id,
           date: schedule.date,
-          timeSlots: validTimeSlots.map(slot => ({
-            _id: slot._id,
-            from: slot.from,
-            to: slot.to,
-            isBooked: slot.isBooked,
-            bookedBy: slot.bookedBy,
-            price: slot.price,
-            paymentStatus: slot.paymentStatus,
-            orderId: slot.orderId,
-            transactionId: slot.transactionId,
-            bookingTime: slot.bookingTime
-          })),
+          timeSlots: validTimeSlots,
           doctor: {
             _id: doctor._id,
             name: doctor.name,
@@ -544,7 +532,7 @@ export const getDoctorScheduleForUser = async (req, res) => {
           }
         };
       })
-      .filter(Boolean); 
+      .filter(Boolean);
 
     res.status(200).json({
       message: "Doctor schedule fetched for user",
@@ -556,6 +544,7 @@ export const getDoctorScheduleForUser = async (req, res) => {
     res.status(500).json({ message: "Server error", error: err.message });
   }
 };
+
 export const getUserExercises = async (req, res) => {
   try {
     const userId = req.user._id;
